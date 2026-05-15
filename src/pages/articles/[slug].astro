@@ -1,0 +1,43 @@
+---
+import { getCollection, render } from 'astro:content';
+import MainLayout from '../../layouts/Layout.astro';
+
+// 1. On génère les chemins pour tous les articles
+export async function getStaticPaths() {
+  const articles = await getCollection('articles');
+  return articles.map(article => ({
+    params: { slug: article.id }, // Astro v5 utilise 'id' (le nom du fichier)
+    props: { article },
+  }));
+}
+
+// 2. On récupère l'article spécifique
+const { article } = Astro.props;
+const { Content } = await render(article);
+---
+
+<MainLayout title={article.data.title}>
+  <article style="background: white; padding: 40px; border-radius: 8px; color: #1a1a1a; max-width: 800px; margin: 0 auto;">
+    <p style="color: #ff8826; font-weight: bold; text-transform: uppercase;">
+      {article.data.category}
+    </p>
+    
+    <h1 style="font-size: 2.5rem; margin: 10px 0;">{article.data.title}</h1>
+    
+    <p style="color: #666; font-style: italic;">
+        Publié le {article.data.date.toLocaleDateString('fr-FR')} 
+        {article.data.source && <span> | Source : {article.data.source}</span>}
+    </p>
+
+    <img src={article.data.image} alt="" style="width: 100%; border-radius: 4px; margin: 20px 0;" />
+
+    <div class="prose">
+      <Content /> </div>
+  </article>
+</MainLayout>
+
+<style is:global>
+  /* Un peu de style pour le texte de l'article */
+  .prose p { line-height: 1.8; margin-bottom: 20px; font-size: 1.1rem; }
+  .prose h2 { margin-top: 30px; color: #121f2f; }
+</style>

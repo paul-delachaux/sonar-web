@@ -1,23 +1,86 @@
-<!doctype html>
-<html lang="en">
+---
+const { title } = Astro.props;
+---
+
+<html lang="fr">
 	<head>
-		<meta charset="UTF-8" />
+		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<title>{title} | Sonar</title>
+		<style is:global>
+			/* Ton CSS personnalisé */
+			body { 
+				font-family: 'Helvetica', sans-serif; 
+				margin: 0; 
+				padding: 20px; 
+				background: #121f2f; 
+				color: #eee; 
+			}
+
+			header { 
+				text-align: center; 
+				border-bottom: 2px solid #000; 
+				padding-bottom: 20px; 
+			}
+
+			.nav-bar { 
+				display: flex; 
+				justify-content: center; 
+				gap: 15px; 
+				border-bottom: 1px solid #000; 
+				padding: 10px 0; 
+				margin-bottom: 20px; 
+			}
+
+			.nav-bar a {
+				text-decoration: none;
+				color: #ff8826; /* Ton orange */
+				font-weight: bold;
+				transition: color 0.3s ease;
+			}
+
+			.nav-bar a:hover {
+				color: #bc0000; /* Ton rouge au survol */
+			}
+
+			/* La grille principale qui contient les articles */
+			.main-grid { 
+				display: grid; 
+				grid-template-columns: 2fr 1fr; 
+				gap: 20px; 
+				max-width: 1200px; 
+				margin: 0 auto; 
+				color: #000; /* Texte des articles en noir pour lisibilité sur fond blanc */
+			}
+
+			/* Les blocs d'articles (fond blanc comme sur ton dessin) */
+			.article-une { 
+				background: white; 
+				padding: 20px; 
+				border: 1px solid #ddd; 
+			}
+
+			.article-sidebar { 
+				background: white; 
+				padding: 15px; 
+				border: 1px solid #ddd; 
+				margin-bottom: 10px; 
+			}
+		</style>
 	</head>
 	<body>
-		<slot />
+		<header>
+			<h1 style="color: #ff8826;">SONAR</h1>
+		</header>
+
+		<nav class="nav-bar">
+			<a href="/">Accueil</a>
+			<a href="/politique">Politique</a>
+			<a href="/culture">Culture</a>
+			<a href="/societe">Société</a>
+		</nav>
+
+		<main>
+			<slot /> </main>
 	</body>
 </html>
-
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>

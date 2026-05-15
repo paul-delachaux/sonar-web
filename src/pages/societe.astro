@@ -1,0 +1,39 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const tousLesArticles = await getCollection('articles');
+
+// On filtre uniquement pour la société
+const articlesSociete = tousLesArticles
+    .filter(art => art.data.category === 'societe')
+    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<MainLayout title="Société">
+    <div class="main-grid">
+        <section class="article-une">
+            <h1 style="color: #ff8826; margin-bottom: 30px;">Faits de Société</h1>
+
+            {articlesSociete.length > 0 ? (
+                articlesSociete.map(art => (
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; color: #1a1a1a;">
+                        <h2 style="margin-top: 0;">{art.data.title}</h2>
+                        <img src={art.data.image} alt="" style="width: 100%; height: auto; margin: 15px 0; border-radius: 4px;" />
+                        <p>{art.data.description}</p>
+                        <a href={`/articles/${art.id}`} style="color: #ff8826; font-weight: bold; text-decoration: none;">Lire l'article →</a>
+                    </div>
+                ))
+            ) : (
+                <p style="color: white;">Aucun article de société pour le moment.</p>
+            )}
+        </section>
+
+        <aside>
+            <div class="article-sidebar">
+                <h3 style="color: white;">Tendances</h3>
+                <p style="color: #ccc; font-size: 0.9rem;">Analyses et décryptages...</p>
+            </div>
+        </aside>
+    </div>
+</MainLayout>

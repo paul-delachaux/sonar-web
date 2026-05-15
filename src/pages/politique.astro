@@ -1,0 +1,43 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+// 1. On récupère TOUS les articles
+const tousLesArticles = await getCollection('articles');
+
+// 2. On filtre pour ne garder que la catégorie "politique"
+// On les trie aussi par date (du plus récent au plus ancien)
+const articlesPolitique = tousLesArticles
+    .filter(art => art.data.category === 'politique')
+    .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<MainLayout title="Politique">
+    <div class="main-grid">
+        <section class="article-une">
+            <h1 style="color: #ff8826; margin-bottom: 30px;">Actualités Politiques</h1>
+
+            {articlesPolitique.length > 0 ? (
+                articlesPolitique.map(art => (
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; color: #1a1a1a;">
+                        <h2>{art.data.title}</h2>
+
+                        <img src={art.data.image} alt="" style="width: 100%; height: auto; margin: 15px 0; border-radius: 4px;" />
+
+                        <p>{art.data.description}</p>
+                        <a href={`/articles/${art.id}`} style="color: #ff8826; font-weight: bold;">Lire l'article →</a>
+                    </div>
+                ))
+            ) : (
+                <p style="color: white;">Aucun article dans cette catégorie pour le moment.</p>
+            )}
+        </section>
+
+        <aside>
+            <div class="article-sidebar">
+                <h3 style="color: white;">Dernières minutes</h3>
+                <p style="color: #ccc; font-size: 0.9rem;">Suivez les débats en direct...</p>
+            </div>
+        </aside>
+    </div>
+</MainLayout>

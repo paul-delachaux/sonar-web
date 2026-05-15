@@ -1,11 +1,61 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+// 1. On importe le Layout et l'outil pour récupérer les articles
+import MainLayout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+// 2. On récupère tous les fichiers du dossier src/content/articles
+const tousLesArticles = await getCollection('articles');
+console.log("NOMBRE D'ARTICLES TROUVÉS :", tousLesArticles.length);
+
+// 3. On trie : on cherche celui qui a "isHero: true" pour la Une
+const articleUne = tousLesArticles.find(art => art.data.isHero);
+
+// 4. On prend les autres pour la barre latérale
+const articlesSecondaires = tousLesArticles.filter(art => !art.data.isHero);
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<MainLayout title="Accueil">
+    <div class="main-grid">
+        
+        {articleUne ? (
+            <section class="article-une">
+                <p style="color: #ff8826; text-transform: uppercase; font-weight: bold; margin-bottom: 10px;">
+                    {articleUne.data.category}
+                </p>
+                
+                <h2>{articleUne.data.title}</h2>
+                
+                <img src={articleUne.data.image} alt="" style="width: 100%; height: auto; margin: 15px 0; border-radius: 4px;" />
+                
+                <p style="font-size: 1.1rem; line-height: 1.6;">{articleUne.data.description}</p>
+                
+                <a href={`/articles/${articleUne.id}`} style="color: #ff8826; font-weight: bold; text-decoration: none;">
+                    Lire la suite →
+                </a>
+            </section>
+        ) : (
+            <section class="article-une">
+                <p>Aucun article à la une trouvé. Créez un fichier .md avec isHero: true.</p>
+            </section>
+        )}
+
+        <aside>
+            {articlesSecondaires.length > 0 ? (
+                articlesSecondaires.map(art => (
+                    <div class="article-sidebar">
+                        <p style="color: #ff8826; font-size: 0.8rem; font-weight: bold; margin: 0;">
+                            {art.data.category.toUpperCase()}
+                        </p>
+                        <h3 style="margin: 5px 0 10px 0; font-size: 1.1rem;">{art.data.title}</h3>
+                        <a href={`/articles/${art.id}`} style="font-size: 0.9rem; color: #555;">
+                            Lire l'article
+                        </a>
+                    </div>
+                ))
+            ) : (
+                <p style="color: white;">Pas d'autres articles.</p>
+            )}
+        </aside>
+        
+    </div>
+</MainLayout>

@@ -1,0 +1,24 @@
+local_backend: true
+backend:
+  name: git-gateway
+
+  branch: main # Assure-toi que ta branche s'appelle bien main
+
+media_folder: "public/assets/uploads" # Où seront stockées les images
+public_folder: "/assets/uploads"
+
+collections:
+  - name: "articles"
+    label: "Articles"
+    folder: "src/content/articles" # Le dossier de tes .md
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "text" }
+      - { label: "Date de publication", name: "date", widget: "datetime" }
+      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe"] }
+      - { label: "Image de couverture", name: "image", widget: "image" }
+      - { label: "À la Une ?", name: "isHero", widget: "boolean", default: false }
+      - { label: "Source", name: "source", widget: "string", required: false }
+      - { label: "Contenu de l'article", name: "body", widget: "markdown" }
