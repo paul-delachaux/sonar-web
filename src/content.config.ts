@@ -9,8 +9,9 @@ const articles = defineCollection({
     description: z.string(),
     date: z.coerce.date(),
     category: z.enum(['politique', 'culture', 'societe']),
-    image: z.string(),
+    image: z.string().optional(),
     isHero: z.boolean().default(false),
+    source: z.string().optional(),
   }),
 });
 

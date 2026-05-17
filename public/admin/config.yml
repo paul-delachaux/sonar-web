@@ -1,4 +1,4 @@
-#local_backend: true
+local_backend: true
 backend:
   name: git-gateway
 
@@ -18,7 +18,7 @@ collections:
       - { label: "Description", name: "description", widget: "text" }
       - { label: "Date de publication", name: "date", widget: "datetime" }
       - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe"] }
-      - { label: "Image de couverture", name: "image", widget: "image" }
+      - { label: "Image de couverture", name: "image", widget: "image" , required: false}
       - { label: "À la Une ?", name: "isHero", widget: "boolean", default: false }
       - { label: "Source", name: "source", widget: "string", required: false }
       - { label: "Contenu de l'article", name: "body", widget: "markdown" }
