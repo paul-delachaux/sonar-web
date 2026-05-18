@@ -1,20 +1,29 @@
 ---
-// 1. On importe le Layout et l'outil pour récupérer les articles
 import MainLayout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
+import homeSettings from '../data/settings.json';
 
-// 2. On récupère tous les fichiers du dossier src/content/articles
+// 1. On récupère TOUS les articles et on les trie du plus récent au plus ancien
 const tousLesArticles = await getCollection('articles');
+const tousTries = tousLesArticles.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
 
-// 3. On cherche celui qui a "isHero: true" pour la Une
-const articleUne = tousLesArticles.find(art => art.data.isHero);
+console.log("=== LISTE DES ID DISPONIBLES DANS ASTRO ===", tousTries.map(art => art.id));
 
-// 4. On filtre pour exclure la Une, et on trie du plus récent au plus ancien
-const articlesSecondaires = tousLesArticles
-    .filter(art => !art.data.isHero)
-    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+// 2. On récupère le choix de la Une basé sur le booléen "isHero" configuré dans Decap CMS
+let articleUne = tousTries.find(art => art.id === homeSettings.heroArticle);
 
-// --- Découpage dynamique ---
+// Sécurité : Si aucun article n'est coché "À la Une", on prend le plus récent par défaut
+if (!articleUne) {
+    articleUne = tousTries[0];
+}
+
+console.log("Valeur du JSON :", homeSettings.heroArticle);
+console.log("Article trouvé :", articleUne?.slug || articleUne?.id);
+
+// 3. Les articles secondaires : Tout le monde SAUF celui sélectionné pour la Une
+const articlesSecondaires = tousTries.filter(art => art.id !== articleUne?.id);
+
+// --- Découpage dynamique de la grille ---
 const premierSecondaireLong = articlesSecondaires[0];
 const autresSecondairesBas = articlesSecondaires.slice(1, 3);
 const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
@@ -77,7 +86,7 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
                         {autresSecondairesBas.length > 0 && (
                             <div class="sub-grid">
                                 {autresSecondairesBas.map(art => (
-                                    <div class="article-sidebar">
+                                    <div class="article-sidebar" set:key={art.id}>
                                         <div class="card-content-top">
                                             <p class="sidebar-tag">{art.data.category.toUpperCase()}</p>
                                             <h3>{art.data.title}</h3>
@@ -107,7 +116,7 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
         {articlesRangeeInferieure.length > 0 && (
             <section class="bottom-row-grid scroll-interactive">
                 {articlesRangeeInferieure.map(art => (
-                    <div class="article-bottom-card">
+                    <div class="article-bottom-card" set:key={art.id}>
                         <div class="card-content-top">
                             <p class="card-tag">{art.data.category.toUpperCase()}</p>
                             <h3>{art.data.title}</h3>
@@ -176,7 +185,7 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
         gap: 20px; 
         color: #000;
         align-items: stretch; 
-        min-height: 700px; /* Légèrement augmenté pour donner de l'espace aux nouvelles images du haut */
+        min-height: 700px;
     }
 
     /* ---- COLONNE GAUCHE (À la Une) ---- */
@@ -200,7 +209,7 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
     }
     .image-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
 
-    /* ---- COLONNE DROITE MODIFIÉE (Barre latérale) ---- */
+    /* ---- COLONNE DROITE (Barre latérale) ---- */
     .sidebar-articles { display: flex; flex-direction: column; gap: 15px; }
     .article-sidebar.long, .sub-grid { flex: 1; }
     .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -212,7 +221,7 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        min-height: 220px; /* Donne une base pour que le spacer d'image s'exprime */
+        min-height: 220px;
     }
     .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #111; }
 
@@ -245,9 +254,9 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
         color: #111 !important; 
     }
 
-    /* ---- LE COMPOSANT DYNAMIQUE (Commun haut & bas désormais) ---- */
+    /* ---- COMPOSANT IMAGE DYNAMIQUE ---- */
     .card-dynamic-spacer {
-        flex-grow: 1;          /* Occupe tout l'espace vide restant */
+        flex-grow: 1;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -256,7 +265,7 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
         overflow: hidden;      
         border-radius: 4px;
         background-color: #f7f7f7; 
-        height: 60px;          /* Hauteur minimale réduite pour s'adapter aussi aux petites cartes du haut */
+        height: 60px;
     }
 
     .spacer-img {
@@ -276,7 +285,7 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
         font-weight: bold; 
         text-decoration: none; 
         font-size: 0.9rem; 
-        margin-top: auto; /* Force le lien à s'aligner tout en bas */
+        margin-top: auto;
     }
     .sidebar-link:hover, .card-link:hover { text-decoration: underline; }
 

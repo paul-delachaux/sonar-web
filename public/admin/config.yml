@@ -7,6 +7,7 @@ backend:
 media_folder: "public/assets/uploads" # Où seront stockées les images
 public_folder: "/assets/uploads"
 
+
 collections:
   - name: "articles"
     label: "Articles"
@@ -18,7 +19,26 @@ collections:
       - { label: "Description", name: "description", widget: "text" }
       - { label: "Date de publication", name: "date", widget: "datetime" }
       - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe"] }
-      - { label: "Image de couverture", name: "image", widget: "image" , required: false}
-      - { label: "À la Une ?", name: "isHero", widget: "boolean", default: false }
+      - { label: "Image de couverture", name: "image", widget: "image" }
+      #- { label: "À la Une ?", name: "isHero", widget: "boolean", default: false }
       - { label: "Source", name: "source", widget: "string", required: false }
       - { label: "Contenu de l'article", name: "body", widget: "markdown" }
+
+  - name: "settings"
+    label: "Paramètres"
+    delete: false # Empêche la suppression du fichier de config
+    editor:
+      preview: false
+    files:
+      - name: "homepage"
+        label: "Configuration Accueil"
+        file: "src/data/settings.json" # Chemin où sera stocké le choix
+        fields:
+          - label: "Article à la une"
+            name: "heroArticle"
+            widget: "relation"
+            collection: "articles" # Le nom de votre collection d'articles
+            search_fields: ["title"]
+            value_field: "{{slug}}" # Ou "id", la valeur unique de l'article
+            display_fields: ["title"]
+
