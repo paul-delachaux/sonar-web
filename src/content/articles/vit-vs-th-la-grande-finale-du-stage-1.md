@@ -1,5 +1,5 @@
 ---
-title: "VIT vs TH : la grande finale du Stage 1 (modifié)"
+title: "VIT vs TH : la grande finale du Stage 1"
 description: VCT EMEA Stage 1 - Grand finale
 date: 2026-05-17T23:39:00.000+02:00
 category: politique
