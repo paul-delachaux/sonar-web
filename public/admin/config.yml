@@ -4,6 +4,8 @@ backend:
   branch: main
   base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
   auth_endpoint: auth # 👈 L'adresse de ta passerelle
+  allowed_users:
+    - paul-delachaux
 
 media_folder: "public/assets/uploads" # Où seront stockées les images
 public_folder: "/assets/uploads"
