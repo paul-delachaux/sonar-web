@@ -1,157 +1,149 @@
-<div class="logo-container">
-  <canvas id="sonar-logo" width="60" height="60"></canvas>
-  <div class="logo-text">
-    <span class="title">LE SONAR</span>
-    <span class="subtitle">MÉDIA</span>
+---
+// Composant Logo Animé Ajusté - Le Sonar
+---
+
+<div style="position: absolute; top: 1rem; left: 1rem; display: flex; flex-direction: column; align-items: center; background: transparent; width: 160px;">
+  <canvas id="c" width="160" height="100" style="display:block; background: transparent; width: 160px; height: 100px; margin-bottom: -6px;"></canvas>
+  <div style="display: flex; flex-direction: column; align-items: center; margin-top: -15px; width: 100%;">
+    <p style="margin: 0; font-family: 'Georgia', serif; font-weight: 700; font-size: 13px; letter-spacing: 3px; color: #ffffff; text-transform: uppercase; text-align: center; text-indent: 3px;">LE SONAR</p>
+    <p style="margin: 0; font-family: 'Georgia', serif; font-size: 6.5px; letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.65); text-transform: uppercase; text-align: center; text-indent: 1.5px; white-space: nowrap;">MÉDIA INDÉPENDANT</p>
   </div>
 </div>
 
 <script>
-  function initSonar() {
-    const canvas = document.getElementById('sonar-logo') as HTMLCanvasElement;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('c') as HTMLCanvasElement;
+const ctx = canvas.getContext('2d');
+if (ctx) {
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+
+  const SX = W / 680, SY = H / 520;
+  const ECX = cx, ECY = cy; 
+  const IRIS_R = 72 * SX; 
+
+  const TRAIL = Math.PI * 1.1;
+  const SPEED = 0.013;
+
+  const C = {
+    bg: 'transparent',
+    eyeFill: 'rgba(255, 255, 255, 0.03)',
+    eyeStroke: '#ffffff',             
+    ring: 'rgba(62, 207, 160, 0.25)',  
+    sweep: '#3ECFA0',                  
+    needle: '#3ECFA0',                 
+    center: '#ffffff',                 
+    ping: '#3ECFA0'                    
+  };
+
+  const EW = 128 * SX; 
+  const EH = 90  * SY; 
+
+  function eyePath() {
     if (!ctx) return;
+    ctx.beginPath();
+    const x = ECX, y = ECY;
+    ctx.moveTo(x, y - EH);
+    ctx.bezierCurveTo(x - 65*SX, y - EH,   x - 118*SX, y - 15*SY,  x - EW, y);
+    ctx.bezierCurveTo(x - 118*SX, y + 15*SY, x - 65*SX, y + EH,     x,      y + EH);
+    ctx.bezierCurveTo(x + 65*SX,  y + EH,   x + 118*SX, y + 15*SY, x + EW, y);
+    ctx.bezierCurveTo(x + 118*SX, y - 15*SY, x + 65*SX, y - EH,     x,      y - EH);
+    ctx.closePath();
+  }
 
-    const W = canvas.width;
-    const H = canvas.height;
-    const cx = W / 2;
-    const cy = H / 2;
-    const R = 26; // Rayon ajusté pour la topbar
+  const targets = [
+    { dist: 0.74, a: 0.88 },
+    { dist: 0.42, a: 0.52 }
+  ];
 
-    const targets = [
-      { dist: 0.60, angle: 0.88, size: 6, opacity: 1 },
-      { dist: 0.30, angle: 0.55, size: 4, opacity: 0.65 }
-    ];
+  function pingOpacity(targetAngle: number, sweep: number) {
+    let diff = ((sweep - targetAngle) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+    if (diff < 0.1) return 1.0;
+    if (diff < TRAIL) return Math.max(0, 1 - diff / TRAIL);
+    return 0;
+  }
 
-    let sweep = -Math.PI / 2;
-    const SPEED = 0.012;
-    const TRAIL = Math.PI * 1.1;
+  let sweep = -Math.PI / 2;
 
-    function pingOpacity(targetAngle: number, sweep: number) {
-      let diff = ((sweep - targetAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-      if (diff > Math.PI * 2) diff -= Math.PI * 2;
-      if (diff < 0.08) return 1.0;
-      if (diff < TRAIL) return Math.max(0, 1 - diff / TRAIL);
-      return 0;
-    }
+  function draw() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, W, H);
 
-    function draw() {
-      if (!ctx || !canvas) return;
-      ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    eyePath();
+    ctx.fillStyle = C.eyeFill;
+    ctx.fill();
+    ctx.restore();
 
-      ctx.save();
+    ctx.save();
+    eyePath();
+    ctx.clip();
+
+    for (let i = 0; i < 60; i++) {
+      const a0 = sweep - (i / 60) * TRAIL;
+      const a1 = sweep - ((i+1) / 60) * TRAIL;
       ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.clip();
-
-      // Fond transparent/sombre intégré à la topbar
-      ctx.fillStyle = '#062016';
-      ctx.fillRect(0, 0, W, H);
-
-      // Faisceau radar
-      const steps = 30;
-      for (let i = 0; i < steps; i++) {
-        const a0 = sweep - (i / steps) * TRAIL;
-        const a1 = sweep - ((i + 1) / steps) * TRAIL;
-        const alpha = (1 - i / steps);
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, R, a0, a1, true);
-        ctx.closePath();
-        ctx.fillStyle = `rgba(26,140,96,${alpha * 0.55})`;
-        ctx.fill();
-      }
-
-      // Cercles concentriques
-      ctx.strokeStyle = '#3ECFA0';
-      [R, R * 0.74, R * 0.48, R * 0.23].forEach((r, i) => {
-        ctx.globalAlpha = [0.8, 0.5, 0.4, 0.3][i];
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      ctx.globalAlpha = 1;
-
-      // Ligne rotative
-      const ex = cx + Math.cos(sweep) * R;
-      const ey = cy + Math.sin(sweep) * R;
-      ctx.strokeStyle = '#6FEBB0';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(ex, ey);
-      ctx.stroke();
-
-      // Cibles "?"
-      targets.forEach(t => {
-        const tAngle = t.angle - Math.PI / 2;
-        const tx = cx + Math.cos(tAngle) * R * t.dist;
-        const ty = cy + Math.sin(tAngle) * R * t.dist;
-        const op = pingOpacity(tAngle, sweep);
-
-        if (op > 0.01) {
-          ctx.save();
-          ctx.globalAlpha = op * t.opacity;
-          ctx.font = `bold ${t.size}px Georgia, serif`;
-          ctx.fillStyle = '#CDFAE8';
-          ctx.fillText('?', tx - 2, ty + 2);
-          ctx.restore();
-        }
-      });
-
-      // Point central
-      ctx.fillStyle = '#CDFAE8';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
+      ctx.moveTo(ECX, ECY);
+      ctx.arc(ECX, ECY, IRIS_R, a0, a1, true);
+      ctx.closePath();
+      ctx.fillStyle = C.sweep;
+      ctx.globalAlpha = (1 - i/60) * 0.4;
       ctx.fill();
-
-      ctx.restore();
-
-      sweep += SPEED;
-      if (sweep > Math.PI * 1.5) sweep -= Math.PI * 2;
-
-      requestAnimationFrame(draw);
     }
+    ctx.globalAlpha = 1;
 
-    draw();
+    [IRIS_R, IRIS_R*0.75, IRIS_R*0.5, IRIS_R*0.25].forEach((r, i) => {
+      ctx.beginPath();
+      ctx.arc(ECX, ECY, r, 0, Math.PI*2);
+      ctx.strokeStyle = C.ring;
+      ctx.lineWidth = i === 0 ? 0.8 : 0.4;
+      ctx.stroke();
+    });
+
+    const ex = ECX + Math.cos(sweep) * IRIS_R;
+    const ey = ECY + Math.sin(sweep) * IRIS_R;
+    ctx.beginPath();
+    ctx.moveTo(ECX, ECY);
+    ctx.lineTo(ex, ey);
+    ctx.strokeStyle = C.needle;
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+
+    targets.forEach(t => {
+      const tAngle = t.a - Math.PI/2;
+      const tx = ECX + Math.cos(tAngle) * IRIS_R * t.dist;
+      const ty = ECY + Math.sin(tAngle) * IRIS_R * t.dist;
+      const op = pingOpacity(tAngle, sweep);
+      if (op > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = op;
+        ctx.font = `bold ${t.dist > 0.6 ? 9 : 7}px 'Georgia', serif`;
+        ctx.fillStyle = C.ping;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('?', tx, ty);
+        ctx.restore();
+      }
+    });
+
+    ctx.beginPath();
+    ctx.arc(ECX, ECY, 2, 0, Math.PI*2);
+    ctx.fillStyle = C.center;
+    ctx.fill();
+
+    ctx.restore();
+
+    ctx.save();
+    eyePath();
+    ctx.strokeStyle = C.eyeStroke;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.restore();
+
+    sweep += SPEED;
+    if (sweep > Math.PI*1.5) sweep -= Math.PI*2;
+    requestAnimationFrame(draw);
   }
 
-  // S'exécute au chargement initial
-  initSonar();
-  // Support si tu utilises Astro View Transitions plus tard
-  document.addEventListener('astro:page-load', initSonar);
+  draw();
+}
 </script>
-
-<style>
-  .logo-container {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-  }
-  #sonar-logo {
-    border-radius: 50%;
-    border: 1px solid #3ECFA0;
-    box-shadow: 0 0 8px rgba(62, 207, 160, 0.3);
-  }
-  .logo-text {
-    display: flex;
-    flex-direction: column;
-    font-family: Georgia, serif;
-  }
-  .title {
-    font-weight: 700;
-    font-size: 14px;
-    letter-spacing: 2px;
-    color: #CDFAE8;
-    line-height: 1.1;
-  }
-  .subtitle {
-    font-size: 9px;
-    letter-spacing: 4px;
-    color: #3ECFA0;
-  }
-</style>
