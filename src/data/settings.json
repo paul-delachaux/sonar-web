@@ -1,3 +1,58 @@
 {
-  "heroArticle": "vit-vs-th-la-grande-finale-du-stage-1"
+  "asymRightArticle": "sonar-réussi-sa-première-publication",
+  "bottomArticles": [
+    "premier-article-en-ligne",
+    "test-admin",
+    "incroyable-nouvelle"
+  ],
+  "sidebarSmallArticles": [
+    "enfin-le-nouveau-menu-admin",
+    "test-pour-layout-2"
+  ],
+  "bottomArticlesStyles": [
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "400",
+      "titleFont": "sans-serif"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "400",
+      "titleFont": "sans-serif"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "400",
+      "titleFont": "sans-serif"
+    }
+  ],
+  "asymLeftArticles": [
+    "sonar-réussi-sa-première-publication",
+    "article",
+    "changement-de-layout"
+  ],
+  "asymLeftStyles": [
+    {
+      "titleSize": "1.1rem",
+      "titleWeight": "400",
+      "titleFont": "sans-serif"
+    },
+    {
+      "titleSize": "1.1rem",
+      "titleWeight": "700",
+      "titleFont": "sans-serif"
+    },
+    {
+      "titleSize": "1.1rem",
+      "titleWeight": "700",
+      "titleFont": "sans-serif"
+    }
+  ],
+  "asymRightStyle": {
+    "titleSize": "1.5rem",
+    "titleWeight": "400",
+    "titleFont": "sans-serif"
+  },
+  "heroArticle": "vit-vs-th-la-grande-finale-du-stage-1",
+  "sidebarLongArticle": "valorant-update"
 }

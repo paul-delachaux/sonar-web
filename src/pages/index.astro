@@ -3,35 +3,127 @@ import MainLayout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import homeSettings from '../data/settings.json';
 
-// 1. On récupère TOUS les articles et on les trie du plus récent au plus ancien
 const tousLesArticles = await getCollection('articles');
 const tousTries = tousLesArticles.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
 
-console.log("=== LISTE DES ID DISPONIBLES DANS ASTRO ===", tousTries.map(art => art.id));
+const trouverArticleParSlug = (slugCible: string | undefined) => {
+    if (!slugCible) return null;
+    const cibleNettoyee = String(slugCible).replace('.md', '').trim().toLowerCase();
+    return tousTries.find(art => {
+        const idNettoye = art.id.replace('.md', '').trim().toLowerCase();
+        return idNettoye.normalize("NFD") === cibleNettoyee.normalize("NFD");
+    });
+};
 
-// 2. On récupère le choix de la Une basé sur le booléen "isHero" configuré dans Decap CMS
-let articleUne = tousTries.find(art => art.id === homeSettings.heroArticle);
+const articlesUtilisesIds = new Set();
 
-// Sécurité : Si aucun article n'est coché "À la Une", on prend le plus récent par défaut
-if (!articleUne) {
-    articleUne = tousTries[0];
+// 2. À LA UNE
+let articleUne = trouverArticleParSlug(homeSettings.heroArticle);
+if (!articleUne) articleUne = tousTries[0];
+if (articleUne) articlesUtilisesIds.add(articleUne.id);
+
+// 3. SIDEBAR HAUT
+let premierSecondaireLong = trouverArticleParSlug(homeSettings.sidebarLongArticle);
+if (!premierSecondaireLong || articlesUtilisesIds.has(premierSecondaireLong.id)) {
+    premierSecondaireLong = tousTries.find(art => !articlesUtilisesIds.has(art.id)) || null;
+}
+if (premierSecondaireLong) articlesUtilisesIds.add(premierSecondaireLong.id);
+
+// 4. SIDEBAR BAS
+let autresSecondairesBas: any[] = [];
+if (homeSettings.sidebarSmallArticles && Array.isArray(homeSettings.sidebarSmallArticles)) {
+    homeSettings.sidebarSmallArticles.forEach((slug: string) => {
+        const art = trouverArticleParSlug(slug);
+        if (art && !articlesUtilisesIds.has(art.id)) {
+            autresSecondairesBas.push(art);
+            articlesUtilisesIds.add(art.id);
+        }
+    });
+}
+while (autresSecondairesBas.length < 2) {
+    const backup = tousTries.find(art => !articlesUtilisesIds.has(art.id));
+    if (!backup) break;
+    autresSecondairesBas.push(backup);
+    articlesUtilisesIds.add(backup.id);
 }
 
-console.log("Valeur du JSON :", homeSettings.heroArticle);
-console.log("Article trouvé :", articleUne?.slug || articleUne?.id);
+// 5. RANGÉE DU BAS (3 ARTICLES)
+let articlesRangeeInferieure: any[] = [];
+if (homeSettings.bottomArticles && Array.isArray(homeSettings.bottomArticles)) {
+    homeSettings.bottomArticles.forEach((slug: string, index: number) => {
+        const art = trouverArticleParSlug(slug);
+        if (art && !articlesUtilisesIds.has(art.id)) {
+            const styleDecap = homeSettings.bottomArticlesStyles?.[index] || {};
+            articlesRangeeInferieure.push({
+                ...art,
+                customStyles: {
+                    fontSize: styleDecap.titleSize || "1.2rem",
+                    fontWeight: styleDecap.titleWeight || "700",
+                    fontFamily: styleDecap.titleFont || "sans-serif"
+                }
+            });
+            articlesUtilisesIds.add(art.id);
+        }
+    });
+}
+while (articlesRangeeInferieure.length < 3) {
+    const backup = tousTries.find(art => !articlesUtilisesIds.has(art.id));
+    if (!backup) break;
+    articlesRangeeInferieure.push({
+        ...backup,
+        customStyles: { fontSize: "1.2rem", fontWeight: "700", fontFamily: "sans-serif" }
+    });
+    articlesUtilisesIds.add(backup.id);
+}
 
-// 3. Les articles secondaires : Tout le monde SAUF celui sélectionné pour la Une
-const articlesSecondaires = tousTries.filter(art => art.id !== articleUne?.id);
+// 6. NOUVEAU : Récupération des 3 articles SUPERPOSÉS (Gauche)
+let articlesAsymGauche: any[] = [];
+if (homeSettings.asymLeftArticles && Array.isArray(homeSettings.asymLeftArticles)) {
+    homeSettings.asymLeftArticles.forEach((slug: string, index: number) => {
+        const art = trouverArticleParSlug(slug);
+        if (art && !articlesUtilisesIds.has(art.id)) {
+            const styleDecap = homeSettings.asymLeftStyles?.[index] || {};
+            articlesAsymGauche.push({
+                ...art,
+                customStyles: {
+                    fontSize: styleDecap.titleSize || "1.1rem",
+                    fontWeight: styleDecap.titleWeight || "700",
+                    fontFamily: styleDecap.titleFont || "sans-serif"
+                }
+            });
+            articlesUtilisesIds.add(art.id);
+        }
+    });
+}
+while (articlesAsymGauche.length < 3) {
+    const backup = tousTries.find(art => !articlesUtilisesIds.has(art.id));
+    if (!backup) break;
+    articlesAsymGauche.push({
+        ...backup,
+        customStyles: { fontSize: "1.1rem", fontWeight: "700", fontFamily: "sans-serif" }
+    });
+    articlesUtilisesIds.add(backup.id);
+}
 
-// --- Découpage dynamique de la grille ---
-const premierSecondaireLong = articlesSecondaires[0];
-const autresSecondairesBas = articlesSecondaires.slice(1, 3);
-const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
+// 7. NOUVEAU : Récupération du GRAND ARTICLE UNIQUE (Droite)
+let articleAsymDroite = trouverArticleParSlug(homeSettings.asymRightArticle);
+if (!articleAsymDroite || articlesUtilisesIds.has(articleAsymDroite.id)) {
+    articleAsymDroite = tousTries.find(art => !articlesUtilisesIds.has(art.id)) || null;
+}
+if (articleAsymDroite) articlesUtilisesIds.add(articleAsymDroite.id);
+
+const styleDroiteDecap = homeSettings.asymRightStyle || {};
+const styleGrandArticle = {
+    fontSize: styleDroiteDecap.titleSize || "1.8rem",
+    fontWeight: styleDroiteDecap.titleWeight || "700",
+    fontFamily: styleDroiteDecap.titleFont || "sans-serif"
+};
 ---
 
 <MainLayout title="Accueil">
     <div class="container-accueil">
         
+        {/* --- GRILLE PRINCIPALE (HAUT) --- */}
         <div class="main-grid">
             {articleUne ? (
                 <section class="article-une">
@@ -39,127 +131,174 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
                         <p class="article-tag">{articleUne.data.category}</p>
                         <h2>{articleUne.data.title}</h2>
                         <p class="article-desc">{articleUne.data.description}</p>
-                        <a href={`/articles/${articleUne.id}`} class="read-more-btn">
-                            Lire la suite →
-                        </a>
+                        <a href={`/articles/${articleUne.id}`} class="read-more-btn">Lire la suite →</a>
                     </div>
-                    
                     {articleUne.data.image ? (
-                        <div class="image-wrapper">
-                            <img src={articleUne.data.image} alt="" />
-                        </div>
+                        <div class="image-wrapper"><img src={articleUne.data.image} alt="" /></div>
                     ) : (
-                        <div class="image-wrapper" style="background: #eee; display: flex; align-items: center; justify-content: center;">
-                            <span style="color: #999;">Pas d'image</span>
-                        </div>
+                        <div class="image-wrapper" style="background: #eee; display: flex; align-items: center; justify-content: center;"><span style="color: #999;">Pas d'image</span></div>
                     )}
                 </section>
             ) : (
-                <section class="article-une">
-                    <p>Aucun article à la une trouvé.</p>
-                </section>
+                <section class="article-une"><p>Aucun article à la une trouvé.</p></section>
             )}
 
             <aside class="sidebar-articles">
-                {articlesSecondaires.length > 0 ? (
-                    <>
-                        {premierSecondaireLong && (
-                            <div class="article-sidebar long">
-                                <div class="card-content-top">
-                                    <p class="sidebar-tag">{premierSecondaireLong.data.category.toUpperCase()}</p>
-                                    <h3>{premierSecondaireLong.data.title}</h3>
-                                    <p class="sidebar-desc">{premierSecondaireLong.data.description}</p>
-                                </div>
-                                
-                                <div class="card-dynamic-spacer">
-                                    <img 
-                                        src={premierSecondaireLong.data.image || "/assets/uploads/default-placeholder.jpg"} 
-                                        alt="" 
-                                        class="spacer-img"
-                                    />
-                                </div>
-                                
-                                <a href={`/articles/${premierSecondaireLong.id}`} class="sidebar-link">Lire l'article</a>
-                            </div>
-                        )}
+                {premierSecondaireLong && (
+                    <div class="article-sidebar long">
+                        <div class="card-content-top">
+                            <p class="sidebar-tag">{premierSecondaireLong.data.category.toUpperCase()}</p>
+                            <h3>{premierSecondaireLong.data.title}</h3>
+                            <p class="sidebar-desc">{premierSecondaireLong.data.description}</p>
+                        </div>
+                        <div class="card-dynamic-spacer">
+                            <img src={premierSecondaireLong.data.image || "/assets/uploads/default-placeholder.jpg"} alt="" class="spacer-img" />
+                        </div>
+                        <a href={`/articles/${premierSecondaireLong.id}`} class="sidebar-link">Lire l'article</a>
+                    </div>
+                )}
 
-                        {autresSecondairesBas.length > 0 && (
-                            <div class="sub-grid">
-                                {autresSecondairesBas.map(art => (
-                                    <div class="article-sidebar" set:key={art.id}>
-                                        <div class="card-content-top">
-                                            <p class="sidebar-tag">{art.data.category.toUpperCase()}</p>
-                                            <h3>{art.data.title}</h3>
-                                            <p class="sidebar-desc">{art.data.description}</p>
-                                        </div>
-                                        
-                                        <div class="card-dynamic-spacer">
-                                            <img 
-                                                src={art.data.image || "/assets/uploads/default-placeholder.jpg"} 
-                                                alt="" 
-                                                class="spacer-img"
-                                            />
-                                        </div>
-                                        
-                                        <a href={`/articles/${art.id}`} class="sidebar-link">Lire l'article</a>
-                                    </div>
-                                ))}
+                {autresSecondairesBas.length > 0 && (
+                    <div class="sub-grid">
+                        {autresSecondairesBas.map(art => (
+                            <div class="article-sidebar" set:key={art.id}>
+                                <div class="card-content-top">
+                                    <p class="sidebar-tag">{art.data.category.toUpperCase()}</p>
+                                    <h3>{art.data.title}</h3>
+                                    <p class="sidebar-desc">{art.data.description}</p>
+                                </div>
+                                <div class="card-dynamic-spacer">
+                                    <img src={art.data.image || "/assets/uploads/default-placeholder.jpg"} alt="" class="spacer-img" />
+                                </div>
+                                <a href={`/articles/${art.id}`} class="sidebar-link">Lire l'article</a>
                             </div>
-                        )}
-                    </>
-                ) : (
-                    <p style="color: white;">Pas d'autres articles.</p>
+                        ))}
+                    </div>
                 )}
             </aside>
         </div>
 
+        {/* --- RANGÉE DU BAS (3 ARTICLES) --- */}
         {articlesRangeeInferieure.length > 0 && (
             <section class="bottom-row-grid scroll-interactive">
-                {articlesRangeeInferieure.map(art => (
-                    <div class="article-bottom-card" set:key={art.id}>
-                        <div class="card-content-top">
-                            <p class="card-tag">{art.data.category.toUpperCase()}</p>
-                            <h3>{art.data.title}</h3>
-                            <p class="card-desc">{art.data.description}</p>
+                {articlesRangeeInferieure.map(art => {
+                    const bgImage = art.data.image || "/assets/uploads/default-placeholder.jpg";
+                    return (
+                        <div class="article-bottom-card has-bg" set:key={art.id} style={`background-image: url('${bgImage}');`}>
+                            <div class="overlay"></div>
+                            <div class="card-content-top">
+                                <p class="card-tag">{art.data.category.toUpperCase()}</p>
+                                <h3 style={`font-size: ${art.customStyles.fontSize} !important; font-weight: ${art.customStyles.fontWeight} !important; font-family: ${art.customStyles.fontFamily} !important;`}>
+                                    {art.data.title}
+                                </h3>
+                                <p class="card-desc">{art.data.description}</p>
+                            </div>
+                            <a href={`/articles/${art.id}`} class="card-link">Lire l'article</a>
                         </div>
-                        
-                        <div class="card-dynamic-spacer">
-                            <img 
-                                src={art.data.image || "/assets/uploads/default-placeholder.jpg"} 
-                                alt="" 
-                                class="spacer-img"
-                            />
-                        </div>
-
-                        <a href={`/articles/${art.id}`} class="card-link">Lire l'article</a>
-                    </div>
-                ))}
+                    );
+                })}
             </section>
         )}
+
+        {/* --- NOUVELLE RANGÉE ASYMÉTRIQUE ET INTERACTIVE --- */}
+        <section class="asym-container">
+            {/* Colonne Gauche : 3 articles empilés avec effet d'apparition Latérale (gauche -> droite) avec décalage */}
+            <div class="asym-left-stack">
+                {articlesAsymGauche.map((art, index) => {
+                    const bgImage = art.data.image || "/assets/uploads/default-placeholder.jpg";
+                    return (
+                        <div 
+                            class="article-bottom-card has-bg scroll-left-to-right" 
+                            set:key={art.id} 
+                            style={`background-image: url('${bgImage}');`}
+                            data-index={index}
+                        >
+                            <div class="overlay"></div>
+                            <div class="card-content-top">
+                                <p class="card-tag">{art.data.category.toUpperCase()}</p>
+                                <h3 style={`font-size: ${art.customStyles.fontSize} !important; font-weight: ${art.customStyles.fontWeight} !important; font-family: ${art.customStyles.fontFamily} !important;`}>
+                                    {art.data.title}
+                                </h3>
+                            </div>
+                            <a href={`/articles/${art.id}`} class="card-link">Lire</a>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Colonne Droite : Le grand article avec effet d'apparition Verticale (bas -> haut) */}
+            {articleAsymDroite && (() => {
+                const bgImage = articleAsymDroite.data.image || "/assets/uploads/default-placeholder.jpg";
+                return (
+                    <div 
+                        class="article-bottom-card has-bg asym-right-giant scroll-bottom-to-top"
+                        style={`background-image: url('${bgImage}');`}
+                    >
+                        <div class="overlay"></div>
+                        <div class="card-content-top">
+                            <p class="card-tag">{articleAsymDroite.data.category.toUpperCase()}</p>
+                            <h3 style={`font-size: ${styleGrandArticle.fontSize} !important; font-weight: ${styleGrandArticle.fontWeight} !important; font-family: ${styleGrandArticle.fontFamily} !important;`}>
+                                {articleAsymDroite.data.title}
+                            </h3>
+                            <p class="card-desc">{articleAsymDroite.data.description}</p>
+                        </div>
+                        <a href={`/articles/${articleAsymDroite.id}`} class="card-link">Lire l'article entier →</a>
+                    </div>
+                );
+            })()}
+        </section>
         
     </div>
 </MainLayout>
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        const targetElement = document.querySelector('.scroll-interactive') as HTMLElement;
-        if (!targetElement) return;
+        // --- 1. Animation de la rangée des 3 articles du haut (existante) ---
+        const bottomRow = document.querySelector('.scroll-interactive') as HTMLElement;
+        
+        // --- 2. Animations de la nouvelle section Asymétrique ---
+        const leftCards = document.querySelectorAll('.scroll-left-to-right');
+        const rightGiant = document.querySelector('.scroll-bottom-to-top') as HTMLElement;
 
         function animateOnScroll() {
-            const rect = targetElement.getBoundingClientRect();
             const viewHeight = window.innerHeight;
-
             const startAnimation = viewHeight;
             const endAnimation = viewHeight - 250; 
 
-            let progress = (startAnimation - rect.top) / (startAnimation - endAnimation);
-            progress = Math.max(0, Math.min(1, progress));
+            // Animation ancienne rangée
+            if (bottomRow) {
+                const rect = bottomRow.getBoundingClientRect();
+                let progress = (startAnimation - rect.top) / (startAnimation - endAnimation);
+                progress = Math.max(0, Math.min(1, progress));
+                bottomRow.style.opacity = progress.toString();
+                bottomRow.style.transform = `translateY(${50 - (progress * 50)}px)`;
+            }
 
-            const opacity = progress; 
-            const translateY = 50 - (progress * 50); 
+            // Animation des 3 petits articles de gauche (Gauche -> Droite avec décalage progressif)
+            leftCards.forEach((card) => {
+                const el = card as HTMLElement;
+                const rect = el.getBoundingClientRect();
+                const index = parseInt(el.getAttribute('data-index') || '0');
+                
+                // Décalage du déclenchement basé sur l'index pour qu'ils ne sortent pas en même temps
+                let progress = (startAnimation - (rect.top + (index * 40))) / (startAnimation - endAnimation);
+                progress = Math.max(0, Math.min(1, progress));
 
-            targetElement.style.opacity = opacity.toString();
-            targetElement.style.transform = `translateY(${translateY}px)`;
+                const translateX = -60 + (progress * 60); // Commence décalé à gauche de -60px
+                el.style.opacity = progress.toString();
+                el.style.transform = `translateX(${translateX}px)`;
+            });
+
+            // Animation du grand article de droite (Bas -> Haut)
+            if (rightGiant) {
+                const rect = rightGiant.getBoundingClientRect();
+                let progress = (startAnimation - rect.top) / (startAnimation - endAnimation);
+                progress = Math.max(0, Math.min(1, progress));
+
+                const translateY = 70 - (progress * 70); // Commence plus bas (70px)
+                rightGiant.style.opacity = progress.toString();
+                rightGiant.style.transform = `translateY(${translateY}px)`;
+            }
         }
 
         window.addEventListener('scroll', animateOnScroll);
@@ -168,132 +307,78 @@ const articlesRangeeInferieure = articlesSecondaires.slice(3, 6);
 </script>
 
 <style>
-    /* Conteneur global */
-    .container-accueil {
-        max-width: 1200px; 
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: 80px; 
-        padding-bottom: 80px;
-    }
-
-    /* Structure de la Grille Principale */
-    .main-grid { 
-        display: grid; 
-        grid-template-columns: 2fr 1fr; 
-        gap: 20px; 
-        color: #000;
-        align-items: stretch; 
-        min-height: 700px;
-    }
-
-    /* ---- COLONNE GAUCHE (À la Une) ---- */
-    .article-une { 
-        background: white; 
-        padding: 24px; 
-        border: 1px solid #ddd; 
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-
+    /* ... Tes styles existants inchangés ... */
+    .container-accueil { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 80px; padding-bottom: 80px; }
+    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; color: #000; align-items: stretch; min-height: 700px; }
+    .article-une { background: white; padding: 24px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; }
     .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #111; }
-
-    .image-wrapper { 
-        width: 100%; 
-        flex-grow: 1; 
-        min-height: 350px; 
-        position: relative; 
-        margin-top: 15px;
-    }
+    .image-wrapper { width: 100%; flex-grow: 1; min-height: 350px; position: relative; margin-top: 15px; }
     .image-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
-
-    /* ---- COLONNE DROITE (Barre latérale) ---- */
     .sidebar-articles { display: flex; flex-direction: column; gap: 15px; }
     .article-sidebar.long, .sub-grid { flex: 1; }
     .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    
-    .article-sidebar { 
-        background: white; 
-        padding: 15px; 
-        border: 1px solid #ddd; 
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: 220px;
-    }
+    .article-sidebar { background: white; padding: 15px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; }
     .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #111; }
-
-    /* ---- RANGÉE INFÉRIEURE ---- */
-    .bottom-row-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr); 
-        gap: 20px; 
-        width: 100%;
-        align-items: stretch;
-    }
-
-    .article-bottom-card { 
-        background: white; 
-        padding: 20px; 
-        border: 1px solid #ddd; 
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: 320px; 
-    }
-
-    .card-content-top {
-        margin-bottom: 5px;
-    }
-
-    .article-bottom-card h3 { 
-        margin: 0 0 8px 0; 
-        font-size: 1.2rem; 
-        color: #111 !important; 
-    }
-
-    /* ---- COMPOSANT IMAGE DYNAMIQUE ---- */
-    .card-dynamic-spacer {
-        flex-grow: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        margin: 10px 0;        
-        overflow: hidden;      
-        border-radius: 4px;
-        background-color: #f7f7f7; 
-        height: 60px;
-    }
-
-    .spacer-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;     
-    }
-
-    /* Typographies communes */
+    .bottom-row-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; align-items: stretch; }
+    .article-bottom-card { background: white; padding: 20px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 320px; border-radius: 2%; }
+    .card-content-top { margin-bottom: 5px; }
+    .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; }
+    .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #f7f7f7; height: 60px; }
+    .spacer-img { width: 100%; height: 100%; object-fit: cover; }
     .article-tag, .sidebar-tag, .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
     .article-tag { margin: 0 0 10px 0; }
     .sidebar-tag, .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
     .article-desc, .sidebar-desc, .card-desc { font-size: 0.95rem; line-height: 1.5; color: #333; margin: 0; }
-    
-    .read-more-btn, .sidebar-link, .card-link { 
-        color: #ff8826; 
-        font-weight: bold; 
-        text-decoration: none; 
-        font-size: 0.9rem; 
-        margin-top: auto;
-    }
+    .read-more-btn, .sidebar-link, .card-link { color: #ff8826; font-weight: bold; text-decoration: none; font-size: 0.9rem; margin-top: auto; }
     .sidebar-link:hover, .card-link:hover { text-decoration: underline; }
+    .scroll-interactive { opacity: 0; transform: translateY(50px); transition: opacity 0.1s ease-out, transform 0.1s ease-out; will-change: opacity, transform; }
+    
+    .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }
+    .article-bottom-card.has-bg .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)); z-index: -1; }
+    .article-bottom-card.has-bg h3 { color: #ffffff !important; }
+    .article-bottom-card.has-bg .card-desc { color: #e0e0e0; }
+    .article-bottom-card.has-bg .card-link { color: #ff9d47; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 
-    /* Animation interactive */
-    .scroll-interactive {
+    /* --- NOUVEAUX STYLES POUR LA GRILLE ASYMÉTRIQUE --- */
+    .asym-container {
+        display: grid;
+        grid-template-columns: 3.5fr 6.5fr; /* Respecte ton dessin : ~35% gauche, ~65% droite */
+        gap: 20px;
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .asym-left-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        justify-content: space-between;
+    }
+
+    /* Les petits articles empilés font une hauteur réduite pour que les 3 cumulés égalent le grand */
+    .asym-left-stack .article-bottom-card {
+        min-height: 120px; 
+        padding: 15px;
+    }
+
+    /* Le géant prend toute la hauteur disponible automatiquement aligné sur le stack de gauche */
+    .asym-right-giant {
+        min-height: 410px; /* Aligné sur la somme des 3 cartes + gaps de gauche */
+        height: 100%;
+    }
+
+    /* Préparation CSS pour les animations de scroll */
+    .scroll-left-to-right {
         opacity: 0;
-        transform: translateY(50px);
-        transition: opacity 0.1s ease-out, transform 0.1s ease-out;
+        transform: translateX(-60px);
+        transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+        will-change: opacity, transform;
+    }
+
+    .scroll-bottom-to-top {
+        opacity: 0;
+        transform: translateY(70px);
+        transition: opacity 0.15s ease-out, transform 0.15s ease-out;
         will-change: opacity, transform;
     }
 </style>

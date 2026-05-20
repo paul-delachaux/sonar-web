@@ -1,8 +1,8 @@
-local_backend: true
 backend:
-  name: git-gateway
-
-  branch: main # Assure-toi que ta branche s'appelle bien main
+  name: github
+  repo: paul-delachaux/sonar-web # 👈 Remplace par ton pseudo et le nom exact de ton dépôt GitHub
+  branch: main
+  base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
 
 media_folder: "public/assets/uploads" # Où seront stockées les images
 public_folder: "/assets/uploads"
@@ -18,7 +18,7 @@ collections:
       - { label: "Titre", name: "title", widget: "string" }
       - { label: "Description", name: "description", widget: "text" }
       - { label: "Date de publication", name: "date", widget: "datetime" }
-      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe"] }
+      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe","technologie"] }
       - { label: "Image de couverture", name: "image", widget: "image" }
       #- { label: "À la Une ?", name: "isHero", widget: "boolean", default: false }
       - { label: "Source", name: "source", widget: "string", required: false }
@@ -34,6 +34,8 @@ collections:
         label: "Configuration Accueil"
         file: "src/data/settings.json" # Chemin où sera stocké le choix
         fields:
+
+           # --- ARTICLE A LA UNE ---
           - label: "Article à la une"
             name: "heroArticle"
             widget: "relation"
@@ -41,4 +43,170 @@ collections:
             search_fields: ["title"]
             value_field: "{{slug}}" # Ou "id", la valeur unique de l'article
             display_fields: ["title"]
+
+          # --- SECTION DROITE (HAUT - LONG) ---
+          - label: "Sidebar : Premier article (Format Long)"
+            name: "sidebarLongArticle"
+            widget: "relation"
+            collection: "articles"
+            search_fields: ["title"]
+            value_field: "{{slug}}"
+            display_fields: ["title"]
+
+          # --- SECTION DROITE (BAS - DEUX PETITS) ---
+          - label: "Sidebar : Deux articles du bas"
+            name: "sidebarSmallArticles"
+            widget: "list"
+            summary: "Article : {{article}}"
+            min: 0
+            max: 2
+            allow_duplicate: false
+            field:
+              label: "Article"
+              name: "article"
+              widget: "relation"
+              collection: "articles"
+              search_fields: ["title"]
+              value_field: "{{slug}}"
+              display_fields: ["title"]
+
+          # --- SECTION DU BAS (TROIS ARTICLES) ---
+          - label: "Rangée du bas (Maximum 3 articles)"
+            name: "bottomArticles"
+            widget: "list"
+            summary: "Article : {{article}}"
+            min: 0
+            max: 3
+            allow_duplicate: false
+            field:
+              label: "Article"
+              name: "article"
+              widget: "relation"
+              collection: "articles"
+              search_fields: ["title"]
+              value_field: "{{slug}}"
+              display_fields: ["title"]
+
+          - label: "Styles de la rangée du bas"
+            name: "bottomArticlesStyles"
+            widget: "list"
+            summary: "Configuration du style — Taille : {{titleSize}}, Police : {{titleFont}}"
+            min: 0
+            max: 3
+            fields:
+              - label: "Taille du titre"
+                name: "titleSize"
+                widget: "select"
+                default: "1.2rem"
+                options:
+                  - { label: "Petit (1rem)", value: "1rem" }
+                  - { label: "Normal (1.2rem)", value: "1.2rem" }
+                  - { label: "Grand (1.6rem)", value: "1.6rem" }
+
+              - label: "Épaisseur du titre"
+                name: "titleWeight"
+                widget: "select"
+                default: "700"
+                options:
+                  - { label: "Fin (300)", value: "300" }
+                  - { label: "Normal (400)", value: "400" }
+                  - { label: "Gras (700)", value: "700" }
+                  - { label: "Ultra-Gras (900)", value: "900" }
+
+              - label: "Style de police"
+                name: "titleFont"
+                widget: "select"
+                default: "sans-serif"
+                options:
+                  - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
+                  - { label: "Journal / Classique (Serif)", value: "serif" }
+                  - { label: "Code (Monospace)", value: "monospace" }
+
+          # --- NOUVELLE SECTION : LES 3 ARTICLES SUPERPOSÉS (GAUCHE) ---
+          - label: "Asymétrique : 3 Articles Superposés (Gauche)"
+            name: "asymLeftArticles"
+            widget: "list"
+            summary: "Article : {{article}}"
+            min: 0
+            max: 3
+            allow_duplicate: false
+            field:
+              label: "Article"
+              name: "article"
+              widget: "relation"
+              collection: "articles"
+              search_fields: ["title"]
+              value_field: "{{slug}}"
+              display_fields: ["title"]
+
+          - label: "Asymétrique : Styles des 3 articles superposés"
+            name: "asymLeftStyles"
+            widget: "list"
+            summary: "Style — Taille : {{titleSize}}, Police : {{titleFont}}"
+            min: 0
+            max: 3
+            fields:
+              - label: "Taille du titre"
+                name: "titleSize"
+                widget: "select"
+                default: "1.1rem"
+                options:
+                  - { label: "Petit (1rem)", value: "1rem" }
+                  - { label: "Normal (1.1rem)", value: "1.1rem" }
+                  - { label: "Grand (1.4rem)", value: "1.4rem" }
+              - label: "Épaisseur du titre"
+                name: "titleWeight"
+                widget: "select"
+                default: "700"
+                options:
+                  - { label: "Fin (300)", value: "300" }
+                  - { label: "Normal (400)", value: "400" }
+                  - { label: "Gras (700)", value: "700" }
+              - label: "Style de police"
+                name: "titleFont"
+                widget: "select"
+                default: "sans-serif"
+                options:
+                  - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
+                  - { label: "Journal (Serif)", value: "serif" }
+                  - { label: "Code (Monospace)", value: "monospace" }
+
+          # --- NOUVELLE SECTION : LE GRAND ARTICLE UNIQUE (DROITE) ---
+          - label: "Asymétrique : Grand Article Principal (Droite)"
+            name: "asymRightArticle"
+            widget: "relation"
+            collection: "articles"
+            search_fields: ["title"]
+            value_field: "{{slug}}"
+            display_fields: ["title"]
+
+          - label: "Asymétrique : Style du Grand Article"
+            name: "asymRightStyle"
+            widget: "object"
+            fields:
+              - label: "Taille du titre"
+                name: "titleSize"
+                widget: "select"
+                default: "1.8rem"
+                options:
+                  - { label: "Normal (1.5rem)", value: "1.5rem" }
+                  - { label: "Grand (1.8rem)", value: "1.8rem" }
+                  - { label: "Géant (2.2rem)", value: "2.2rem" }
+              - label: "Épaisseur du titre"
+                name: "titleWeight"
+                widget: "select"
+                default: "700"
+                options:
+                  - { label: "Normal (400)", value: "400" }
+                  - { label: "Gras (700)", value: "700" }
+              - label: "Style de police"
+                name: "titleFont"
+                widget: "select"
+                default: "sans-serif"
+                options:
+                  - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
+                  - { label: "Journal (Serif)", value: "serif" }
+                  - { label: "Code (Monospace)", value: "monospace" }
+
+              
 

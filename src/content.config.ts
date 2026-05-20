@@ -7,11 +7,11 @@ const articles = defineCollection({
     title: z.string(),
     description: z.string(),
     date: z.coerce.date(),
-    category: z.enum(['politique', 'culture', 'societe']),
+    category: z.enum(['politique', 'culture', 'societe', 'technologie']),
     image: z.string().optional(),
     isHero: z.boolean().default(false),
     source: z.string().optional(),
   }),
 });
 
-export const collections = { articles};
+export const collections = {articles};

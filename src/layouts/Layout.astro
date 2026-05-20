@@ -15,8 +15,14 @@ import LogoSonar from '../components/LogoSonar.astro';
             body { 
                 font-family: 'Helvetica', sans-serif; 
                 margin: 0; 
-                padding: 20px; 
+                padding: 20px 20px 0 20px; /* 0 en bas car le footer gère son propre padding */
                 background: #121f2f; 
+                /*background-image: url('src/assets/lignes_topo.png'); */
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: cover;
+                background-attachment: fixed;
+                background-blend-mode: screen;
                 color: #eee; 
             }
 
@@ -51,7 +57,7 @@ import LogoSonar from '../components/LogoSonar.astro';
                 position: absolute;
                 top: 30px;
                 left: 20px;
-                z-index: 9999; /* Pour rester au-dessus de tout le reste */
+                z-index: 9999;
             }
 
             /* La grille principale qui contient les articles */
@@ -61,14 +67,15 @@ import LogoSonar from '../components/LogoSonar.astro';
                 gap: 20px; 
                 max-width: 1200px; 
                 margin: 0 auto; 
-                color: #000; /* Texte des articles en noir pour lisibilité sur fond blanc */
+                color: #000; 
             }
 
-            /* Les blocs d'articles (fond blanc comme sur ton dessin) */
+            /* Les blocs d'articles */
             .article-une { 
                 background: white; 
                 padding: 20px; 
                 border: 1px solid #ddd; 
+                border-radius: 2%;
             }
 
             .article-sidebar { 
@@ -76,7 +83,119 @@ import LogoSonar from '../components/LogoSonar.astro';
                 padding: 15px; 
                 border: 1px solid #ddd; 
                 margin-bottom: 10px; 
+                border-radius: 2%;
             }
+
+            /* --- STYLES DU NOUVEAU FOOTER INTEGRÉ --- */
+            .site-footer {
+                background-color: #0a131d; /* Légèrement plus sombre que le body pour détacher la section */
+                color: #cccccc;
+                padding: 60px 20px 30px 20px;
+                margin-top: 80px; /* Donne du souffle sous ton dernier article asymétrique */
+                border-top: 2px solid #000;
+                margin-left: -20px;  /* Annule le padding du body pour prendre toute la largeur */
+                margin-right: -20px; /* Annule le padding du body pour prendre toute la largeur */
+            }
+
+            .footer-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                display: grid;
+                grid-template-columns: 2fr 1fr 1fr;
+                gap: 40px;
+                padding-bottom: 40px;
+                border-bottom: 1px solid #1f334b;
+            }
+
+            .footer-brand h3 {
+                color: #ffffff;
+                margin: 0 0 15px 0;
+                font-size: 1.4rem;
+                letter-spacing: 1px;
+            }
+
+            .footer-brand p {
+                color: #8fa0b5;
+                font-size: 0.95rem;
+                line-height: 1.6;
+                margin: 0;
+            }
+
+            .footer-links h4, .footer-contact h4 {
+                color: #ff8826; /* Ton orange signature */
+                margin: 0 0 15px 0;
+                font-size: 1.1rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .footer-links ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .footer-links li {
+                margin-bottom: 10px;
+            }
+
+            .footer-links a {
+                color: #b0c0d2;
+                text-decoration: none;
+                transition: color 0.2s ease;
+            }
+
+            .footer-links a:hover {
+                color: #ff8826;
+            }
+
+            .footer-contact p {
+                margin: 0 0 10px 0;
+                font-size: 0.95rem;
+                color: #b0c0d2;
+            }
+
+            .footer-bottom {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding-top: 20px;
+                text-align: center;
+                font-size: 0.85rem;
+                color: #566981;
+            }
+
+            /* Responsive pour le Footer */
+            @media (max-width: 768px) {
+                .footer-container {
+                    grid-template-columns: 1fr;
+                    gap: 30px;
+                }
+            }
+
+            .instagram-link {
+                display: inline-flex;
+                align-items: center;      /* Centre verticalement l'icône et le texte */
+                justify-content: center;   /* Utile si le bloc prend toute la largeur */
+                gap: 10px;                 /* Espace propre entre le logo et le texte */
+                color: #b0c0d2; 
+                text-decoration: none;
+                font-size: 0.95rem;
+                line-height: 1;           /* Force le texte à ne pas baver vers le bas */
+                transition: color 0.3s ease, transform 0.2s ease;
+            }
+
+            .instagram-icon {
+                width: 20px;
+                height: 20px;
+                display: block;           /* Évite les comportements "inline" bizarres des images */
+            }
+
+            /* Optionnel : Si tu veux centrer tout le bloc au milieu de ta colonne contact */
+            .instagram-wrapper {
+                margin-top: 15px;
+                text-align: left;         /* Laisse à 'left' ou passe à 'center' selon le design global */
+}
+
         </style>
     </head>
     <body>
@@ -87,7 +206,7 @@ import LogoSonar from '../components/LogoSonar.astro';
         </div>
 
         <header>
-            <h1 style="color: #ff8826;">SONAR</h1>
+            <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">SONAR</h1>
         </header>
 
         <nav class="nav-bar">
@@ -95,11 +214,52 @@ import LogoSonar from '../components/LogoSonar.astro';
             <a href="/politique">Politique</a>
             <a href="/culture">Culture</a>
             <a href="/societe">Société</a>
+            <a href="/technologie">Technologie</a>
         </nav>
 
         <main>
             <slot /> 
         </main>
+
+        <footer class="site-footer">
+            <div class="footer-container">
+                <div class="footer-brand">
+                    <h3>SONAR</h3>
+                    <p>Le média qui amplifie l'information. Analyses, décryptages et perspectives sur l'actualité politique, culturelle et technologique.</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h4>Navigation</h4>
+                    <ul>
+                        <li><a href="/">Accueil</a></li>
+                        <li><a href="/politique">Politique</a></li>
+                        <li><a href="/culture">Culture</a></li>
+                        <li><a href="/societe">Société</a></li>
+                        <li><a href="/technologie">Technologie</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-contact">
+                    <h4>Contact</h4>
+                    <p>Email : redaction@sonar-media.fr</p>
+                    <p>Maison de la presse — Paris, France</p>
+                    <div class="instagram-wrapper">
+                        <a href="https://www.instagram.com/banshee.international/" target="_blank" rel="noopener noreferrer" class="instagram-link" aria-label="Suivez SONAR sur Instagram">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="instagram-icon">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                        <span>@banshee.international</span>
+        </a>
+    </div>
+
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {new Date().getFullYear()} SONAR. Tous droits réservés.</p>
+            </div>
+        </footer>
 
         <script>
             if (window.netlifyIdentity) {
