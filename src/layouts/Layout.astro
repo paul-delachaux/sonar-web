@@ -1,6 +1,7 @@
 ---
 const { title } = Astro.props;
 import LogoSonar from '../components/LogoSonar.astro';
+import backgroundImage from '../assets/background.png'; // Ajuste les "../" selon où est ton Layout
 ---
 
 <html lang="fr">
@@ -18,7 +19,7 @@ import LogoSonar from '../components/LogoSonar.astro';
                 padding: 20px 20px 0 20px; /* 0 en bas car le footer gère son propre padding */
                 background-color: #121f2f;
                 background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5));
-                background-image: url('src/assets/fond_sonar.png'); 
+                background-image: url('../assets/fond_sonar.png'); 
                 background-repeat: repeat;
                 background-position: center;
                 background-size: 100% 100%;
@@ -205,7 +206,7 @@ import LogoSonar from '../components/LogoSonar.astro';
     <body>
         <div class="fixed-logo-wrapper">
             <a href="/" style="text-decoration: none;">
-                <LogoSonar />
+                <LogoSonar/>
             </a>
         </div>
 
