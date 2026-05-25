@@ -16,20 +16,23 @@ import LogoSonar from '../components/LogoSonar.astro';
                 font-family: 'Helvetica', sans-serif; 
                 margin: 0; 
                 padding: 20px 20px 0 20px; /* 0 en bas car le footer gère son propre padding */
-                background: #121f2f; 
-                /*background-image: url('src/assets/lignes_topo.png'); */
-                background-repeat: no-repeat;
+                background-color: #121f2f;
+                background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5));
+                background-image: url('src/assets/fond_sonar.png'); 
+                background-repeat: repeat;
                 background-position: center;
-                background-size: cover;
-                background-attachment: fixed;
+                background-size: 100% 100%;
+                background-attachment: cover ;
                 background-blend-mode: screen;
                 color: #eee; 
             }
 
             header { 
                 text-align: center; 
+                line-height: 60px;
                 border-bottom: 2px solid #000; 
                 padding-bottom: 20px; 
+                backdrop-filter: blur(8px);
             }
 
             .nav-bar { 
@@ -39,6 +42,7 @@ import LogoSonar from '../components/LogoSonar.astro';
                 border-bottom: 1px solid #000; 
                 padding: 10px 0; 
                 margin-bottom: 20px; 
+                backdrop-filter: blur(8px); /* Légère transparence pour faire ressortir le texte sur le fond */
             }
 
             .nav-bar a {
@@ -55,7 +59,7 @@ import LogoSonar from '../components/LogoSonar.astro';
             /* Positionnement du logo fixe en haut à gauche */
             .fixed-logo-wrapper {
                 position: absolute;
-                top: -35px;
+                top: -25px;
                 left: -20px;
                 z-index: 9999;
             }
