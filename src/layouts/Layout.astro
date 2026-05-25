@@ -18,13 +18,11 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
                 margin: 0; 
                 padding: 20px 20px 0 20px; /* 0 en bas car le footer gère son propre padding */
                 background-color: #121f2f;
-                background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5));
-                background-image: url('../assets/fond_sonar.png'); 
+                background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('../assets/fond_sonar.png');
                 background-repeat: repeat;
                 background-position: center;
                 background-size: 100% 100%;
-                background-attachment: cover ;
-                background-blend-mode: screen;
+                /*background-blend-mode: multiply;*/
                 color: #eee; 
             }
 
@@ -211,7 +209,7 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
         </div>
 
         <header>
-            <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">SONAR</h1>
+            <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">SONAR by thibaut delachaux</h1>
         </header>
 
         <nav class="nav-bar">
@@ -246,7 +244,7 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
 
                 <div class="footer-contact">
                     <h4>Contact</h4>
-                    <p>Email : redaction@sonar-media.fr</p>
+                    <a>Email : souslesonar@gmail.com</a>
                     <p>Maison de la presse — Paris, France</p>
                     <div class="instagram-wrapper">
                         <a href="https://www.instagram.com/banshee.international/" target="_blank" rel="noopener noreferrer" class="instagram-link" aria-label="Suivez SONAR sur Instagram">
