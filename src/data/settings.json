@@ -1,13 +1,13 @@
 {
   "asymRightArticle": "flash-victor-galère-encore-à-trouver-un-logo",
   "bottomArticles": [
-    "premier-article-en-ligne",
-    "test-admin",
-    "incroyable-nouvelle"
+    "jadore-le-caca",
+    "jadore-le-caca",
+    "jadore-le-caca"
   ],
   "sidebarSmallArticles": [
     "jadore-le-caca",
-    "il-me-fallait-un-11-eme-articles"
+    "jadore-le-caca"
   ],
   "bottomArticlesStyles": [
     {
@@ -53,6 +53,6 @@
     "titleWeight": "400",
     "titleFont": "sans-serif"
   },
-  "heroArticle": "flash-victor-galère-encore-à-trouver-un-logo",
-  "sidebarLongArticle": "enfin-le-nouveau-menu-admin"
+  "heroArticle": "jadore-le-caca",
+  "sidebarLongArticle": "jadore-le-caca"
 }
