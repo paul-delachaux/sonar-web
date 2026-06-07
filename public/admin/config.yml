@@ -3,11 +3,11 @@ backend:
   name: github
   repo: paul-delachaux/sonar-web # 👈 Remplace par ton pseudo et le nom exact de ton dépôt GitHub
   branch: main
-  base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
-  auth_endpoint: auth # 👈 L'adresse de ta passerelle
-  allowed_users:
-    - paul-delachaux
-    - souslesonar-hash
+  #base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
+  #auth_endpoint: auth # 👈 L'adresse de ta passerelle
+  #allowed_users:
+  #  - paul-delachaux
+  #  - souslesonar-hash
 
 media_folder: "public/assets/uploads" # Où seront stockées les images
 public_folder: "/assets/uploads"
@@ -26,6 +26,89 @@ collections:
       - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe","technologie"] }
       - { label: "Image de couverture", name: "image", widget: "image" }
       #- { label: "À la Une ?", name: "isHero", widget: "boolean", default: false }
+      # ==========================================
+      # CONFIGURATION GRAPHIQUE DE LA MINIATURE
+      # ==========================================
+      - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false }
+
+# --- POSITION & ZOOM DU FOND ---
+      - label: "Position du fond"
+        name: "thumbnail_bg_position"
+        widget: "select"
+        default: "center"
+        required: false
+        options:
+          - { label: "Centre", value: "center" }
+          - { label: "Haut", value: "top" }
+          - { label: "Bas", value: "bottom" }
+          - { label: "Gauche", value: "left" }
+          - { label: "Droite", value: "right" }
+          - { label: "Haut gauche", value: "top left" }
+          - { label: "Haut droite", value: "top right" }
+          - { label: "Bas gauche", value: "bottom left" }
+          - { label: "Bas droite", value: "bottom right" }
+
+      - { label: "Zoom du fond (%)", name: "thumbnail_bg_zoom", widget: "number", default: 100, value_type: "int", min: 50, max: 300, required: false }
+
+      # --- CONFIG DU TITRE ---
+      - { label: "Titre sur la Miniature", name: "thumbnail_title", widget: "string", required: false }
+      - { label: "Position X Titre (en px)", name: "title_x", widget: "number", default: 20, value_type: "int", min: 0, max: 500, required: false }
+      - { label: "Position Y Titre (en px)", name: "title_y", widget: "number", default: 20, value_type: "int", min: 0, max: 300, required: false }
+      - { label: "Taille police titre (px)", name: "title_size", widget: "number", default: 24, value_type: "int", min: 8, max: 80, required: false }
+      - label: "Épaisseur police titre"
+        name: "title_weight"
+        widget: "select"
+        default: "700"
+        required: false
+        options:
+          - { label: "Fin (300)", value: "300" }
+          - { label: "Normal (400)", value: "400" }
+          - { label: "Gras (700)", value: "700" }
+          - { label: "Ultra-Gras (900)", value: "900" }
+      - label: "Police titre"
+        name: "title_font"
+        widget: "select"
+        default: "sans-serif"
+        required: false
+        options:
+          - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
+          - { label: "Journal (Serif)", value: "serif" }
+          - { label: "Code (Monospace)", value: "monospace" }
+      - { label: "Couleur titre (ex: #ffffff)", name: "title_color", widget: "color", default: "#ffffff", required: false }
+
+      # --- CONFIG DES BLOCS DE DESCRIPTION ---
+      - label: "Blocs de description sur la Miniature"
+        name: "thumbnail_descs"
+        widget: "list"
+        required: false
+        summary: "{{fields.line}}"
+        fields:
+          - { label: "Texte", name: "line", widget: "string" }
+          - { label: "Position X (px)", name: "x", widget: "number", default: 20, value_type: "int", min: 0, max: 500 }
+          - { label: "Position Y (px)", name: "y", widget: "number", default: 80, value_type: "int", min: 0, max: 300 }
+          - { label: "Taille police (px)", name: "size", widget: "number", default: 14, value_type: "int", min: 8, max: 60 }
+          - label: "Épaisseur"
+            name: "weight"
+            widget: "select"
+            default: "400"
+            options:
+              - { label: "Fin (300)", value: "300" }
+              - { label: "Normal (400)", value: "400" }
+              - { label: "Gras (700)", value: "700" }
+              - { label: "Ultra-Gras (900)", value: "900" }
+          - label: "Police"
+            name: "font"
+            widget: "select"
+            default: "sans-serif"
+            options:
+              - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
+              - { label: "Journal (Serif)", value: "serif" }
+              - { label: "Code (Monospace)", value: "monospace" }
+          - { label: "Couleur (ex: #e1e8ed)", name: "color", widget: "color", default: "#e1e8ed" }
+
+      # --- Choix de miniature ---
+      - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
+      # --- Source et contenu ---
       - { label: "Source", name: "source", widget: "string", required: false }
       - { label: "Contenu de l'article", name: "body", widget: "markdown" }
 

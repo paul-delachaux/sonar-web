@@ -143,19 +143,30 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
             }
 
             .footer-links a {
+                display: inline-block;
                 color: #b0c0d2;
                 text-decoration: none;
-                transition: color 0.2s ease;
+                transition: color 0.3s ease, transform 0.2s ease;
             }
 
             .footer-links a:hover {
-                color: #ff8826;
+                color: #ff8826; 
+                transform: translateY(-2px);
             }
 
             .footer-contact p {
-                margin: 0 0 10px 0;
+                margin: 0; /* Supprime les marges par défaut qui décalent tout */
                 font-size: 0.95rem;
                 color: #b0c0d2;
+                display: inline-flex;
+                align-items: center;
+                height: 20px; /* Aligne sa hauteur invisible sur celle des icônes SVG (20px) */
+            }
+
+            .footer-contact {
+                display: flex;
+                flex-direction: column;
+                gap: 12px; /* C'est CE chiffre qui contrôle précisément l'espace entre tes 3 lignes */
             }
 
             .footer-bottom {
@@ -187,6 +198,11 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
                 transition: color 0.3s ease, transform 0.2s ease;
             }
 
+            .instagram-link:hover {
+                color: #ff7900; /* Change la couleur au survol */
+                transform: translateY(-2px); /* Légère élévation pour un effet de survol */
+            }
+
             .instagram-icon {
                 width: 20px;
                 height: 20px;
@@ -195,9 +211,37 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
 
             /* Optionnel : Si tu veux centrer tout le bloc au milieu de ta colonne contact */
             .instagram-wrapper {
-                margin-top: 15px;
-                text-align: left;         /* Laisse à 'left' ou passe à 'center' selon le design global */
-}
+                margin-top: 0; /* Remis à 0 car géré proprement par le 'gap' du parent */
+                text-align: left; 
+            }
+
+            .contact-link {
+                /* 1. Alignement de l'icône et du texte sur la même ligne */
+                display: inline-flex;
+                align-items: center;
+                gap: 8px; /* Espace de 8px entre l'icône et le texte */
+
+                /* 2. Nettoyage du style par défaut des liens */
+                color: #b0c0d2;  /* Force la couleur gris clair de ton thème */
+                text-decoration: none; /* Supprime le soulignement bleu */
+                
+                /* Petite transition pour un effet de survol sympa */
+                transition: color 0.3s ease, transform 0.2s ease;
+                }
+
+                /* 3. Effet au survol de la souris (Optionnel mais recommandé) */
+            .contact-link:hover {
+                color: #ff7900; /* Le lien devient orange (ou la couleur de ton choix) au survol */
+                transform: translateY(-2px);
+            }
+
+                /* 4. Ajustement optionnel de la taille de l'icône si besoin */
+            .mail-icon {
+                width: 20px;
+                height: 20px;
+                fill: currentColor; /* Permet à l'icône de prendre la même couleur que le texte automatiquement */
+                color: #eee;
+            }
 
         </style>
     </head>
@@ -209,7 +253,7 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
         </div>
 
         <header>
-            <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">SONAR by thibaut delachaux</h1>
+            <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">SONAR</h1>
         </header>
 
         <nav class="nav-bar">
@@ -244,18 +288,26 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
 
                 <div class="footer-contact">
                     <h4>Contact</h4>
-                    <a>Email : souslesonar@gmail.com</a>
+                    <div class="mail-wrapper">
+                        <a href="mailto:contact@lesonar.media" class="contact-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0c0d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mail-icon">
+                            <path d="M4 4h16v16H4z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <span>contact@lesonar.media</span>
+                        </a>
+                    </div>
                     <p>Maison de la presse — Paris, France</p>
                     <div class="instagram-wrapper">
                         <a href="https://www.instagram.com/banshee.international/" target="_blank" rel="noopener noreferrer" class="instagram-link" aria-label="Suivez SONAR sur Instagram">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="instagram-icon">
-                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="instagram-icon">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
                         </svg>
                         <span>@banshee.international</span>
-        </a>
-    </div>
+                        </a>
+                    </div>
 
                 </div>
             </div>

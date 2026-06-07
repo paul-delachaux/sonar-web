@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,94 +8,162 @@
   <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url" />
 
   <style>
-    /* 1. BARRE SUPÉRIEURE (L'en-tête principal du CMS) */
-    #nc-root header, 
-    #nc-root nav[role="navigation"],
-    header {
-      background-color: #062016 !important;
-    }
+    /* 1. BARRE SUPÉRIEURE */
+    #nc-root header, #nc-root nav[role="navigation"], header { background-color: #062016 !important; }
 
-    /* 2. BOUTON DE CONNEXION GITHUB UNIQUEMENT (Écran de Login) */
-    /* On cible spécifiquement le bouton contenu dans le conteneur de login */
-    #nc-root div[class*="LoginContainer"] button,
-    #nc-root div[class*="login"] button,
-    #nc-root button[class*="StyledAuthenticationPageButton"] {
-      background-color: #1D9E75 !important;
-      color: #ffffff !important;
-      border: none !important;
-      box-shadow: none !important;
-    }
-    #nc-root div[class*="LoginContainer"] button:hover,
-    #nc-root button[class*="StyledAuthenticationPageButton"]:hover {
-      background-color: #0b6e50 !important;
-    }
+    /* 2. BOUTON DE CONNEXION GITHUB */
+    #nc-root div[class*="LoginContainer"] button, #nc-root div[class*="login"] button, #nc-root button[class*="StyledAuthenticationPageButton"] { background-color: #1D9E75 !important; color: #ffffff !important; border: none !important; box-shadow: none !important; }
+    #nc-root div[class*="LoginContainer"] button:hover, #nc-root button[class*="StyledAuthenticationPageButton"]:hover { background-color: #0b6e50 !important; }
 
-    /* 3. BOUTON DE PUBLICATION / ENREGISTREMENT UNIQUEMENT (Dans l'éditeur d'article) */
-    /* On cible uniquement les boutons de sauvegarde tout en haut à droite de l'éditeur */
-    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button,
-    #nc-root button[class*="Button-button-Primary"] {
-      background-color: #1D9E75 !important;
-      color: #ffffff !important;
-      border: none !important;
-    }
-    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button:hover,
-    #nc-root button[class*="Button-button-Primary"]:hover {
-      background-color: #0b6e50 !important;
-    }
+    /* 3. BOUTON DE PUBLICATION */
+    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button, #nc-root button[class*="Button-button-Primary"] { background-color: #1D9E75 !important; color: #ffffff !important; border: none !important; }
+    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button:hover, #nc-root button[class*="Button-button-Primary"]:hover { background-color: #0b6e50 !important; }
 
-    /* 4. TEXTES & LIENS DE LA BARRE LATÉRALE (Sidebar) */
-    #nc-root h1, 
-    #nc-root h2, 
-    #nc-root p,
-    #nc-root sidebar a,
-    #nc-root span {
-      font-family: 'Helvetica', serif !important;
-    }
+    /* 4. TEXTES & LIENS */
+    #nc-root h1, #nc-root h2, #nc-root p, #nc-root sidebar a, #nc-root span { font-family: 'Helvetica', serif !important; }
+    #nc-root a[aria-current="page"], #nc-root a:hover { color: #1D9E75 !important; }
 
-    /* Liens actifs ou survolés dans la barre latérale */
-    #nc-root a[aria-current="page"], 
-    #nc-root a:hover {
-      color: #1D9E75 !important;
-    }
-
-    /* ==========================================================================
-       5. STYLISATION INDIVIDUELLE DES TITRES DE CHAMPS (LABELS)
-       ========================================================================== */
-    
-    /* Style COMMUN de base pour TOUS les labels du CMS */
-    #nc-root label {
-      font-family: 'Helvetica', serif !important;
-      text-transform: uppercase !important;
-      letter-spacing: 1px !important;
-    }
-
-    /* --- CIBLAGE TEXTUEL UNIQUE (Fonctionne à 100%) --- */
-
-    /* 1. Cible le label qui contient exactement le texte de ton premier champ */
-    #nc-root  div:has(> label:contains("ARTICLE À LA UNE")) label,
-    #nc-root  label:contains("ARTICLE À LA UNE") {
-      color: #1D9E75 !important; /* Vert radar */
-      font-size: 14px !important;
-      font-weight: 900 !important;
-    }
-
-    /* 2. Cible le champ de ta première sidebar */
-    #nc-root  div:has(> label:contains("SIDEBAR : PREMIER ARTICLE")) label,
-    #nc-root  label:contains("SIDEBAR : PREMIER ARTICLE") {
-      color: #062016 !important; /* Vert foncé */
-      font-size: 13px !important;
-    }
-
-    /* 3. Exemple pour un autre champ comme la Description */
-    #nc-root  div:has(> label:contains("Description")) label,
-    #nc-root  label:contains("Description") {
-      color: #708078 !important;
-      font-size: 12px !important;
-    }
-
+    /* 5. LABELS */
+    #nc-root label { font-family: 'Helvetica', serif !important; text-transform: uppercase !important; letter-spacing: 1px !important; }
+    #nc-root div:has(> label:contains("ARTICLE À LA UNE")) label { color: #1D9E75 !important; font-size: 14px !important; font-weight: 900 !important; }
+    #nc-root div:has(> label:contains("SIDEBAR : PREMIER ARTICLE")) label { color: #062016 !important; font-size: 13px !important; }
+    #nc-root div:has(> label:contains("Description")) label { color: #708078 !important; font-size: 12px !important; }
   </style>
 </head>
 <body>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+
+  <script type="text/javascript">
+    const ArticlePreview = createClass({
+      render: function() {
+        const entry = this.props.entry;
+
+        // ── Fond ──
+        const bg         = entry.getIn(['data', 'thumbnail_bg']);
+        const bgPosition = entry.getIn(['data', 'thumbnail_bg_position']) || 'center';
+        const bgZoom     = Number(entry.getIn(['data', 'thumbnail_bg_zoom']));
+        const bgSize     = isNaN(bgZoom) || bgZoom === 0 ? 'cover' : bgZoom + '%';
+
+        // ── Titre ──
+        const tText   = entry.getIn(['data', 'thumbnail_title']);
+        const tX      = Number(entry.getIn(['data', 'title_x']));
+        const tY      = Number(entry.getIn(['data', 'title_y']));
+        const tSize   = Number(entry.getIn(['data', 'title_size']));
+        const tWeight = entry.getIn(['data', 'title_weight']) || '700';
+        const tFont   = entry.getIn(['data', 'title_font'])   || 'sans-serif';
+        const tColor  = entry.getIn(['data', 'title_color'])  || '#ffffff';
+
+        const posX_title  = isNaN(tX) ? 20 : tX;
+        const posY_title  = isNaN(tY) ? 20 : tY;
+        const fontSize_title = isNaN(tSize) || tSize === 0 ? 24 : tSize;
+
+        // ── Blocs de description ──
+        const descsList  = entry.getIn(['data', 'thumbnail_descs']);
+        const descsArray = descsList ? descsList.toJS() : [];
+
+        // ── Article ──
+        const title = entry.getIn(['data', 'title']);
+        const body  = this.props.widgetFor('body');
+
+        return h('div', { style: { padding: '20px', fontFamily: 'Helvetica, sans-serif' } },
+
+          // ── Conteneur miniature ──
+          h('div', {
+            style: {
+              border: '2px dashed #1D9E75',
+              padding: '15px',
+              marginBottom: '20px',
+              backgroundColor: '#0a131d',
+              borderRadius: '4px'
+            }
+          },
+            h('div', {
+              style: {
+                color: '#1D9E75',
+                fontFamily: 'Helvetica, sans-serif',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                marginBottom: '8px'
+              }
+            }, 'Aperçu en direct de la miniature :'),
+
+            h('div', {
+              style: {
+                backgroundImage: bg ? 'url(' + bg + ')' : 'none',
+                backgroundColor: '#121f2f',
+                backgroundSize: bgSize,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: bgPosition,
+                width: '100%',
+                aspectRatio: '16/9',
+                maxHeight: '350px',
+                borderRadius: '8px',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: 'inset 0 0 100px rgba(0,0,0,0.7)'
+              }
+            },
+
+              // ── Titre ──
+              h('h3', {
+                style: {
+                  position: 'absolute',
+                  left: posX_title + 'px',
+                  top:  posY_title + 'px',
+                  margin: 0, padding: 0,
+                  width: '60%', maxWidth: '400px',
+                  whiteSpace: 'normal',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  wordBreak: 'normal',
+                  lineHeight: '1.2',
+                  color: tColor,
+                  fontSize: fontSize_title + 'px',
+                  fontWeight: tWeight,
+                  fontFamily: tFont,
+                  textShadow: '2px 2px 5px rgba(0,0,0,0.9)'
+                }
+              }, tText || 'Titre de la miniature vacant...'),
+
+              // ── Blocs de description ──
+              ...descsArray.map(function(bloc, i) {
+                const bSize   = Number(bloc.size);
+                const bX      = Number(bloc.x);
+                const bY      = Number(bloc.y);
+                return h('p', {
+                  key: i,
+                  style: {
+                    position: 'absolute',
+                    left: (isNaN(bX) ? 20 : bX) + 'px',
+                    top:  (isNaN(bY) ? 80 : bY) + 'px',
+                    margin: 0, padding: 0,
+                    width: '60%', maxWidth: '400px',
+                    whiteSpace: 'normal',
+                    wordWrap: 'break-word',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'normal',
+                    lineHeight: '1.2',
+                    color: bloc.color  || '#e1e8ed',
+                    fontSize: (isNaN(bSize) || bSize === 0 ? 14 : bSize) + 'px',
+                    fontWeight: bloc.weight || '400',
+                    fontFamily: bloc.font   || 'sans-serif',
+                    textShadow: '1px 1px 4px rgba(0,0,0,0.9)'
+                  }
+                }, bloc.line || '');
+              })
+            )
+          ),
+
+          h('hr', { style: { border: '0', borderTop: '1px solid #ddd', margin: '30px 0' } }),
+
+          h('h1', { style: { color: '#062016' } }, title),
+          h('div', {}, body)
+        );
+      }
+    });
+
+    CMS.registerPreviewTemplate("articles", ArticlePreview);
+  </script>
 </body>
 </html>
