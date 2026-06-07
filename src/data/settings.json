@@ -53,6 +53,6 @@
     "titleWeight": "400",
     "titleFont": "sans-serif"
   },
-  "heroArticle": "jadore-le-caca",
-  "sidebarLongArticle": "article"
+  "heroArticle": "article",
+  "sidebarLongArticle": "jadore-le-caca"
 }
