@@ -1,7 +1,7 @@
 local_backend: true
 backend:
   name: github
-  repo: paul-delachaux/sonar-web 
+  repo: souslesonar-hash/sonar-web 
   branch: main
   base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
   auth_endpoint: auth # 👈 L'adresse de ta passerelle
