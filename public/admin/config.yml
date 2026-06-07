@@ -3,12 +3,11 @@ backend:
   name: github
   repo: paul-delachaux/sonar-web 
   branch: main
-  use_roles: false
-  #base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
-  #auth_endpoint: auth # 👈 L'adresse de ta passerelle
-  #allowed_users:
-  #  - paul-delachaux
-  #  - souslesonar-hash
+  base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
+  auth_endpoint: auth # 👈 L'adresse de ta passerelle
+  allowed_users:
+    - paul-delachaux
+    - souslesonar-hash
 
 media_folder: "public/assets/uploads" # Où seront stockées les images
 public_folder: "/assets/uploads"
