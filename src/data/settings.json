@@ -1,13 +1,13 @@
 {
   "asymRightArticle": "flash-victor-galère-encore-à-trouver-un-logo",
   "bottomArticles": [
-    "premier-article-en-ligne",
-    "test-admin",
-    "incroyable-nouvelle"
+    "jadore-le-caca",
+    "jadore-le-caca",
+    "jadore-le-caca"
   ],
   "sidebarSmallArticles": [
-    "enfin-le-nouveau-menu-admin",
-    "test-pour-layout-2"
+    "jadore-le-caca",
+    "jadore-le-caca"
   ],
   "bottomArticlesStyles": [
     {
@@ -53,6 +53,11 @@
     "titleWeight": "400",
     "titleFont": "sans-serif"
   },
+<<<<<<< HEAD
   "heroArticle": "gecko-le-meilleur-initiateur-de-valorant",
   "sidebarLongArticle": "vit-vs-th-la-grande-finale-du-stage-1"
+=======
+  "heroArticle": "article",
+  "sidebarLongArticle": "jadore-le-caca"
+>>>>>>> 7f7411cdc58a4b5dc4444cbe7dccdf951c93521c
 }
