@@ -1,6 +1,6 @@
 local_backend: true
 backend:
-  name: github
+  name: git-gateway #github
   repo: paul-delachaux/sonar-web # 👈 Remplace par ton pseudo et le nom exact de ton dépôt GitHub
   branch: main
   auth_type: token
