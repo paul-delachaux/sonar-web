@@ -1,9 +1,9 @@
 local_backend: true
 backend:
-  name: git-gateway #github
-  repo: paul-delachaux/sonar-web # 👈 Remplace par ton pseudo et le nom exact de ton dépôt GitHub
+  name: github
+  repo: paul-delachaux/sonar-web 
   branch: main
-  auth_type: token
+  use_roles: false
   #base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
   #auth_endpoint: auth # 👈 L'adresse de ta passerelle
   #allowed_users:
