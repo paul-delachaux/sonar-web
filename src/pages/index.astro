@@ -3,9 +3,16 @@ import MainLayout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import homeSettings from '../data/settings.json';
 
-const tousLesArticles = await getCollection('articles');
-const tousTries = tousLesArticles.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+const tousLesArticles = await getCollection('articles', ({ data }) => {
+  return true; // pas de filtre pour l'instant
+});
+console.log("Articles récupérés:", tousLesArticles.map(a => ({ id: a.id, isVisible: a.data.isVisible })));
 
+const tousTries = tousLesArticles
+    .filter(art => art.data.isVisible === true)
+    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+console.log("Articles après filtre:", tousTries.map(a => a.id));
 const trouverArticleParSlug = (slugCible: string | undefined) => {
     if (!slugCible) return null;
     const cibleNettoyee = String(slugCible).replace('.md', '').trim().toLowerCase();

@@ -16,31 +16,35 @@ const articles = defineCollection({
       'technologie'
     ]),
 
-    image: z.string().optional(),
+    image: z.string().nullish().optional(),
+    isVisible: z.preprocess(
+      val => val === undefined ? true : val,
+      z.boolean()
+    ),
     isHero: z.boolean().default(false),
-    source: z.string().optional(),
-
-    // ===== AJOUTS =====
+    source: z.string().nullish().optional(),
 
     use_thumbnail: z.boolean().optional(),
 
-    thumbnail_bg: z.string().optional(),
-    thumbnail_bg_position: z.string().optional(),
-    thumbnail_bg_zoom: z.number().optional(),
+    thumbnail_bg: z.string().nullish().optional(),
+    thumbnail_bg_position: z.string().nullish().optional(),
+    thumbnail_bg_zoom: z.union([z.number(), z.string()]).nullish().optional()
+      .transform(v => typeof v === 'number' ? v : undefined),
 
-    thumbnail_title: z.string().optional(),
+    thumbnail_title: z.string().nullish().optional(),
 
-    title_x: z.number().optional(),
-    title_y: z.number().optional(),
-    title_size: z.number().optional(),
+    title_x: z.union([z.number(), z.string()]).nullish().optional()
+      .transform(v => typeof v === 'number' ? v : undefined),
 
-    title_weight: z.union([
-      z.string(),
-      z.number()
-    ]).optional(),
+    title_y: z.union([z.number(), z.string()]).nullish().optional()
+      .transform(v => typeof v === 'number' ? v : undefined),
 
-    title_font: z.string().optional(),
-    title_color: z.string().optional(),
+    title_size: z.union([z.number(), z.string()]).nullish().optional()
+      .transform(v => typeof v === 'number' ? v : undefined),
+
+    title_weight: z.union([z.string(), z.number()]).nullish().optional(),
+    title_font: z.string().nullish().optional(),
+    title_color: z.string().nullish().optional(),
 
     thumbnail_descs: z.array(
       z.object({
@@ -51,10 +55,10 @@ const articles = defineCollection({
         weight: z.union([
           z.string(),
           z.number()
-        ]).optional(),
+        ]).nullish().optional(),
 
-        font: z.string().optional(),
-        color: z.string().optional(),
+        font: z.string().nullish().optional(),
+        color: z.string().nullish().optional(),
 
         line: z.string()
       })
