@@ -16,23 +16,34 @@ public_folder: "/assets/uploads"
 collections:
   - name: "articles"
     label: "Articles"
-    folder: "src/content/articles" # Le dossier de tes .md
+    folder: "src/content/articles"
     create: true
     slug: "{{slug}}"
     fields:
       - { label: "Titre", name: "title", widget: "string" }
       - { label: "Description", name: "description", widget: "text" }
       - { label: "Date de publication", name: "date", widget: "datetime" }
-      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe","technologie"] }
-      - { label: "Image de couverture", name: "image", widget: "image" }
+      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe", "technologie"] }
+      
+      # --- IMAGES ---
+      - { label: "Image de miniature", name: "image", widget: "image", hint: "Sert de miniature globale et d'image d'article par défaut" }
+      - { label: "Image interne de l'article (Optionnelle)", name: "article_image", widget: "image", required: false, hint: "Si laissée vide, l'image de miniature sera utilisée" }
+      
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
-      #- { label: "À la Une ?", name: "isHero", widget: "boolean", default: false }
+
+      # --- INFOS AUTEUR & LECTURE ---
+      - label: "Auteur de l'article"
+        name: "author"
+        widget: "select"
+        options:
+          - { label: "Victor Zhâ", value: "Victor Zhâ" }
+          - { label: "Paul Delachaux", value: "Paul Delachaux" }
+      - { label: "Temps de lecture (minutes)", name: "reading_time", widget: "number", default: 5, value_type: "int" }
+
       # ==========================================
       # CONFIGURATION GRAPHIQUE DE LA MINIATURE
       # ==========================================
       - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false }
-
-# --- POSITION & ZOOM DU FOND ---
       - label: "Position du fond"
         name: "thumbnail_bg_position"
         widget: "select"
@@ -48,7 +59,6 @@ collections:
           - { label: "Haut droite", value: "top right" }
           - { label: "Bas gauche", value: "bottom left" }
           - { label: "Bas droite", value: "bottom right" }
-
       - { label: "Zoom du fond (%)", name: "thumbnail_bg_zoom", widget: "number", default: 100, value_type: "int", min: 50, max: 300, required: false }
 
       # --- CONFIG DU TITRE ---
@@ -107,11 +117,22 @@ collections:
               - { label: "Code (Monospace)", value: "monospace" }
           - { label: "Couleur (ex: #e1e8ed)", name: "color", widget: "color", default: "#e1e8ed" }
 
-      # --- Choix de miniature ---
       - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
-      # --- Source et contenu ---
-      - { label: "Source", name: "source", widget: "string", required: false }
-      - { label: "Contenu de l'article", name: "body", widget: "markdown" }
+
+      # ==========================================
+      # BLOCS TRANSPARENCE JOURNALISTIQUE (BAS)
+      # ==========================================
+      - { label: "À propos de l'auteur", name: "author_about", widget: "text", default: "Travailleur acharné..." }
+      - { label: "Déclaration d'intérêt", name: "author_interests", widget: "text", default: "N'a pas de liens d'intérêts avec..." }
+      
+      - label: "Sources consultables"
+        name: "consulted_sources"
+        widget: "list"
+        summary: "{{fields.source_title}}"
+        required: false
+        fields:
+          - { label: "Nom de la source (ex: Article du Monde)", name: "source_title", widget: "string" }
+          - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
 
   - name: "settings"
     label: "Paramètres"

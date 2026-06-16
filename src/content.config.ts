@@ -17,12 +17,27 @@ const articles = defineCollection({
     ]),
 
     image: z.string().nullish().optional(),
+    
+    // --- NOUVEAUX CHAMPS CMS ---
+    article_image: z.string().nullish().optional(),
+    author: z.string().optional(),
+    reading_time: z.number().optional(),
+    author_about: z.string().optional(),
+    author_interests: z.string().optional(),
+    consulted_sources: z.array(
+      z.object({
+        source_title: z.string(),
+        source_url: z.string().nullish().optional()
+      })
+    ).optional(),
+    // ---------------------------
+
     isVisible: z.preprocess(
       val => val === undefined ? true : val,
       z.boolean()
     ),
     isHero: z.boolean().default(false),
-    source: z.string().nullish().optional(),
+    source: z.string().nullish().optional(), // Conservé au cas où de vieux articles l'utilisent encore
 
     use_thumbnail: z.boolean().optional(),
 
