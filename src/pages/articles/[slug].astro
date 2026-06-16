@@ -99,7 +99,7 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
                   <a href={`/articles/${art.id}`} class="sidebar-card">
                     {(art.data.article_image || art.data.image) && (
                       <img
-                        src={art.data.article_image || art.data.image}
+                        src={art.data.image || art.data.article_image}
                         alt={art.data.title}
                         class="sidebar-card-img"
                       />
