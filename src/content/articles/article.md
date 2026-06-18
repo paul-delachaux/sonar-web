@@ -1,18 +1,34 @@
 ---
+<<<<<<< HEAD
 title: "Lancement de Sonar : Un nouveau regard sur l'info"
 description: Aujourd'hui nous lançons notre plateforme de journalisme indépendant.
 date: 2026-06-16T17:28:00.000+02:00
 category: politique
 article_image: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfXoM1gWahmCj3Ya_plCRggs9pmQVip50WNKtARGX07Q&s=10
 author: Victor Zhâ
+=======
+>>>>>>> 416468f3741c256dcb2e075e712d80509b015f44
 reading_time: 10
 isHero: false
+title: "Lancement de Sonar : Un nouveau regard sur l'info"
+description: Aujourd'hui nous lançons notre plateforme de journalisme indépendant.
+date: 2026-06-16T17:28:00.000+02:00
+category: politique
+image: https://images.unsplash.com/photo-1504711434969-e33886168f5c
+article_image: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfXoM1gWahmCj3Ya_plCRggs9pmQVip50WNKtARGX07Q&s=10
 isVisible: true
+<<<<<<< HEAD
+=======
+author: Paul Delachaux
+>>>>>>> 416468f3741c256dcb2e075e712d80509b015f44
 author_about: Beau gosse
 author_interests: J'en ai pas, du tout
 thumbnail_title: ""
 source: Rédaction Sonar
+<<<<<<< HEAD
 image: https://images.unsplash.com/photo-1504711434969-e33886168f5c
+=======
+>>>>>>> 416468f3741c256dcb2e075e712d80509b015f44
 ---
 
 Ceci est le corps de mon article. Je peux écrire en **gras**, mettre des listes :
