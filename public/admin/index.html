@@ -34,60 +34,296 @@
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
   <script type="text/javascript">
+    // 🧱 Un widget de section intelligent, pliable et paramétrable depuis le config.yml
+    CMS.registerWidget('separator', createClass({
+      render: function() {
+        const field = this.props.field;
+        const label = field.get('label');
+        
+        // 🔍 On récupère l'argument 'collapsed' depuis le config.yml (faux par défaut si non précisé)
+        const isDefaultCollapsed = field.get('collapsed') === true;
+        
+        return h('div', {
+          'data-section-header': 'true',
+          'data-collapsed': isDefaultCollapsed ? 'true' : 'false', // État initial
+          
+          // 🖱️ ACTION AU CLIC : Ouvrir / Réduire la section
+          onClick: function(e) {
+            var headerEl = e.currentTarget;
+            var isCollapsed = headerEl.getAttribute('data-collapsed') === 'true';
+            
+            // Changer l'état
+            headerEl.setAttribute('data-collapsed', isCollapsed ? 'false' : 'true');
+            
+            // 🔄 Faire pivoter la flèche et ajuster les arrondis du bandeau vert
+            var arrowEl = headerEl.querySelector('.section-arrow');
+            if (arrowEl) arrowEl.innerText = isCollapsed ? '▼' : '►';
+            
+            if (isCollapsed) {
+              headerEl.style.borderBottomLeftRadius = '0px';
+              headerEl.style.borderBottomRightRadius = '0px';
+            } else {
+              headerEl.style.borderBottomLeftRadius = '8px';
+              headerEl.style.borderBottomRightRadius = '8px';
+            }
+            
+            // 🔍 Trouver et masquer/afficher tous les champs de ce groupe
+            var parentContainer = headerEl.parentElement;
+            while (parentContainer) {
+              if (parentContainer.className && parentContainer.className.indexOf('ControlContainer') !== -1) {
+                var nextSibling = parentContainer.nextElementSibling;
+                while (nextSibling) {
+                  if (nextSibling.querySelector('[data-section-header="true"]') || 
+                     (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
+                    break;
+                  }
+                  nextSibling.style.display = isCollapsed ? 'block' : 'none';
+                  nextSibling = nextSibling.nextElementSibling;
+                }
+                break;
+              }
+              parentContainer = parentContainer.parentElement;
+            }
+          },
+          
+          // ✨ DESIGN DYNAMIQUE DU BANDEAU VERT (Prend en compte l'état initial)
+          style: {
+            backgroundColor: '#1D9E75',
+            color: '#ffffff',
+            padding: '14px 18px',
+            fontWeight: '800',
+            fontSize: '13px',
+            borderTopLeftRadius: '8px',
+            borderTopRightRadius: '8px',
+            // Si réduit de base, on arrondit aussi le bas dès le départ !
+            borderBottomLeftRadius: isDefaultCollapsed ? '8px' : '0px',
+            borderBottomRightRadius: isDefaultCollapsed ? '8px' : '0px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            fontFamily: 'Helvetica, sans-serif',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            userSelect: 'none'
+          },
+          
+          // 🎨 CONFIGURATION DES ENFANTS AU CHARGEMENT
+          ref: function(el) {
+            if (!el) return;
+            
+            var parentContainer = el.parentElement;
+            while (parentContainer) {
+              if (parentContainer.className && parentContainer.className.indexOf('ControlContainer') !== -1) {
+                
+                var defaultLabel = parentContainer.querySelector('label');
+                if (defaultLabel) defaultLabel.style.display = 'none';
+                
+                parentContainer.style.marginBottom = '0px';
+                parentContainer.style.paddingBottom = '0px';
+                parentContainer.style.marginTop = '35px';
+                
+                var nextSibling = parentContainer.nextElementSibling;
+                var fieldsInGroup = [];
+                
+                while (nextSibling) {
+                  if (nextSibling.querySelector('[data-section-header="true"]') || 
+                     (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
+                    break;
+                  }
+                  fieldsInGroup.push(nextSibling);
+                  nextSibling = nextSibling.nextElementSibling;
+                }
+                
+                fieldsInGroup.forEach(function(fieldEl, index) {
+                  fieldEl.style.backgroundColor = '#f8fafc';
+                  fieldEl.style.borderLeft = '2px solid #1D9E75';
+                  fieldEl.style.borderRight = '2px solid #1D9E75';
+                  fieldEl.style.paddingLeft = '25px';
+                  fieldEl.style.paddingRight = '25px';
+                  fieldEl.style.paddingTop = '12px';
+                  fieldEl.style.paddingBottom = '12px';
+                  fieldEl.style.marginTop = '0px';
+                  fieldEl.style.marginBottom = '0px';
+                  
+                  // 🌟 HACK SÉCURITÉ : Si l'option 'collapsed' est à true, on masque DIRECTEMENT le champ au chargement
+                  if (isDefaultCollapsed) {
+                    fieldEl.style.display = 'none';
+                  }
+                  
+                  if (index === fieldsInGroup.length - 1) {
+                    fieldEl.style.borderBottom = '2px solid #1D9E75';
+                    fieldEl.style.borderBottomLeftRadius = '8px';
+                    fieldEl.style.borderBottomRightRadius = '8px';
+                    fieldEl.style.marginBottom = '30px';
+                  }
+                });
+                
+                break;
+              }
+              parentContainer = parentContainer.parentElement;
+            }
+          }
+        }, [
+          h('span', null, label),
+          // La flèche s'adapte aussi à l'état initial (► si fermé, ▼ si ouvert)
+          h('span', { className: 'section-arrow', style: { fontSize: '12px', marginLeft: '10px' } }, isDefaultCollapsed ? '►' : '▼')
+        ]);
+      }
+    }));
     const ArticlePreview = createClass({
       render: function() {
         const entry = this.props.entry;
 
-        // ── Fond ──
-        const bg         = entry.getIn(['data', 'thumbnail_bg']);
+        // ── Extraction des données de l'article ──
+        const title = entry.getIn(['data', 'title']) || "Titre de l'article";
+        const description = entry.getIn(['data', 'description']) || "Description de l'article...";
+        const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
+        const readingTime = entry.getIn(['data', 'reading_time']) || 5;
+        const image = entry.getIn(['data', 'image']);
+        const articleImage = entry.getIn(['data', 'article_image']);
+        const articleHeroImage = articleImage || image || "/assets/uploads/default-placeholder.jpg";
+        const body = this.props.widgetFor('body');
+
+        // ── Extraction des données du bloc Transparence ──
+        const authorAbout = entry.getIn(['data', 'author_about']) || "Aucune information fournie pour le moment.";
+        const authorInterests = entry.getIn(['data', 'author_interests']) || "L'auteur déclare n'avoir aucun conflit d'intérêt.";
+        const consultedSourcesList = entry.getIn(['data', 'consulted_sources']);
+        const consultedSourcesArray = consultedSourcesList ? consultedSourcesList.toJS() : [];
+
+        // ── Gestion des dates (Similaire à Astro) ──
+        const rawDate = entry.getIn(['data', 'date']);
+        let dateAffichee = "date inconnue";
+        let heureAffichee = "--:--";
+        if (rawDate) {
+          const dateObj = new Date(rawDate);
+          if (!isNaN(dateObj.getTime())) {
+            dateAffichee = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          }
+        }
+
+        // ── Association de l'avatar ──
+        const AUTHORS_DATA = {
+          "Victor Zhâ": "/assets/uploads/avatar-victor.jpg",
+          "Paul Delachaux": "/assets/uploads/avatar-paul.jpg"
+        };
+        const avatarUrl = AUTHORS_DATA[author] || "/assets/uploads/avatar-default.jpg";
+
+        // ── Configuration de la miniature Custom (Ancien code conservé) ──
+        const bg = entry.getIn(['data', 'thumbnail_bg']);
         const bgPosition = entry.getIn(['data', 'thumbnail_bg_position']) || 'center';
-        const bgZoom     = Number(entry.getIn(['data', 'thumbnail_bg_zoom']));
-        const bgSize     = isNaN(bgZoom) || bgZoom === 0 ? 'cover' : bgZoom + '%';
-
-        // ── Titre ──
-        const tText   = entry.getIn(['data', 'thumbnail_title']);
-        const tX      = Number(entry.getIn(['data', 'title_x']));
-        const tY      = Number(entry.getIn(['data', 'title_y']));
-        const tSize   = Number(entry.getIn(['data', 'title_size']));
+        const bgZoom = Number(entry.getIn(['data', 'thumbnail_bg_zoom']));
+        const bgSize = isNaN(bgZoom) || bgZoom === 0 ? 'cover' : bgZoom + '%';
+        const tText = entry.getIn(['data', 'thumbnail_title']);
+        const tX = Number(entry.getIn(['data', 'title_x'])) || 20;
+        const tY = Number(entry.getIn(['data', 'title_y'])) || 20;
+        const tSize = Number(entry.getIn(['data', 'title_size'])) || 24;
         const tWeight = entry.getIn(['data', 'title_weight']) || '700';
-        const tFont   = entry.getIn(['data', 'title_font'])   || 'sans-serif';
-        const tColor  = entry.getIn(['data', 'title_color'])  || '#ffffff';
-
-        const posX_title  = isNaN(tX) ? 20 : tX;
-        const posY_title  = isNaN(tY) ? 20 : tY;
-        const fontSize_title = isNaN(tSize) || tSize === 0 ? 24 : tSize;
-
-        // ── Blocs de description ──
-        const descsList  = entry.getIn(['data', 'thumbnail_descs']);
+        const tFont = entry.getIn(['data', 'title_font']) || 'sans-serif';
+        const tColor = entry.getIn(['data', 'title_color']) || '#ffffff';
+        const descsList = entry.getIn(['data', 'thumbnail_descs']);
         const descsArray = descsList ? descsList.toJS() : [];
 
-        // ── Article ──
-        const title = entry.getIn(['data', 'title']);
-        const body  = this.props.widgetFor('body');
+        return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh' } },
+          
+          // ── INJECTION DES STYLES CSS COMPLETS DE TON SITE ──
+          h('style', {}, `
+            .article-wrapper { background-color: #02001d; max-width: 1200px; margin: 20px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); text-align: left; color: #ffffff !important; }
+            .article-container { padding: 40px 30px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+            .article-header { border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; }
+            .main-title { font-size: 1.8rem; font-weight: 800; color: #ffffff; margin: 0 0 15px 0; line-height: 1.3; }
+            .main-description { font-size: 1.2rem; font-weight: 500; color: #ffffff; margin: 0 0 30px 0; line-height: 1.5; }
+            .author-meta-block { display: flex; align-items: center; gap: 20px; }
+            .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; }
+            .author-text-meta { display: flex; flex-direction: column; gap: 0; }
+            .author-name { margin: 0; font-size: 1rem; font-style: italic; color: #ffffff; }
+            .publication-date { margin: 0; font-size: 1rem; font-style: italic; color: #ffffff; }
+            .article-grid { display: grid; grid-template-columns: 7.5fr 2.5fr; gap: 40px; }
+            .article-main-content { display: flex; flex-direction: column; gap: 30px; }
+            .hero-image-wrapper { width: 100%; border-radius: 4px; overflow: hidden; background-color: #111827; }
+            .hero-img { width: 100%; height: auto; max-height: 550px; object-fit: cover; display: block; }
+            .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; }
+            .article-sidebar { background-color: #02001d; border-left: 1px solid #1f2937; padding-left: 20px; }
+            .sidebar-label { font-size: 0.75rem; font-weight: 700; color: #ea580c; letter-spacing: 0.1em; margin-bottom: 10px; }
+            .sidebar-dummy-card { font-size: 0.95rem; color: #ffffff; font-weight: 600; line-height: 1.4; opacity: 0.6; }
+            
+            /* Styles du Footer de Transparence */
+            .article-footer-transparency { margin-top: 60px; border-top: 2px solid #ea580c; padding-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+            .transparency-column h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffffff; margin: 0 0 15px 0; font-weight: 700; }
+            .transparency-column p { font-size: 0.9rem; line-height: 1.6; color: #9ca3af; margin: 0; }
+            .column-border { border-left: 1px solid #ea580c; border-right: 1px solid #ea580c; padding: 0 30px; }
+            .sources-list { margin: 0; padding-left: 18px; font-size: 0.9rem; color: #9ca3af; }
+            .sources-list li { margin-bottom: 8px; }
+            .sources-list a { color: #3b82f6; text-decoration: none; }
+            .sources-list a:hover { text-decoration: underline; }
+          `),
 
-        return h('div', { style: { padding: '20px', fontFamily: 'Helvetica, sans-serif' } },
+          // ── REPRODUCTION DU LAYOUT DE L'ARTICLE ──
+          h('div', { className: 'article-wrapper' },
+            h('div', { className: 'article-container' },
+              
+              h('header', { className: 'article-header' },
+                h('h1', { className: 'main-title' }, title),
+                h('p', { className: 'main-description' }, description),
+                h('div', { className: 'author-meta-block' },
+                  h('img', { src: avatarUrl, className: 'author-avatar', alt: 'Avatar' }),
+                  h('div', { className: 'author-text-meta' },
+                    h('p', { className: 'author-name' }, 'Par ' + author),
+                    h('p', { className: 'publication-date' }, 'Lecture en ' + readingTime + ' Minutes - Publié le ' + dateAffichee + ' à ' + heureAffichee)
+                  )
+                )
+              ),
 
-          // ── Conteneur miniature ──
-          h('div', {
-            style: {
-              border: '2px dashed #1D9E75',
-              padding: '15px',
-              marginBottom: '20px',
-              backgroundColor: '#0a131d',
-              borderRadius: '4px'
-            }
-          },
-            h('div', {
-              style: {
-                color: '#1D9E75',
-                fontFamily: 'Helvetica, sans-serif',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                marginBottom: '8px'
-              }
-            }, 'Aperçu en direct de la miniature :'),
+              h('div', { className: 'article-grid' },
+                h('main', { className: 'article-main-content' },
+                  h('div', { className: 'hero-image-wrapper' },
+                    h('img', { src: articleHeroImage, className: 'hero-img', alt: 'Hero' })
+                  ),
+                  h('div', { className: 'prose-content' }, body)
+                ),
+                
+                h('aside', { className: 'article-sidebar' },
+                  h('p', { className: 'sidebar-label' }, 'À LIRE AUSSI (Simulation)'),
+                  h('div', { className: 'sidebar-dummy-card' }, "Les articles similaires apparaîtront ici sur le site en production.")
+                )
+              ),
 
+              // ── AJOUT DU BLOC DE FIN DE PAGE : TRANSPARENCE JOURNALISTIQUE ──
+              h('footer', { className: 'article-footer-transparency' },
+                h('div', { className: 'transparency-column' },
+                  h('h3', {}, "A propos de l'auteur"),
+                  h('p', {}, authorAbout)
+                ),
+                h('div', { className: 'transparency-column column-border' },
+                  h('h3', {}, "Déclaration d'intérêt :"),
+                  h('p', {}, authorInterests)
+                ),
+                h('div', { className: 'transparency-column' },
+                  h('h3', {}, "Sources consultables"),
+                  consultedSourcesArray.length > 0
+                    ? h('ul', { className: 'sources-list' },
+                        ...consultedSourcesArray.map(function(src, i) {
+                          return h('li', { key: i },
+                            src.source_url
+                              ? h('a', { href: src.source_url, target: '_blank', rel: 'noopener noreferrer' }, src.source_title)
+                              : src.source_title
+                          );
+                        })
+                      )
+                    : h('p', {}, "Aucune source externe enregistrée.")
+                )
+              )
+
+            )
+          ),
+
+          h('hr', { style: { border: '0', borderTop: '2px dashed #1D9E75', margin: '40px 0' } }),
+
+          // ── LE BLOC MINIATURE (En dessous) ──
+          h('div', { style: { border: '2px dashed #1D9E75', padding: '15px', backgroundColor: '#0a131d', borderRadius: '4px', maxWidth: '1200px', margin: 'auto' } },
+            h('div', { style: { color: '#1D9E75', fontFamily: 'Helvetica, sans-serif', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' } }, 'Aperçu en direct de la miniature :'),
             h('div', {
               style: {
                 backgroundImage: bg ? 'url(' + bg + ')' : 'none',
@@ -104,61 +340,27 @@
                 boxShadow: 'inset 0 0 100px rgba(0,0,0,0.7)'
               }
             },
-
-              // ── Titre ──
               h('h3', {
                 style: {
-                  position: 'absolute',
-                  left: posX_title + 'px',
-                  top:  posY_title + 'px',
-                  margin: 0, padding: 0,
-                  width: '60%', maxWidth: '400px',
-                  whiteSpace: 'normal',
-                  wordWrap: 'break-word',
-                  overflowWrap: 'break-word',
-                  wordBreak: 'normal',
-                  lineHeight: '1.2',
-                  color: tColor,
-                  fontSize: fontSize_title + 'px',
-                  fontWeight: tWeight,
-                  fontFamily: tFont,
-                  textShadow: '2px 2px 5px rgba(0,0,0,0.9)'
+                  position: 'absolute', left: tX + 'px', top: tY + 'px', margin: 0, padding: 0, width: '60%', maxWidth: '400px',
+                  lineHeight: '1.2', color: tColor, fontSize: tSize + 'px', fontWeight: tWeight, fontFamily: tFont, textShadow: '2px 2px 5px rgba(0,0,0,0.9)',
+                  whiteSpace: 'normal', wordWrap: 'break-word', overflowWrap: 'break-word'
                 }
               }, tText || 'Titre de la miniature vacant...'),
-
-              // ── Blocs de description ──
               ...descsArray.map(function(bloc, i) {
-                const bSize   = Number(bloc.size);
-                const bX      = Number(bloc.x);
-                const bY      = Number(bloc.y);
                 return h('p', {
                   key: i,
                   style: {
-                    position: 'absolute',
-                    left: (isNaN(bX) ? 20 : bX) + 'px',
-                    top:  (isNaN(bY) ? 80 : bY) + 'px',
-                    margin: 0, padding: 0,
-                    width: '60%', maxWidth: '400px',
-                    whiteSpace: 'normal',
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word',
-                    wordBreak: 'normal',
-                    lineHeight: '1.2',
-                    color: bloc.color  || '#e1e8ed',
-                    fontSize: (isNaN(bSize) || bSize === 0 ? 14 : bSize) + 'px',
-                    fontWeight: bloc.weight || '400',
-                    fontFamily: bloc.font   || 'sans-serif',
-                    textShadow: '1px 1px 4px rgba(0,0,0,0.9)'
+                    position: 'absolute', left: (isNaN(bloc.x) ? 20 : bloc.x) + 'px', top: (isNaN(bloc.y) ? 80 : bloc.y) + 'px', margin: 0, padding: 0,
+                    lineHeight: '1.2', color: bloc.color || '#e1e8ed', fontSize: (isNaN(bloc.size) || bloc.size === 0 ? 14 : bloc.size) + 'px',
+                    fontWeight: bloc.weight || '400', fontFamily: bloc.font || 'sans-serif', textShadow: '1px 1px 4px rgba(0,0,0,0.9)',
+                    whiteSpace: 'normal', wordWrap: 'break-word', overflowWrap: 'break-word'
                   }
                 }, bloc.line || '');
               })
             )
-          ),
+          )
 
-          h('hr', { style: { border: '0', borderTop: '1px solid #ddd', margin: '30px 0' } }),
-
-          h('h1', { style: { color: '#062016' } }, title),
-          h('div', {}, body)
         );
       }
     });

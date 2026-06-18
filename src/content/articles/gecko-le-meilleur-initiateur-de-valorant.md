@@ -5,6 +5,8 @@ date: 2026-05-27T14:41:00.000+02:00
 category: culture
 image: https://pbs.twimg.com/media/FuSIgc6XgAg8_1p.png
 isVisible: false
+author: Paul Delachaux
+reading_time: 5
 thumbnail_bg: https://pbs.twimg.com/media/FuSIgc6XgAg8_1p.png
 thumbnail_bg_position: right
 thumbnail_bg_zoom: 50
@@ -31,5 +33,7 @@ thumbnail_descs:
     color: "#0095ff"
     line: Verti
 use_thumbnail: false
+author_about: d
+author_interests: d
 ---
 Je sais pas quoi dire sur lui en vrai sa flash pue la merde, mais mordicus j'aime bien.

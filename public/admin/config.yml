@@ -20,6 +20,8 @@ collections:
     create: true
     slug: "{{slug}}"
     fields:
+
+      - { label: "CREATION DE L'ARTICLE", name: "sep_article", widget: "separator", required: false}
       - { label: "Titre", name: "title", widget: "string" }
       - { label: "Description", name: "description", widget: "text" }
       - { label: "Date de publication", name: "date", widget: "datetime" }
@@ -41,9 +43,26 @@ collections:
       - { label: "Temps de lecture (minutes)", name: "reading_time", widget: "number", default: 5, value_type: "int" }
 
       # ==========================================
+      # BLOCS TRANSPARENCE JOURNALISTIQUE (BAS)
+      # ==========================================
+      - { label: "À propos de l'auteur", name: "author_about", widget: "text", default: "Travailleur acharné..." }
+      - { label: "Déclaration d'intérêt", name: "author_interests", widget: "text", default: "N'a pas de liens d'intérêts avec..." }
+      
+      - label: "Sources consultables"
+        name: "consulted_sources"
+        widget: "list"
+        summary: "{{fields.source_title}}"
+        required: false
+        fields:
+          - { label: "Nom de la source (ex: Article du Monde)", name: "source_title", widget: "string" }
+          - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
+      - { label: "Corps de l'article (Contenu)", name: "body", widget: "markdown" }
+
+      # ==========================================
       # CONFIGURATION GRAPHIQUE DE LA MINIATURE
       # ==========================================
-      - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false }
+      - { label: "CONFIGURATION GRAPHIQUE DE LA MINIATURE (optionnel)", name: "sep_miniature", widget: "separator", required: false, collapsed: true }
+      - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false, title: "Partie Miniature (optionnel)" }
       - label: "Position du fond"
         name: "thumbnail_bg_position"
         widget: "select"
@@ -119,21 +138,6 @@ collections:
 
       - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
 
-      # ==========================================
-      # BLOCS TRANSPARENCE JOURNALISTIQUE (BAS)
-      # ==========================================
-      - { label: "À propos de l'auteur", name: "author_about", widget: "text", default: "Travailleur acharné..." }
-      - { label: "Déclaration d'intérêt", name: "author_interests", widget: "text", default: "N'a pas de liens d'intérêts avec..." }
-      
-      - label: "Sources consultables"
-        name: "consulted_sources"
-        widget: "list"
-        summary: "{{fields.source_title}}"
-        required: false
-        fields:
-          - { label: "Nom de la source (ex: Article du Monde)", name: "source_title", widget: "string" }
-          - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
-
   - name: "settings"
     label: "Paramètres"
     delete: false # Empêche la suppression du fichier de config
@@ -146,6 +150,7 @@ collections:
         fields:
 
            # --- ARTICLE A LA UNE ---
+          - { label: "Article à la une", name: "sep_article_une", widget: "separator", required: false }
           - label: "Article à la une"
             name: "heroArticle"
             widget: "relation"
@@ -155,6 +160,7 @@ collections:
             display_fields: ["title"]
 
           # --- SECTION DROITE (HAUT - LONG) ---
+          - { label: "Première sidebar", name: "sep_sidebar_long", widget: "separator", required: false }
           - label: "Sidebar : Premier article (Format Long)"
             name: "sidebarLongArticle"
             widget: "relation"
@@ -162,6 +168,7 @@ collections:
             search_fields: ["title"]
             value_field: "{{slug}}"
             display_fields: ["title"]
+            required: false
 
           # --- SECTION DROITE (BAS - DEUX PETITS) ---
           - label: "Sidebar : Deux articles du bas"
@@ -171,6 +178,7 @@ collections:
             min: 0
             max: 2
             allow_duplicate: false
+            required: false
             field:
               label: "Article"
               name: "article"
@@ -179,8 +187,10 @@ collections:
               search_fields: ["title"]
               value_field: "{{slug}}"
               display_fields: ["title"]
+              required: false
 
           # --- SECTION DU BAS (TROIS ARTICLES) ---
+          - { label: "Deuxième sidebar", name: "sep_sidebar_mid", widget: "separator", required: false }
           - label: "Rangée du bas (Maximum 3 articles)"
             name: "bottomArticles"
             widget: "list"
@@ -188,6 +198,7 @@ collections:
             min: 0
             max: 3
             allow_duplicate: false
+            required: false
             field:
               label: "Article"
               name: "article"
@@ -196,6 +207,7 @@ collections:
               search_fields: ["title"]
               value_field: "{{slug}}"
               display_fields: ["title"]
+              required: false
 
           - label: "Styles de la rangée du bas"
             name: "bottomArticlesStyles"
@@ -203,11 +215,13 @@ collections:
             summary: "Configuration du style — Taille : {{titleSize}}, Police : {{titleFont}}"
             min: 0
             max: 3
+            required: false
             fields:
               - label: "Taille du titre"
                 name: "titleSize"
                 widget: "select"
                 default: "1.2rem"
+                required: false
                 options:
                   - { label: "Petit (1rem)", value: "1rem" }
                   - { label: "Normal (1.2rem)", value: "1.2rem" }
@@ -217,6 +231,7 @@ collections:
                 name: "titleWeight"
                 widget: "select"
                 default: "700"
+                required: false
                 options:
                   - { label: "Fin (300)", value: "300" }
                   - { label: "Normal (400)", value: "400" }
@@ -227,12 +242,14 @@ collections:
                 name: "titleFont"
                 widget: "select"
                 default: "sans-serif"
+                required: false
                 options:
                   - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
                   - { label: "Journal / Classique (Serif)", value: "serif" }
                   - { label: "Code (Monospace)", value: "monospace" }
 
           # --- NOUVELLE SECTION : LES 3 ARTICLES SUPERPOSÉS (GAUCHE) ---
+          - { label: "Troisième sidebar", name: "sep_sidebar_left", widget: "separator", required: false }
           - label: "Asymétrique : 3 Articles Superposés (Gauche)"
             name: "asymLeftArticles"
             widget: "list"
@@ -240,6 +257,7 @@ collections:
             min: 0
             max: 3
             allow_duplicate: false
+            required: false
             field:
               label: "Article"
               name: "article"
@@ -248,6 +266,7 @@ collections:
               search_fields: ["title"]
               value_field: "{{slug}}"
               display_fields: ["title"]
+              required: false
 
           - label: "Asymétrique : Styles des 3 articles superposés"
             name: "asymLeftStyles"
@@ -255,11 +274,13 @@ collections:
             summary: "Style — Taille : {{titleSize}}, Police : {{titleFont}}"
             min: 0
             max: 3
+            required: false
             fields:
               - label: "Taille du titre"
                 name: "titleSize"
                 widget: "select"
                 default: "1.1rem"
+                required: false
                 options:
                   - { label: "Petit (1rem)", value: "1rem" }
                   - { label: "Normal (1.1rem)", value: "1.1rem" }
@@ -268,6 +289,7 @@ collections:
                 name: "titleWeight"
                 widget: "select"
                 default: "700"
+                required: false
                 options:
                   - { label: "Fin (300)", value: "300" }
                   - { label: "Normal (400)", value: "400" }
@@ -276,12 +298,14 @@ collections:
                 name: "titleFont"
                 widget: "select"
                 default: "sans-serif"
+                required: false
                 options:
                   - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
                   - { label: "Journal (Serif)", value: "serif" }
                   - { label: "Code (Monospace)", value: "monospace" }
 
           # --- NOUVELLE SECTION : LE GRAND ARTICLE UNIQUE (DROITE) ---
+          - { label: "Article géant", name: "sep_giant_article", widget: "separator", required: false }
           - label: "Asymétrique : Grand Article Principal (Droite)"
             name: "asymRightArticle"
             widget: "relation"
@@ -289,15 +313,18 @@ collections:
             search_fields: ["title"]
             value_field: "{{slug}}"
             display_fields: ["title"]
+            required: false
 
           - label: "Asymétrique : Style du Grand Article"
             name: "asymRightStyle"
             widget: "object"
+            required: false
             fields:
               - label: "Taille du titre"
                 name: "titleSize"
                 widget: "select"
                 default: "1.8rem"
+                required: false
                 options:
                   - { label: "Normal (1.5rem)", value: "1.5rem" }
                   - { label: "Grand (1.8rem)", value: "1.8rem" }
@@ -306,6 +333,7 @@ collections:
                 name: "titleWeight"
                 widget: "select"
                 default: "700"
+                required: false
                 options:
                   - { label: "Normal (400)", value: "400" }
                   - { label: "Gras (700)", value: "700" }
@@ -313,6 +341,7 @@ collections:
                 name: "titleFont"
                 widget: "select"
                 default: "sans-serif"
+                required: false
                 options:
                   - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
                   - { label: "Journal (Serif)", value: "serif" }

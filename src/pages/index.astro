@@ -133,67 +133,66 @@ const styleGrandArticle = {
         {/* --- GRILLE PRINCIPALE (HAUT) --- */}
         <div class="main-grid">
             {articleUne ? (
-                <section class="article-une">
-                    {articleUne.data.use_thumbnail && articleUne.data.thumbnail_bg ? (
+                articleUne.data.use_thumbnail && articleUne.data.thumbnail_bg ? (
                     // ── MINIATURE CUSTOM ──
-                    <a href={`/articles/${articleUne.id}`} class="thumbnail-wrapper">
+                    <a href={`/articles/${articleUne.id}`} class="thumbnail-wrapper article-une">
                         <div class="thumbnail-canvas" style={`
                         background-image: url('${articleUne.data.thumbnail_bg}');
                         background-size: ${articleUne.data.thumbnail_bg_zoom ? articleUne.data.thumbnail_bg_zoom + '%' : 'cover'};
                         background-position: ${articleUne.data.thumbnail_bg_position || 'center'};
                         background-repeat: no-repeat;
                         `}>
-                        <div class="thumbnail-shadow"></div>
+                            <div class="thumbnail-shadow"></div>
 
-                        {/* Titre */}
-                        {articleUne.data.thumbnail_title && (
-                            <h2 class="thumbnail-text" style={`
-                            left: ${articleUne.data.title_x ?? 20}px;
-                            top: ${articleUne.data.title_y ?? 20}px;
-                            font-size: ${articleUne.data.title_size ?? 24}px;
-                            font-weight: ${articleUne.data.title_weight ?? 700};
-                            font-family: ${articleUne.data.title_font ?? 'sans-serif'};
-                            color: ${articleUne.data.title_color ?? '#ffffff'};
-                            `}>
-                            {articleUne.data.thumbnail_title}
-                            </h2>
-                        )}
+                            {/* Titre */}
+                            {articleUne.data.thumbnail_title && (
+                                <h2 class="thumbnail-text" style={`
+                                left: ${articleUne.data.title_x ?? 20}px;
+                                top: ${articleUne.data.title_y ?? 20}px;
+                                font-size: ${articleUne.data.title_size ?? 24}px;
+                                font-weight: ${articleUne.data.title_weight ?? 700};
+                                font-family: ${articleUne.data.title_font ?? 'sans-serif'};
+                                color: ${articleUne.data.title_color ?? '#ffffff'};
+                                `}>
+                                    {articleUne.data.thumbnail_title}
+                                </h2>
+                            )}
 
-                        {/* Blocs de description */}
-                        {(articleUne.data.thumbnail_descs ?? []).map((bloc: any) => (
-                            <p class="thumbnail-text" style={`
-                            left: ${bloc.x ?? 20}px;
-                            top: ${bloc.y ?? 80}px;
-                            font-size: ${bloc.size ?? 14}px;
-                            font-weight: ${bloc.weight ?? 400};
-                            font-family: ${bloc.font ?? 'sans-serif'};
-                            color: ${bloc.color ?? '#e1e8ed'};
-                            `}>
-                            {bloc.line}
-                            </p>
-                        ))}
+                            {/* Blocs de description */}
+                            {(articleUne.data.thumbnail_descs ?? []).map((bloc: any) => (
+                                <p class="thumbnail-text" style={`
+                                left: ${bloc.x ?? 20}px;
+                                top: ${bloc.y ?? 80}px;
+                                font-size: ${bloc.size ?? 14}px;
+                                font-weight: ${bloc.weight ?? 400};
+                                font-family: ${bloc.font ?? 'sans-serif'};
+                                color: ${bloc.color ?? '#e1e8ed'};
+                                `}>
+                                    {bloc.line}
+                                </p>
+                            ))}
                         </div>
                     </a>
-                    ) : (
-                    // ── TEMPLATE PAR DÉFAUT ──
-                    <div class="article-une-body">
-                        <p class="article-tag">{articleUne.data.category}</p>
-                        <h2>{articleUne.data.title}</h2>
-                        <p class="article-desc">{articleUne.data.description}</p>
-                        <a href={`/articles/${articleUne.id}`} class="read-more-btn">Lire la suite →</a>
-                    </div>
-                    )}
-                    {!articleUne.data.use_thumbnail && articleUne.data.image && (
-                    <div class="image-wrapper"><img src={articleUne.data.image} alt="" /></div>
-                    )}
-                </section>
+                ) : (
+                    // ── TEMPLATE PAR DÉFAUT (Rendu cliquable en entier) ──
+                    <a href={`/articles/${articleUne.id}`} class="article-une">
+                        <div class="article-une-body">
+                            <p class="article-tag">{articleUne.data.category}</p>
+                            <h2>{articleUne.data.title}</h2>
+                            <p class="article-desc">{articleUne.data.description}</p>
+                        </div>
+                        {articleUne.data.image && (
+                            <div class="image-wrapper"><img src={articleUne.data.image} alt="" /></div>
+                        )}
+                    </a>
+                )
             ) : (
                 <section class="article-une"><p>Aucun article à la une trouvé.</p></section>
             )}
 
             <aside class="sidebar-articles">
                 {premierSecondaireLong && (
-                    <div class="article-sidebar long">
+                    <a href={`/articles/${premierSecondaireLong.id}`} class="article-sidebar long">
                         <div class="card-content-top">
                             <p class="sidebar-tag">{premierSecondaireLong.data.category.toUpperCase()}</p>
                             <h3>{premierSecondaireLong.data.title}</h3>
@@ -202,14 +201,13 @@ const styleGrandArticle = {
                         <div class="card-dynamic-spacer">
                             <img src={premierSecondaireLong.data.image || "/assets/uploads/default-placeholder.jpg"} alt="" class="spacer-img" />
                         </div>
-                        <a href={`/articles/${premierSecondaireLong.id}`} class="sidebar-link">Lire l'article</a>
-                    </div>
+                    </a>
                 )}
 
                 {autresSecondairesBas.length > 0 && (
                     <div class="sub-grid">
                         {autresSecondairesBas.map(art => (
-                            <div class="article-sidebar" set:key={art.id}>
+                            <a href={`/articles/${art.id}`} class="article-sidebar" set:key={art.id}>
                                 <div class="card-content-top">
                                     <p class="sidebar-tag">{art.data.category.toUpperCase()}</p>
                                     <h3>{art.data.title}</h3>
@@ -218,8 +216,7 @@ const styleGrandArticle = {
                                 <div class="card-dynamic-spacer">
                                     <img src={art.data.image || "/assets/uploads/default-placeholder.jpg"} alt="" class="spacer-img" />
                                 </div>
-                                <a href={`/articles/${art.id}`} class="sidebar-link">Lire l'article</a>
-                            </div>
+                            </a>
                         ))}
                     </div>
                 )}
@@ -232,7 +229,7 @@ const styleGrandArticle = {
                 {articlesRangeeInferieure.map(art => {
                     const bgImage = art.data.image || "/assets/uploads/default-placeholder.jpg";
                     return (
-                        <div class="article-bottom-card has-bg" set:key={art.id} style={`background-image: url('${bgImage}');`}>
+                        <a href={`/articles/${art.id}`} class="article-bottom-card has-bg" set:key={art.id} style={`background-image: url('${bgImage}');`}>
                             <div class="overlay"></div>
                             <div class="card-content-top">
                                 <p class="card-tag">{art.data.category.toUpperCase()}</p>
@@ -241,8 +238,7 @@ const styleGrandArticle = {
                                 </h3>
                                 <p class="card-desc">{art.data.description}</p>
                             </div>
-                            <a href={`/articles/${art.id}`} class="card-link">Lire l'article</a>
-                        </div>
+                        </a>
                     );
                 })}
             </section>
@@ -250,47 +246,53 @@ const styleGrandArticle = {
 
         {/* --- NOUVELLE RANGÉE ASYMÉTRIQUE ET INTERACTIVE --- */}
         <section class="asym-container">
-            {/* Colonne Gauche : 3 articles empilés avec effet d'apparition Latérale (gauche -> droite) avec décalage */}
+            {/* Colonne Gauche */}
             <div class="asym-left-stack">
                 {articlesAsymGauche.map((art, index) => {
                     const bgImage = art.data.image || "/assets/uploads/default-placeholder.jpg";
                     return (
-                        <div 
-                            class="article-bottom-card has-bg scroll-left-to-right" 
-                            set:key={art.id} 
-                            style={`background-image: url('${bgImage}');`}
-                            data-index={index}
-                        >
-                            <div class="overlay"></div>
-                            <div class="card-content-top">
-                                <p class="card-tag">{art.data.category.toUpperCase()}</p>
-                                <h3 style={`font-size: ${art.customStyles.fontSize} !important; font-weight: ${art.customStyles.fontWeight} !important; font-family: ${art.customStyles.fontFamily} !important;`}>
-                                    {art.data.title}
-                                </h3>
-                            </div>
-                            <a href={`/articles/${art.id}`} class="card-link">Lire</a>
+                        /* Le wrapper intercepte l'animation de scroll JS */
+                        <div class="scroll-left-to-right" data-index={index} set:key={art.id}>
+                            {/* La carte gère son survol CSS de façon isolée */}
+                            <a 
+                                href={`/articles/${art.id}`}
+                                class="article-bottom-card has-bg" 
+                                style={`background-image: url('${bgImage}');`}
+                            >
+                                <div class="overlay"></div>
+                                <div class="card-content-top">
+                                    <p class="card-tag">{art.data.category.toUpperCase()}</p>
+                                    <h3 style={`font-size: ${art.customStyles.fontSize} !important; font-weight: ${art.customStyles.fontWeight} !important; font-family: ${art.customStyles.fontFamily} !important;`}>
+                                        {art.data.title}
+                                    </h3>
+                                </div>
+                            </a>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Colonne Droite : Le grand article avec effet d'apparition Verticale (bas -> haut) */}
+            {/* Colonne Droite */}
             {articleAsymDroite && (() => {
                 const bgImage = articleAsymDroite.data.image || "/assets/uploads/default-placeholder.jpg";
                 return (
-                    <div 
-                        class="article-bottom-card has-bg asym-right-giant scroll-bottom-to-top"
-                        style={`background-image: url('${bgImage}');`}
-                    >
-                        <div class="overlay"></div>
-                        <div class="card-content-top">
-                            <p class="card-tag">{articleAsymDroite.data.category.toUpperCase()}</p>
-                            <h3 style={`font-size: ${styleGrandArticle.fontSize} !important; font-weight: ${styleGrandArticle.fontWeight} !important; font-family: ${styleGrandArticle.fontFamily} !important;`}>
-                                {articleAsymDroite.data.title}
-                            </h3>
-                            <p class="card-desc">{articleAsymDroite.data.description}</p>
-                        </div>
-                        <a href={`/articles/${articleAsymDroite.id}`} class="card-link">Lire l'article entier →</a>
+                    /* 1. Le wrapper intercepte l'animation de scroll JS */
+                    <div class="scroll-bottom-to-top">
+                        {/* 2. La carte asym-right-giant est désormais libre de s'animer au survol */}
+                        <a 
+                            href={`/articles/${articleAsymDroite.id}`}
+                            class="article-bottom-card has-bg asym-right-giant"
+                            style={`background-image: url('${bgImage}');`}
+                        >
+                            <div class="overlay"></div>
+                            <div class="card-content-top">
+                                <p class="card-tag">{articleAsymDroite.data.category.toUpperCase()}</p>
+                                <h3 style={`font-size: ${styleGrandArticle.fontSize} !important; font-weight: ${styleGrandArticle.fontWeight} !important; font-family: ${styleGrandArticle.fontFamily} !important;`}>
+                                    {articleAsymDroite.data.title}
+                                </h3>
+                                <p class="card-desc">{articleAsymDroite.data.description}</p>
+                            </div>
+                        </a>
                     </div>
                 );
             })()}
@@ -301,19 +303,15 @@ const styleGrandArticle = {
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        // --- 1. Animation de la rangée des 3 articles du haut (existante) ---
         const bottomRow = document.querySelector('.scroll-interactive') as HTMLElement;
-        
-        // --- 2. Animations de la nouvelle section Asymétrique ---
         const leftCards = document.querySelectorAll('.scroll-left-to-right');
         const rightGiant = document.querySelector('.scroll-bottom-to-top') as HTMLElement;
 
         function animateOnScroll() {
             const viewHeight = window.innerHeight;
             const startAnimation = viewHeight;
-            const endAnimation = viewHeight - 250; 
+            const endAnimation = viewHeight - 200; 
 
-            // Animation ancienne rangée
             if (bottomRow) {
                 const rect = bottomRow.getBoundingClientRect();
                 let progress = (startAnimation - rect.top) / (startAnimation - endAnimation);
@@ -322,28 +320,25 @@ const styleGrandArticle = {
                 bottomRow.style.transform = `translateY(${50 - (progress * 50)}px)`;
             }
 
-            // Animation des 3 petits articles de gauche (Gauche -> Droite avec décalage progressif)
             leftCards.forEach((card) => {
                 const el = card as HTMLElement;
                 const rect = el.getBoundingClientRect();
                 const index = parseInt(el.getAttribute('data-index') || '0');
                 
-                // Décalage du déclenchement basé sur l'index pour qu'ils ne sortent pas en même temps
                 let progress = (startAnimation - (rect.top + (index * 40))) / (startAnimation - endAnimation);
                 progress = Math.max(0, Math.min(1, progress));
 
-                const translateX = -60 + (progress * 60); // Commence décalé à gauche de -60px
+                const translateX = -60 + (progress * 60);
                 el.style.opacity = progress.toString();
                 el.style.transform = `translateX(${translateX}px)`;
             });
 
-            // Animation du grand article de droite (Bas -> Haut)
             if (rightGiant) {
                 const rect = rightGiant.getBoundingClientRect();
                 let progress = (startAnimation - rect.top) / (startAnimation - endAnimation);
                 progress = Math.max(0, Math.min(1, progress));
 
-                const translateY = 70 - (progress * 70); // Commence plus bas (70px)
+                const translateY = 70 - (progress * 70);
                 rightGiant.style.opacity = progress.toString();
                 rightGiant.style.transform = `translateY(${translateY}px)`;
             }
@@ -355,45 +350,63 @@ const styleGrandArticle = {
 </script>
 
 <style>
-    /* ... Tes styles existants inchangés ... */
     .container-accueil { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 80px; padding-bottom: 80px; }
     .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; color: #000; align-items: stretch; min-height: 700px; }
-    .article-une { background: white; padding: 24px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; }
+    
+    /* --- NETTOYAGE STYLE DES LIENS GLOBAUX --- */
+    .article-une, .article-sidebar, .article-bottom-card { 
+        text-decoration: none; 
+        color: inherit; 
+    }
+
+    .article-une { background: white; padding: 24px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; transition: color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;}
+    .article-une:hover {transform: translateY(-5px); /* Légère élévation pour un effet de survol */box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);}
     .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #111; }
     .image-wrapper { width: 100%; flex-grow: 1; min-height: 350px; position: relative; margin-top: 15px; }
     .image-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
     .sidebar-articles { display: flex; flex-direction: column; gap: 15px; }
     .article-sidebar.long, .sub-grid { flex: 1; }
     .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .article-sidebar { background: white; padding: 15px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; }
+    
+    .article-sidebar { background: white; padding: 15px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: color 0.3s ease, transform 0.2s ease;}
+    .article-sidebar:hover {transform: translateY(-5px); /* Légère élévation pour un effet de survol */}
     .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #111; }
+    
     .bottom-row-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; align-items: stretch; }
-    .article-bottom-card { background: white; padding: 20px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 320px; border-radius: 2%; }
+    .article-bottom-card { background: white; padding: 20px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 320px; border-radius: 2%; transition: color 0.3s ease, transform 0.2s ease;}
+    .article-bottom-card:hover {transform: translateY(-5px); /* Légère élévation pour un effet de survol */}
     .card-content-top { margin-bottom: 5px; }
     .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; }
     .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #f7f7f7; height: 60px; }
     .spacer-img { width: 100%; height: 100%; object-fit: cover; }
+    
     .article-tag, .sidebar-tag, .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
     .article-tag { margin: 0 0 10px 0; }
     .sidebar-tag, .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
     .article-desc, .sidebar-desc, .card-desc { font-size: 0.95rem; line-height: 1.5; color: #333; margin: 0; }
-    .read-more-btn, .sidebar-link, .card-link { color: #ff8826; font-weight: bold; text-decoration: none; font-size: 0.9rem; margin-top: auto; }
-    .sidebar-link:hover, .card-link:hover { text-decoration: underline; }
+    
+    /* EFFET AU SURVOL SUR LES TITRES (Remplace l'interaction de l'ancien lien textuel) */
+    .article-une:hover h2, 
+    .article-sidebar:hover h3, 
+    .article-bottom-card:hover h3 { 
+        text-decoration: underline; 
+    }
+
     .scroll-interactive { opacity: 0; transform: translateY(50px); transition: opacity 0.1s ease-out, transform 0.1s ease-out; will-change: opacity, transform; }
     
     .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }
     .article-bottom-card.has-bg .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)); z-index: -1; }
     .article-bottom-card.has-bg h3 { color: #ffffff !important; }
     .article-bottom-card.has-bg .card-desc { color: #e0e0e0; }
-    .article-bottom-card.has-bg .card-link { color: #ff9d47; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 
     /* --- NOUVEAUX STYLES POUR LA GRILLE ASYMÉTRIQUE --- */
     .asym-container {
         display: grid;
-        grid-template-columns: 3.5fr 6.5fr; /* Respecte ton dessin : ~35% gauche, ~65% droite */
+        grid-template-columns: 3.5fr 6.5fr; 
         gap: 20px;
         width: 100%;
         align-items: stretch;
+        
     }
 
     .asym-left-stack {
@@ -403,22 +416,38 @@ const styleGrandArticle = {
         justify-content: space-between;
     }
 
-    /* Les petits articles empilés font une hauteur réduite pour que les 3 cumulés égalent le grand */
+
     .asym-left-stack .article-bottom-card {
         min-height: 120px; 
         padding: 15px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        /* Ajout d'une transition pour rendre la montée au survol fluide */
+        transition: transform 0.3s ease, box-shadow 0.3s ease; 
     }
 
-    /* Le géant prend toute la hauteur disponible automatiquement aligné sur le stack de gauche */
+    .asym-left-stack .article-bottom-card:hover{
+        transform: translateY(-6px); /* Monte de 6px par rapport à sa position actuelle */
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); /* Optionnel : ajoute une jolie ombre portée */
+    }
+
     .asym-right-giant {
-        min-height: 410px; /* Aligné sur la somme des 3 cartes + gaps de gauche */
+        min-height: 410px; 
         height: 100%;
+        /* On ajoute la transition pour que la montée au survol soit fluide */
+        transition: transform 0.3s ease, box-shadow 0.3s ease; 
     }
 
-    /* Préparation CSS pour les animations de scroll */
+    .asym-right-giant:hover {
+        transform: translateY(-6px); /* Il monte de 6px au survol */
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* Optionnel : une ombre un peu plus profonde car la carte est grande */
+    }
+
     .scroll-left-to-right {
         opacity: 0;
-        transform: translateX(-60px);
+        transform: translateX(-20px);
         transition: opacity 0.15s ease-out, transform 0.15s ease-out;
         will-change: opacity, transform;
     }
@@ -431,38 +460,37 @@ const styleGrandArticle = {
     }
 
     .thumbnail-wrapper {
-  display: block;
-  text-decoration: none;
-  width: 100%;
-  height: 100%;
-}
+        display: block;
+        text-decoration: none;
+        width: 100%;
+        height: 100%;
+    }
 
     .thumbnail-canvas {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16/9;
-    border-radius: 8px;
-    overflow: hidden;
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16/9;
+        border-radius: 8px;
+        overflow: hidden;
     }
 
     .thumbnail-shadow {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.3);
-    z-index: 0;
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.3);
+        z-index: 0;
     }
 
     .thumbnail-text {
-    position: absolute;
-    z-index: 1;
-    margin: 0;
-    padding: 0;
-    width: 60%;
-    max-width: 400px;
-    line-height: 1.2;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+        position: absolute;
+        z-index: 1;
+        margin: 0;
+        padding: 0;
+        width: 60%;
+        max-width: 400px;
+        line-height: 1.2;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
     }
-
 </style>
