@@ -7,6 +7,8 @@ image: /assets/uploads/ussop-giga-chad.png
 isVisible: false
 author: Paul Delachaux
 reading_time: 5
+author_about: d
+author_interests: d
 thumbnail_bg_position: center
 thumbnail_bg_zoom: ""
 title_x: ""
@@ -17,7 +19,5 @@ title_font: null
 title_color: ""
 thumbnail_descs: []
 use_thumbnail: false
-author_about: d
-author_interests: d
 ---
 czqehafrziugvnofpqrhgzu

@@ -250,14 +250,15 @@
             .sidebar-dummy-card { font-size: 0.95rem; color: #ffffff; font-weight: 600; line-height: 1.4; opacity: 0.6; }
             
             /* Styles du Footer de Transparence */
-            .article-footer-transparency { margin-top: 60px; border-top: 2px solid #ea580c; padding-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
-            .transparency-column h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffffff; margin: 0 0 15px 0; font-weight: 700; }
-            .transparency-column p { font-size: 0.9rem; line-height: 1.6; color: #9ca3af; margin: 0; }
-            .column-border { border-left: 1px solid #ea580c; border-right: 1px solid #ea580c; padding: 0 30px; }
-            .sources-list { margin: 0; padding-left: 18px; font-size: 0.9rem; color: #9ca3af; }
-            .sources-list li { margin-bottom: 8px; }
-            .sources-list a { color: #3b82f6; text-decoration: none; }
-            .sources-list a:hover { text-decoration: underline; }
+            .article-footer-transparency { display: flex; justify-content: center; gap: 30px; margin-top: 60px; padding: 30px; background-color: #02001d; border-radius: 8px; }
+            .transparency-card { position: relative; width: 160px; height: 210px; background-color: #00002c; border-radius: 8px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; }
+            .card-accent-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background-color: #ea580c; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+            .transparency-card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffffff; margin: 8px 0 10px 0; font-weight: 700; line-height: 1.2; }
+            .transparency-card p { font-size: 0.8rem; line-height: 1.5; color: #9ca3af; margin: 0; flex-grow: 1; }
+            .sources-list { margin: 0; padding-left: 15px; font-size: 0.8rem; color: #9ca3af; list-style-type: disc; }
+            .sources-list li { margin-bottom: 5px; }
+            .sources-list a { color: #ea580c; text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
+            .sources-list a:hover { color: #d4510b; text-decoration: underline; }
           `),
 
           // ── REPRODUCTION DU LAYOUT DE L'ARTICLE ──
@@ -292,15 +293,18 @@
 
               // ── AJOUT DU BLOC DE FIN DE PAGE : TRANSPARENCE JOURNALISTIQUE ──
               h('footer', { className: 'article-footer-transparency' },
-                h('div', { className: 'transparency-column' },
-                  h('h3', {}, "A propos de l'auteur"),
+                h('div', { className: 'transparency-card' },
+                  h('div', { className: 'card-accent-bar' }),
+                  h('h3', {}, "À propos de l'auteur"),
                   h('p', {}, authorAbout)
                 ),
-                h('div', { className: 'transparency-column column-border' },
-                  h('h3', {}, "Déclaration d'intérêt :"),
+                h('div', { className: 'transparency-card' },
+                  h('div', { className: 'card-accent-bar' }),
+                  h('h3', {}, "Déclaration d'intérêt"),
                   h('p', {}, authorInterests)
                 ),
-                h('div', { className: 'transparency-column' },
+                h('div', { className: 'transparency-card' },
+                  h('div', { className: 'card-accent-bar' }),
                   h('h3', {}, "Sources consultables"),
                   consultedSourcesArray.length > 0
                     ? h('ul', { className: 'sources-list' },

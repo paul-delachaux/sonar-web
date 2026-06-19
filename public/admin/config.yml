@@ -58,6 +58,8 @@ collections:
           - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
       - { label: "Corps de l'article (Contenu)", name: "body", widget: "markdown" }
 
+      - { label: "Tweet à intégrer (Optionnel)", name: "tweet_url", widget: "string", required: false, hint: "Colle l'URL complète du tweet, ex: https://x.com/nom_utilisateur/status/123456789" }
+
       # ==========================================
       # CONFIGURATION GRAPHIQUE DE LA MINIATURE
       # ==========================================

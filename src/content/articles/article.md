@@ -10,6 +10,7 @@ author: Paul Delachaux
 reading_time: 10
 author_about: Beau gosse
 author_interests: J'en ai pas, du tout
+tweet_url: https://x.com/Alpha_Futures_/status/2067947420130980206
 ---
 Ceci est le corps de mon article. Je peux écrire en **gras**, mettre des listes :
 - Point 1

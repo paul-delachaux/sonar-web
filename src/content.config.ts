@@ -17,7 +17,7 @@ const articles = defineCollection({
     ]),
 
     image: z.string().nullish().optional(),
-    
+    tweet_url: z.string().url().optional(),
     // --- NOUVEAUX CHAMPS CMS ---
     article_image: z.string().nullish().optional(),
     author: z.string().optional(),
