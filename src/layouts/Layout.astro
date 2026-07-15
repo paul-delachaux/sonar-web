@@ -1,72 +1,158 @@
 ---
-const { title } = Astro.props;
-import LogoSonar from '../components/LogoSonar.astro';
-import backgroundImage from '../assets/background.png'; // Ajuste les "../" selon où est ton Layout
+// 1. On récupère "isHome" en plus de "title" (par défaut false s'il n'est pas fourni)
+const { title, isHome = false } = Astro.props;
+// On renomme l'import avec une minuscule pour qu'il soit clair que c'est une variable d'image et non un composant
+import logoSonar from '../components/LogoSonar4.png';
+import backgroundImage from '../assets/background.png';
 ---
 
 <html lang="fr">
     <head>
         <script src="https://identity.netlify.com/v1/netlify-identity-widget.js" type="text/javascript"></script>
-
-        <!-- Script pour activer le rendu riche des tweets embarqués (astro-embed) -->
         <script async src="https://platform.twitter.com/widgets.js"></script>
 
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width" />
         <title>{title} | Sonar</title>
         <style is:global>
-            /* Ton CSS personnalisé */
             body { 
-                font-family: 'Helvetica', sans-serif; 
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
                 margin: 0; 
-                padding: 20px 20px 0 20px; /* 0 en bas car le footer gère son propre padding */
+                padding: 20px 20px 0 20px;
                 background-color: #121f2f;
                 background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('../assets/fond_sonar.png');
                 background-repeat: repeat;
                 background-position: center;
                 background-size: 100% 100%;
-                /*background-blend-mode: multiply;*/
                 color: #eee; 
             }
 
+            /* --- STYLE DE L'EN-TÊTE DE L'ACCUEIL --- */
             header { 
                 text-align: center; 
                 line-height: 60px;
+                background-color: #02001d; /* Même fond bleu sombre */
                 border-bottom: 2px solid #000; 
                 padding-bottom: 20px; 
                 backdrop-filter: blur(8px);
+                /* Marges pour étirer l'en-tête jusqu'au bord de l'écran */
+                margin-left: -20px;
+                margin-right: -20px;
+                margin-top: -20px;
             }
 
+            /* --- STYLE DE LA BARRE DE NAVIGATION DE L'ACCUEIL --- */
             .nav-bar { 
                 display: flex; 
                 justify-content: center; 
                 gap: 15px; 
+                background-color: #02001d; /* Même fond bleu sombre */
                 border-bottom: 1px solid #000; 
                 padding: 10px 0; 
                 margin-bottom: 20px; 
-                backdrop-filter: blur(8px); /* Légère transparence pour faire ressortir le texte sur le fond */
+                backdrop-filter: blur(8px);
+                /* Marges pour l'étirer également sur les bords */
+                margin-left: -20px;
+                margin-right: -20px;
             }
 
             .nav-bar a {
                 text-decoration: none;
-                color: #ff8826; /* Ton orange */
+                color: #ffffff;
                 font-weight: bold;
                 transition: color 0.3s ease;
             }
 
             .nav-bar a:hover {
-                color: #bc0000; /* Ton rouge au survol */
+                color: #ff8826;
             }
 
-            /* Positionnement du logo fixe en haut à gauche */
             .fixed-logo-wrapper {
                 position: absolute;
-                top: -25px;
-                left: -20px;
+                top: -5px; /* Ajusté légèrement pour le format image */
+                left: 0px;
                 z-index: 9999;
             }
 
-            /* La grille principale qui contient les articles */
+            /* --- STYLE DE LA BARRE COMPACTE DE NAVIGATION (HORS ACCUEIL) --- */
+            .header-inner {
+                display: flex;
+                align-items: center;
+                justify-content: space-between; /* Pousse le logo à gauche, et le groupe de droite à droite */
+                padding: 15px 30px;
+                background-color: #02001d; /* Fond bleu très sombre de la maquette */
+                border-bottom: 1px solid #102136;
+                backdrop-filter: blur(8px);
+                margin-left: -20px;
+                margin-right: -20px;
+                margin-top: -20px;
+                margin-bottom: 30px;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            }
+
+            /* Conteneur du logo seul cliquable à gauche */
+            .header-inner-logo {
+                display: flex;
+                align-items: center;
+                width: 140px;
+            }
+            .header-inner-logo a {
+                display: block;
+                width: 100%;
+                text-decoration: none;
+                cursor: pointer;
+            }
+
+            /* Groupe regroupant la navigation ET le sélecteur de langue à droite */
+            .header-right-group {
+                display: flex;
+                align-items: center;
+                gap: 40px; /* Espace entre les liens de navigation et le bouton pilule */
+            }
+
+            /* Barre de navigation interne */
+            .nav-bar-inner {
+                display: flex;
+                gap: 25px;
+                align-items: center;
+            }
+
+            .nav-bar-inner a {
+                text-decoration: none;
+                color: #ffffff;
+                font-size: 1rem;
+                font-weight: bold; /* Passage des liens en gras */
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                transition: color 0.3s ease;
+            }
+
+            .nav-bar-inner a:hover {
+                color: #ff8826;
+            }
+
+            /* Bouton sélecteur de langue (Style Pilule) */
+            .lang-selector-btn {
+                background-color: #ffffff;
+                color: #03031a;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 50px;
+                font-weight: bold; /* Déjà en gras, assuré ici */
+                font-size: 0.9rem;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                cursor: pointer;
+                transition: background-color 0.3s ease, transform 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .lang-selector-btn:hover {
+                background-color: #e2e8f0;
+                transform: scale(1.03);
+            }
+
+            /* Reste de vos styles */
             .main-grid { 
                 display: grid; 
                 grid-template-columns: 2fr 1fr; 
@@ -75,15 +161,12 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
                 margin: 0 auto; 
                 color: #000; 
             }
-
-            /* Les blocs d'articles */
             .article-une { 
                 background: white; 
                 padding: 20px; 
                 border: 1px solid #ddd; 
                 border-radius: 2%;
             }
-
             .article-sidebar { 
                 background: white; 
                 padding: 15px; 
@@ -91,18 +174,15 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
                 margin-bottom: 10px; 
                 border-radius: 2%;
             }
-
-            /* --- STYLES DU NOUVEAU FOOTER INTEGRÉ --- */
             .site-footer {
-                background-color: #0a131d; /* Légèrement plus sombre que le body pour détacher la section */
+                background-color: #0a131d;
                 color: #cccccc;
                 padding: 60px 20px 30px 20px;
-                margin-top: 80px; /* Donne du souffle sous ton dernier article asymétrique */
+                margin-top: 80px;
                 border-top: 2px solid #000;
-                margin-left: -20px;  /* Annule le padding du body pour prendre toute la largeur */
-                margin-right: -20px; /* Annule le padding du body pour prendre toute la largeur */
+                margin-left: -20px;
+                margin-right: -20px;
             }
-
             .footer-container {
                 max-width: 1200px;
                 margin: 0 auto;
@@ -110,68 +190,98 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
                 grid-template-columns: 2fr 1fr 1fr;
                 gap: 40px;
                 padding-bottom: 40px;
-                border-bottom: 1px solid #1f334b;
             }
-
             .footer-brand h3 {
                 color: #ffffff;
                 margin: 0 0 15px 0;
                 font-size: 1.4rem;
                 letter-spacing: 1px;
             }
-
             .footer-brand p {
                 color: #8fa0b5;
                 font-size: 0.95rem;
                 line-height: 1.6;
                 margin: 0;
             }
-
             .footer-links h4, .footer-contact h4 {
-                color: #ff8826; /* Ton orange signature */
+                color: #ff8826;
                 margin: 0 0 15px 0;
                 font-size: 1.1rem;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }
-
             .footer-links ul {
                 list-style: none;
                 padding: 0;
                 margin: 0;
             }
-
             .footer-links li {
                 margin-bottom: 10px;
             }
-
             .footer-links a {
                 display: inline-block;
                 color: #b0c0d2;
                 text-decoration: none;
                 transition: color 0.3s ease, transform 0.2s ease;
             }
-
             .footer-links a:hover {
                 color: #ff8826; 
                 transform: translateY(-2px);
             }
-
             .footer-contact p {
-                margin: 0; /* Supprime les marges par défaut qui décalent tout */
+                margin: 0;
                 font-size: 0.95rem;
                 color: #b0c0d2;
                 display: inline-flex;
                 align-items: center;
-                height: 20px; /* Aligne sa hauteur invisible sur celle des icônes SVG (20px) */
+                height: 20px;
             }
-
             .footer-contact {
                 display: flex;
                 flex-direction: column;
-                gap: 12px; /* C'est CE chiffre qui contrôle précisément l'espace entre tes 3 lignes */
+                gap: 12px;
             }
-
+            .footer-legal-section {
+                border-top: 1px solid #1f334b;
+                border-bottom: 1px solid #1f334b;
+                padding: 25px 20px;
+                margin: 20px auto 30px auto;
+                max-width: 1200px;
+                text-align: center;
+            }
+            .legal-section-title {
+                font-size: 0.75rem;
+                font-weight: 700;
+                letter-spacing: 0.15em;
+                color: #ffffff;
+                text-transform: uppercase;
+                margin: 0 0 15px 0;
+            }
+            .legal-links {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 30px;
+                padding: 0;
+                margin: 0;
+            }
+            .legal-link {
+                font-size: 0.85rem;
+                color: #b0c0d2;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                transition: color 0.3s ease;
+            }
+            .legal-link::before {
+                content: "▪";
+                color: #ff8826; 
+                font-size: 0.6rem;
+            }
+            .legal-link:hover {
+                color: #ff8826;
+            }
             .footer-bottom {
                 max-width: 1200px;
                 margin: 0 auto;
@@ -180,97 +290,140 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
                 font-size: 0.85rem;
                 color: #566981;
             }
+            .instagram-link {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                color: #b0c0d2; 
+                text-decoration: none;
+                font-size: 0.95rem;
+                line-height: 1;
+                transition: color 0.3s ease, transform 0.2s ease;
+            }
+            .instagram-link:hover {
+                color: #ff7900;
+                transform: translateY(-2px);
+            }
+            .instagram-icon {
+                width: 20px;
+                height: 20px;
+                display: block;
+            }
+            .instagram-wrapper {
+                margin-top: 0;
+                text-align: left; 
+            }
+            .contact-link {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                color: #b0c0d2;
+                text-decoration: none;
+                transition: color 0.3s ease, transform 0.2s ease;
+            }
+            .contact-link:hover {
+                color: #ff7900;
+                transform: translateY(-2px);
+            }
+            .mail-icon {
+                width: 20px;
+                height: 20px;
+                fill: currentColor;
+                color: #eee;
+            }
 
-            /* Responsive pour le Footer */
+            /* Responsive */
             @media (max-width: 768px) {
+                .header-inner {
+                    flex-direction: column;
+                    gap: 15px;
+                    padding: 15px;
+                }
+                .header-right-group {
+                    flex-direction: column;
+                    gap: 15px;
+                }
+                .nav-bar-inner {
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 15px;
+                }
                 .footer-container {
                     grid-template-columns: 1fr;
                     gap: 30px;
                 }
-            }
-
-            .instagram-link {
-                display: inline-flex;
-                align-items: center;      /* Centre verticalement l'icône et le texte */
-                justify-content: center;   /* Utile si le bloc prend toute la largeur */
-                gap: 10px;                 /* Espace propre entre le logo et le texte */
-                color: #b0c0d2; 
-                text-decoration: none;
-                font-size: 0.95rem;
-                line-height: 1;           /* Force le texte à ne pas baver vers le bas */
-                transition: color 0.3s ease, transform 0.2s ease;
-            }
-
-            .instagram-link:hover {
-                color: #ff7900; /* Change la couleur au survol */
-                transform: translateY(-2px); /* Légère élévation pour un effet de survol */
-            }
-
-            .instagram-icon {
-                width: 20px;
-                height: 20px;
-                display: block;           /* Évite les comportements "inline" bizarres des images */
-            }
-
-            /* Optionnel : Si tu veux centrer tout le bloc au milieu de ta colonne contact */
-            .instagram-wrapper {
-                margin-top: 0; /* Remis à 0 car géré proprement par le 'gap' du parent */
-                text-align: left; 
-            }
-
-            .contact-link {
-                /* 1. Alignement de l'icône et du texte sur la même ligne */
-                display: inline-flex;
-                align-items: center;
-                gap: 8px; /* Espace de 8px entre l'icône et le texte */
-
-                /* 2. Nettoyage du style par défaut des liens */
-                color: #b0c0d2;  /* Force la couleur gris clair de ton thème */
-                text-decoration: none; /* Supprime le soulignement bleu */
-                
-                /* Petite transition pour un effet de survol sympa */
-                transition: color 0.3s ease, transform 0.2s ease;
+                .legal-links {
+                    gap: 15px 20px;
                 }
-
-                /* 3. Effet au survol de la souris (Optionnel mais recommandé) */
-            .contact-link:hover {
-                color: #ff7900; /* Le lien devient orange (ou la couleur de ton choix) au survol */
-                transform: translateY(-2px);
             }
-
-                /* 4. Ajustement optionnel de la taille de l'icône si besoin */
-            .mail-icon {
-                width: 20px;
-                height: 20px;
-                fill: currentColor; /* Permet à l'icône de prendre la même couleur que le texte automatiquement */
-                color: #eee;
-            }
-
         </style>
     </head>
     <body>
-        <div class="fixed-logo-wrapper">
-            <a href="/" style="text-decoration: none;">
-                <LogoSonar/>
-            </a>
-        </div>
+        
+        {isHome ? (
+            /* ==========================================
+               1. VERSION POUR LA PAGE D'ACCUEIL
+               ========================================== */
+            <>
+                <div class="fixed-logo-wrapper">
+                    <a href="/" style="text-decoration: none;">
+                        <!-- Remplacement par une balise img standard -->
+                        <img src={logoSonar.src} alt="Logo Sonar" style="width: 140px; height: auto; display: block;" />
+                    </a>
+                </div>
 
-        <header>
-            <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;"><a href="/" style="text-decoration: none; color: inherit;">SONAR</a></h1>
-        </header>
+                <header>
+                    <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">
+                        <a href="/" style="text-decoration: none; color: inherit;">SONAR</a>
+                    </h1>
+                </header>
 
-        <nav class="nav-bar">
-            <a href="/">Accueil</a>
-            <a href="/politique">Politique</a>
-            <a href="/culture">Culture</a>
-            <a href="/societe">Société</a>
-            <a href="/technologie">Technologie</a>
-        </nav>
+                <nav class="nav-bar">
+                    <a href="/">Accueil</a>
+                    <a href="/politique">Politique</a>
+                    <a href="/culture">Culture</a>
+                    <a href="/societe">Société</a>
+                    <a href="/technologie">Technologie</a>
+                </nav>
+            </>
+        ) : (
+            /* ==========================================
+               2. NOUVELLE VERSION HORS ACCUEIL
+               ========================================== */
+            <header class="header-inner">
+                <!-- À gauche : Le logo seul (cliquable vers le menu/accueil) -->
+                <div class="header-inner-logo">
+                    <a href="/" aria-label="Retour au menu principal">
+                        <!-- Remplacement par une balise img standard -->
+                        <img src={logoSonar.src} alt="Logo Sonar" style="width: 100%; height: auto; display: block;" />
+                    </a>
+                </div>
+
+                <!-- À droite : Le groupe regroupant la navigation ET le bouton de langue -->
+                <div class="header-right-group">
+                    <nav class="nav-bar-inner">
+                        <a href="/">Menu</a>
+                        <a href="/international">International</a>
+                        <a href="/technologie">Technologie</a>
+                        <a href="/politique">Politique</a>
+                        <a href="/culture">Culture</a>
+                    </nav>
+
+                    <div class="lang-selector-wrapper">
+                        <button class="lang-selector-btn" id="langBtn">
+                            ENG | FR
+                        </button>
+                    </div>
+                </div>
+            </header>
+        )}
 
         <main>
             <slot /> 
         </main>
 
+        <!-- Footer -->
         <footer class="site-footer">
             <div class="footer-container">
                 <div class="footer-brand">
@@ -293,27 +446,34 @@ import backgroundImage from '../assets/background.png'; // Ajuste les "../" selo
                     <h4>Contact</h4>
                     <div class="mail-wrapper">
                         <a href="mailto:contact@lesonar.media" class="contact-link">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0c0d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mail-icon">
-                            <path d="M4 4h16v16H4z"></path>
-                            <polyline points="22,6 12,13 2,6"></polyline>
-                        </svg>
-                        <span>contact@lesonar.media</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0c0d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mail-icon">
+                                <path d="M4 4h16v16H4z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                            <span>contact@lesonar.media</span>
                         </a>
                     </div>
                     <p>Maison de la presse — Paris, France</p>
                     <div class="instagram-wrapper">
                         <a href="https://www.instagram.com/banshee.international/" target="_blank" rel="noopener noreferrer" class="instagram-link" aria-label="Suivez SONAR sur Instagram">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="instagram-icon">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                        </svg>
-                        <span>@banshee.international</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="instagram-icon">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                            </svg>
+                            <span>@banshee.international</span>
                         </a>
                     </div>
-
                 </div>
             </div>
+
+            <div class="footer-legal-section">
+                <p class="legal-section-title">Informations légales Sonar</p>
+                <div class="legal-links">
+                    <a href="/deontologie" class="legal-link">Méthodologie et Déontologie</a>
+                </div>
+            </div>
+
             <div class="footer-bottom">
                 <p>&copy; {new Date().getFullYear()} SONAR. Tous droits réservés.</p>
             </div>

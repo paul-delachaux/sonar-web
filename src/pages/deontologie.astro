@@ -1,0 +1,190 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+---
+
+<MainLayout title="Méthodologie & Déontologie — Le Sonar">
+  <div class="presentation-wrapper">
+    <div class="presentation-container">
+
+      {/* --- EN-TÊTE DE LA PAGE --- */}
+      <header class="presentation-header">
+        <h1 class="main-title">Méthodologie et déontologie</h1>
+        <div class="header-accent-bar"></div>
+      </header>
+
+      {/* --- CONTENU DE LA PRÉSENTATION --- */}
+      <main class="presentation-content">
+        
+        <p class="lead-text">
+          Le Sonar se veut un média d’information libre, méthodique, vigilant et factuel. Si l'actualité brute est indispensable, la neutralité et l’impartialité absolues restent des idéaux, des idéaux que nous nous efforçons toutefois de poursuivre avec rigueur. Notre objectif est de bâtir un lien de confiance caractérisé par la transparence entre notre rédaction (composée de journalistes, de critiques et d’universitaires) et nos lecteurs.
+        </p>
+
+        <p>
+          La création du Sonar est née d’un triple constat : la crise de confiance du public envers les médias traditionnels, le déclin économique de ces derniers, et un manque flagrant d’indépendance pour certains d'entre eux. Cette crise est aujourd'hui accentuée par un espace politique marqué par la désinformation et la banalisation du mensonge. En parallèle, le nouveau paysage de l'information voit émerger une multitude de créateurs indépendants sur les réseaux sociaux. Si cette dispersion offre une plus grande liberté de ton, elle souffre souvent d'un manque de moyens financiers et de structure. Le Sonar aspire à être la synthèse de ces deux mondes : la liberté de l'indépendance alliée à la rigueur d'une structure collective.
+        </p>
+
+        <h2>Nos engagements éditoriaux</h2>
+        
+        <ul>
+          <li>
+            <strong>Sauf exception liée au secret des sources</strong> (principe fondamental du droit de la presse), toutes nos sources seront mises à la disposition de nos lecteurs directement sur notre site.
+          </li>
+          <li>
+            Les articles devront être faits au maximum avec des <strong>universitaires et des experts (identifiables)</strong> sur les sujets qu’ils traitent afin d’éviter tout sensationnalisme inutile, toute contribution extérieure sera précisée.
+          </li>
+          <li>
+            Nous ne revendiquons <strong>aucune affiliation politique</strong> et tentons au mieux de nous débarrasser de tout préjugé pour traiter l’actualité.
+          </li>
+        </ul>
+
+        <h2>Modèle économique et Rémunération</h2>
+
+        <p>
+          À ce jour, Le Sonar ne génère aucun revenu. Le site vient d'être finalisé, nos premiers articles s'apprêtent à être publiés, et notre équipe est entièrement bénévole. Il s’agit avant tout d’une démarche collaborative menée par des étudiants et de jeunes professionnels désireux de faire vivre une information rigoureuse sur des sujets jugés importants.
+        </p>
+
+        <p>
+          Néanmoins, l’ambition à long et moyen terme pour pérenniser l’activité de ce nouveau média est d’étendre les sujets qu’il peut traiter, et de permettre aux journalistes d’aller sur le terrain. Cet objectif est impossible sans financements. Par conséquent, nous comptons monétiser, début 2027, le site à l’aide d’un abonnement peu onéreux, et, plus tard, faire des appels au don afin de garantir l’indépendance de la rédaction.
+        </p>
+
+        <p>
+          Dès que le site et ses réseaux sociaux généreront leurs premiers gains, une réunion sera organisée avec tous les contributeurs de la première heure. Si le projet se développe au point de pouvoir salarier l'équipe, ces pionniers seront prioritaires pour intégrer la rédaction. Les autres collaborations seront payées à la pige. Les détails seront tous disponibles sur le site, car notre Média répond à une nécessité : la transparence, afin que les lecteurs puissent savoir exactement auprès de qui ils s’informent.
+        </p>
+
+        <p class="highlight-box">
+          Autrement dit, fidèles au principe fondamental de transparence, l'intégralité de nos revenus sera affichée publiquement sur le site afin que chacun puisse en vérifier l'usage et l’indépendance.
+        </p>
+
+      </main>
+
+    </div>
+  </div>
+</MainLayout>
+
+<style is:global>
+  body {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    margin: 0;
+  }
+
+  /* Fond bleu foncé similaire au rectangle d'article */
+  .presentation-wrapper {
+    background-color: #02001d;
+    max-width: 900px; /* Plus serré pour maximiser la lisibilité du texte long */
+    margin: 60px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .presentation-container {
+    padding: 50px 60px;
+  }
+
+  /* --- HEADER --- */
+  .presentation-header {
+    margin-bottom: 40px;
+    text-align: left;
+  }
+
+  .presentation-header .main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin: 0 0 15px 0;
+  }
+
+  .header-accent-bar {
+    width: 80px;
+    height: 4px;
+    background-color: #ea580c; /* L'accent orange signature du Sonar */
+    border-radius: 2px;
+  }
+
+  /* --- CONTENU --- */
+  .presentation-content {
+    color: #e5e7eb;
+    font-size: 1.15rem;
+    line-height: 1.8;
+  }
+
+  .presentation-content p {
+    margin-bottom: 25px;
+  }
+
+  /* Paragraphe d'introduction légèrement mis en valeur */
+  .presentation-content .lead-text {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: #ffffff;
+    line-height: 1.7;
+    border-left: 3px solid #ea580c;
+    padding-left: 20px;
+    margin-bottom: 35px;
+  }
+
+  .presentation-content h2 {
+    font-size: 1.6rem;
+    color: #ffffff;
+    margin-top: 45px;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+
+  /* Listes stylisées */
+  .presentation-content ul {
+    margin: 0 0 30px 0;
+    padding-left: 25px;
+    list-style-type: none;
+  }
+
+  .presentation-content li {
+    position: relative;
+    margin-bottom: 15px;
+  }
+
+  /* Puce orange personnalisée */
+  .presentation-content li::before {
+    content: "•";
+    color: #ea580c;
+    font-weight: bold;
+    font-size: 1.4rem;
+    position: absolute;
+    left: -20px;
+    top: -2px;
+  }
+
+  .presentation-content strong {
+    color: #ffffff;
+  }
+
+  /* Encadré de fin de page pour la conclusion forte */
+  .highlight-box {
+    border-left: 4px solid #ea580c;
+    padding: 20px 25px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 40px;
+    font-weight: 500;
+    color: #ffffff;
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 768px) {
+    .presentation-wrapper {
+      margin: 0;
+      border-radius: 0;
+    }
+    .presentation-container {
+      padding: 40px 24px;
+    }
+    .presentation-header .main-title {
+      font-size: 1.8rem;
+    }
+    .presentation-content .lead-text {
+      font-size: 1.15rem;
+      padding-left: 15px;
+    }
+  }
+</style>
