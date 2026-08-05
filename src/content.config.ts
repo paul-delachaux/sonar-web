@@ -75,7 +75,7 @@ const articles = defineCollection({
         font: z.string().nullish().optional(),
         color: z.string().nullish().optional(),
 
-        line: z.string()
+        line: z.string().optional()
       })
     ).optional()
   }),
