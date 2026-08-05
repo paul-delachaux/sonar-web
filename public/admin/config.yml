@@ -123,6 +123,7 @@ collections:
             name: "weight"
             widget: "select"
             default: "400"
+            required: false
             options:
               - { label: "Fin (300)", value: "300" }
               - { label: "Normal (400)", value: "400" }
