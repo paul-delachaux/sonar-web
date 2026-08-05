@@ -115,15 +115,14 @@ collections:
         required: false
         summary: "{{fields.line}}"
         fields:
-          - { label: "Texte", name: "line", widget: "string" }
-          - { label: "Position X (px)", name: "x", widget: "number", default: 20, value_type: "int", min: 0, max: 500 }
-          - { label: "Position Y (px)", name: "y", widget: "number", default: 80, value_type: "int", min: 0, max: 300 }
-          - { label: "Taille police (px)", name: "size", widget: "number", default: 14, value_type: "int", min: 8, max: 60 }
+          - { label: "Texte", name: "line", widget: "string", required: false }
+          - { label: "Position X (px)", name: "x", widget: "number", default: 20, value_type: "int", min: 0, max: 500,  required: false }
+          - { label: "Position Y (px)", name: "y", widget: "number", default: 80, value_type: "int", min: 0, max: 300, required: false }
+          - { label: "Taille police (px)", name: "size", widget: "number", default: 14, value_type: "int", min: 8, max: 60, required: false }
           - label: "Épaisseur"
             name: "weight"
             widget: "select"
             default: "400"
-            required: false
             options:
               - { label: "Fin (300)", value: "300" }
               - { label: "Normal (400)", value: "400" }
