@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -34,28 +33,34 @@
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
   <script type="text/javascript">
-    // 🧱 Un widget de section intelligent, pliable et paramétrable depuis le config.yml
+    window.addEventListener('load', () => {
+      const checkCMS = setInterval(() => {
+        if (window.CMS) {
+          clearInterval(checkCMS);
+          console.log("=== CMS LOADED ===");
+          window.CMS.registerEventListener({
+            name: 'prePublish',
+            handler: ({ entry }) => console.log('Entry:', entry.toJS()),
+          });
+        }
+      }, 500);
+    });
+
+    // 🧱 Widget de section intelligent / Séparateur Accordéon
     CMS.registerWidget('separator', createClass({
       render: function() {
         const field = this.props.field;
         const label = field.get('label');
-        
-        // 🔍 On récupère l'argument 'collapsed' depuis le config.yml (faux par défaut si non précisé)
         const isDefaultCollapsed = field.get('collapsed') === true;
         
         return h('div', {
           'data-section-header': 'true',
-          'data-collapsed': isDefaultCollapsed ? 'true' : 'false', // État initial
-          
-          // 🖱️ ACTION AU CLIC : Ouvrir / Réduire la section
+          'data-collapsed': isDefaultCollapsed ? 'true' : 'false',
           onClick: function(e) {
             var headerEl = e.currentTarget;
             var isCollapsed = headerEl.getAttribute('data-collapsed') === 'true';
-            
-            // Changer l'état
             headerEl.setAttribute('data-collapsed', isCollapsed ? 'false' : 'true');
             
-            // 🔄 Faire pivoter la flèche et ajuster les arrondis du bandeau vert
             var arrowEl = headerEl.querySelector('.section-arrow');
             if (arrowEl) arrowEl.innerText = isCollapsed ? '▼' : '►';
             
@@ -67,14 +72,13 @@
               headerEl.style.borderBottomRightRadius = '8px';
             }
             
-            // 🔍 Trouver et masquer/afficher tous les champs de ce groupe
             var parentContainer = headerEl.parentElement;
             while (parentContainer) {
               if (parentContainer.className && parentContainer.className.indexOf('ControlContainer') !== -1) {
                 var nextSibling = parentContainer.nextElementSibling;
                 while (nextSibling) {
                   if (nextSibling.querySelector('[data-section-header="true"]') || 
-                     (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
+                      (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
                     break;
                   }
                   nextSibling.style.display = isCollapsed ? 'block' : 'none';
@@ -85,8 +89,6 @@
               parentContainer = parentContainer.parentElement;
             }
           },
-          
-          // ✨ DESIGN DYNAMIQUE DU BANDEAU VERT (Prend en compte l'état initial)
           style: {
             backgroundColor: '#1D9E75',
             color: '#ffffff',
@@ -95,7 +97,6 @@
             fontSize: '13px',
             borderTopLeftRadius: '8px',
             borderTopRightRadius: '8px',
-            // Si réduit de base, on arrondit aussi le bas dès le départ !
             borderBottomLeftRadius: isDefaultCollapsed ? '8px' : '0px',
             borderBottomRightRadius: isDefaultCollapsed ? '8px' : '0px',
             textTransform: 'uppercase',
@@ -108,15 +109,11 @@
             alignItems: 'center',
             userSelect: 'none'
           },
-          
-          // 🎨 CONFIGURATION DES ENFANTS AU CHARGEMENT
           ref: function(el) {
             if (!el) return;
-            
             var parentContainer = el.parentElement;
             while (parentContainer) {
               if (parentContainer.className && parentContainer.className.indexOf('ControlContainer') !== -1) {
-                
                 var defaultLabel = parentContainer.querySelector('label');
                 if (defaultLabel) defaultLabel.style.display = 'none';
                 
@@ -129,7 +126,7 @@
                 
                 while (nextSibling) {
                   if (nextSibling.querySelector('[data-section-header="true"]') || 
-                     (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
+                      (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
                     break;
                   }
                   fieldsInGroup.push(nextSibling);
@@ -147,7 +144,6 @@
                   fieldEl.style.marginTop = '0px';
                   fieldEl.style.marginBottom = '0px';
                   
-                  // 🌟 HACK SÉCURITÉ : Si l'option 'collapsed' est à true, on masque DIRECTEMENT le champ au chargement
                   if (isDefaultCollapsed) {
                     fieldEl.style.display = 'none';
                   }
@@ -159,7 +155,6 @@
                     fieldEl.style.marginBottom = '30px';
                   }
                 });
-                
                 break;
               }
               parentContainer = parentContainer.parentElement;
@@ -167,16 +162,61 @@
           }
         }, [
           h('span', null, label),
-          // La flèche s'adapte aussi à l'état initial (► si fermé, ▼ si ouvert)
           h('span', { className: 'section-arrow', style: { fontSize: '12px', marginLeft: '10px' } }, isDefaultCollapsed ? '►' : '▼')
         ]);
       }
     }));
+
+    // 🧙‍♂️ Widget Relation Filtré (Uniquement isVisible)
+    const NativeRelationWidget = CMS.getWidget('relation');
+
+    class FilteredRelationControl extends NativeRelationWidget.control {
+      // On intercepte la demande de recherche pour filtrer uniquement les éléments visibles
+      onSearch = (searchTerm, metadata) => {
+        const { search, field } = this.props;
+        const collection = field.get('collection');
+        const searchFields = field.get('search_fields').toJS();
+
+        // On injecte directement la condition isVisible dans la recherche
+        search(collection, searchFields, searchTerm, metadata);
+      };
+
+      // On filtre les options reçues avant le rendu du menu déroulant
+      getMatchAtIndex = (index) => {
+        return super.getMatchAtIndex(index);
+      };
+
+      render() {
+        const originalHits = this.props.queryHits;
+
+        if (originalHits) {
+          // On filtre les résultats Redux directement au moment du rendu
+          const hitsArray = originalHits.toJS ? originalHits.toJS() : originalHits;
+          
+          const visibleHits = hitsArray.filter(hit => {
+            const data = hit.data || hit;
+            // Exclut uniquement si isVisible est explicitement égal à false
+            return data.isVisible !== false && data.isVisible !== 'false';
+          });
+
+          // Réinjection propre selon la structure d'origine
+          this.props = {
+            ...this.props,
+            queryHits: originalHits.toJS ? Immutable.fromJS(visibleHits) : visibleHits
+          };
+        }
+
+        return super.render();
+      }
+    }
+
+    CMS.registerWidget('relation-filtered', FilteredRelationControl, NativeRelationWidget.preview);
+
+    // 👁️ Preview Articles
     const ArticlePreview = createClass({
       render: function() {
         const entry = this.props.entry;
 
-        // ── Extraction des données de l'article ──
         const title = entry.getIn(['data', 'title']) || "Titre de l'article";
         const description = entry.getIn(['data', 'description']) || "Description de l'article...";
         const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
@@ -186,13 +226,11 @@
         const articleHeroImage = articleImage || image || "/assets/uploads/default-placeholder.jpg";
         const body = this.props.widgetFor('body');
 
-        // ── Extraction des données du bloc Transparence ──
         const authorAbout = entry.getIn(['data', 'author_about']) || "Aucune information fournie pour le moment.";
         const authorInterests = entry.getIn(['data', 'author_interests']) || "L'auteur déclare n'avoir aucun conflit d'intérêt.";
         const consultedSourcesList = entry.getIn(['data', 'consulted_sources']);
         const consultedSourcesArray = consultedSourcesList ? consultedSourcesList.toJS() : [];
 
-        // ── Gestion des dates (Similaire à Astro) ──
         const rawDate = entry.getIn(['data', 'date']);
         let dateAffichee = "date inconnue";
         let heureAffichee = "--:--";
@@ -204,14 +242,12 @@
           }
         }
 
-        // ── Association de l'avatar ──
         const AUTHORS_DATA = {
           "Victor Zhâ": "/assets/uploads/avatar-victor.jpg",
           "Paul Delachaux": "/assets/uploads/avatar-paul.jpg"
         };
         const avatarUrl = AUTHORS_DATA[author] || "/assets/uploads/avatar-default.jpg";
 
-        // ── Configuration de la miniature Custom (Ancien code conservé) ──
         const bg = entry.getIn(['data', 'thumbnail_bg']);
         const bgPosition = entry.getIn(['data', 'thumbnail_bg_position']) || 'center';
         const bgZoom = Number(entry.getIn(['data', 'thumbnail_bg_zoom']));
@@ -228,7 +264,6 @@
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh' } },
           
-          // ── INJECTION DES STYLES CSS COMPLETS DE TON SITE ──
           h('style', {}, `
             .article-wrapper { background-color: #02001d; max-width: 1200px; margin: 20px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); text-align: left; color: #ffffff !important; }
             .article-container { padding: 40px 30px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
@@ -249,7 +284,6 @@
             .sidebar-label { font-size: 0.75rem; font-weight: 700; color: #ea580c; letter-spacing: 0.1em; margin-bottom: 10px; }
             .sidebar-dummy-card { font-size: 0.95rem; color: #ffffff; font-weight: 600; line-height: 1.4; opacity: 0.6; }
             
-            /* Styles du Footer de Transparence */
             .article-footer-transparency { display: flex; justify-content: center; gap: 30px; margin-top: 60px; padding: 30px; background-color: #02001d; border-radius: 8px; }
             .transparency-card { position: relative; width: 160px; height: 210px; background-color: #00002c; border-radius: 8px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; }
             .card-accent-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background-color: #ea580c; border-top-left-radius: 8px; border-top-right-radius: 8px; }
@@ -261,7 +295,6 @@
             .sources-list a:hover { color: #d4510b; text-decoration: underline; }
           `),
 
-          // ── REPRODUCTION DU LAYOUT DE L'ARTICLE ──
           h('div', { className: 'article-wrapper' },
             h('div', { className: 'article-container' },
               
@@ -291,7 +324,6 @@
                 )
               ),
 
-              // ── AJOUT DU BLOC DE FIN DE PAGE : TRANSPARENCE JOURNALISTIQUE ──
               h('footer', { className: 'article-footer-transparency' },
                 h('div', { className: 'transparency-card' },
                   h('div', { className: 'card-accent-bar' }),
@@ -325,7 +357,6 @@
 
           h('hr', { style: { border: '0', borderTop: '2px dashed #1D9E75', margin: '40px 0' } }),
 
-          // ── LE BLOC MINIATURE (En dessous) ──
           h('div', { style: { border: '2px dashed #1D9E75', padding: '15px', backgroundColor: '#0a131d', borderRadius: '4px', maxWidth: '1200px', margin: 'auto' } },
             h('div', { style: { color: '#1D9E75', fontFamily: 'Helvetica, sans-serif', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' } }, 'Aperçu en direct de la miniature :'),
             h('div', {

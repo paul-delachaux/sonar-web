@@ -3,65 +3,60 @@ import MainLayout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import homeSettings from '../data/settings.json';
 
-const tousLesArticles = await getCollection('articles', ({ data }) => {
-  return true; // pas de filtre pour l'instant
-});
-console.log("Articles récupérés:", tousLesArticles.map(a => ({ id: a.id, isVisible: a.data.isVisible })));
+// Nettoyage pour les IDs/Slugs
+const nettoyer = (s: any) => String(s || '').replace(/\.mdx?$/, '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-const tousTries = tousLesArticles
-    .filter(art => art.data.isVisible === true)
+// Tous les articles visibles, triés par date
+const tousLesArticles = (await getCollection('articles'))
+    .filter(art => art.data.isVisible !== false)
     .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
 
-console.log("Articles après filtre:", tousTries.map(a => a.id));
 const trouverArticleParSlug = (slugCible: string | undefined) => {
     if (!slugCible) return null;
-    const cibleNettoyee = String(slugCible).replace('.md', '').trim().toLowerCase();
-    return tousTries.find(art => {
-        const idNettoye = art.id.replace('.md', '').trim().toLowerCase();
-        return idNettoye.normalize("NFD") === cibleNettoyee.normalize("NFD");
-    });
+    const cibleClean = nettoyer(slugCible);
+    return tousLesArticles.find(art => nettoyer(art.id || art.slug) === cibleClean);
 };
 
-const articlesUtilisesIds = new Set();
+// Vérification de la présence d'une traduction anglaise
+const checkHasEn = (art: any) => Boolean(art && art.data && art.data.title_en && String(art.data.title_en).trim() !== "");
 
-// 2. À LA UNE
-let articleUne = trouverArticleParSlug(homeSettings.heroArticle);
-if (!articleUne) articleUne = tousTries[0];
-if (articleUne) articlesUtilisesIds.add(articleUne.id);
+// --- SELECTION DES ARTICLES FR ---
+const articlesUtilisesIdsFR = new Set();
 
-// 3. SIDEBAR HAUT
-let premierSecondaireLong = trouverArticleParSlug(homeSettings.sidebarLongArticle);
-if (!premierSecondaireLong || articlesUtilisesIds.has(premierSecondaireLong.id)) {
-    premierSecondaireLong = tousTries.find(art => !articlesUtilisesIds.has(art.id)) || null;
+let articleUneFR = trouverArticleParSlug(homeSettings.heroArticle);
+if (!articleUneFR) articleUneFR = tousLesArticles[0];
+if (articleUneFR) articlesUtilisesIdsFR.add(articleUneFR.id);
+
+let premierSecondaireLongFR = trouverArticleParSlug(homeSettings.sidebarLongArticle);
+if (!premierSecondaireLongFR || articlesUtilisesIdsFR.has(premierSecondaireLongFR.id)) {
+    premierSecondaireLongFR = tousLesArticles.find(art => !articlesUtilisesIdsFR.has(art.id)) || null;
 }
-if (premierSecondaireLong) articlesUtilisesIds.add(premierSecondaireLong.id);
+if (premierSecondaireLongFR) articlesUtilisesIdsFR.add(premierSecondaireLongFR.id);
 
-// 4. SIDEBAR BAS
-let autresSecondairesBas: any[] = [];
+let autresSecondairesBasFR: any[] = [];
 if (homeSettings.sidebarSmallArticles && Array.isArray(homeSettings.sidebarSmallArticles)) {
     homeSettings.sidebarSmallArticles.forEach((slug: string) => {
         const art = trouverArticleParSlug(slug);
-        if (art && !articlesUtilisesIds.has(art.id)) {
-            autresSecondairesBas.push(art);
-            articlesUtilisesIds.add(art.id);
+        if (art && !articlesUtilisesIdsFR.has(art.id)) {
+            autresSecondairesBasFR.push(art);
+            articlesUtilisesIdsFR.add(art.id);
         }
     });
 }
-while (autresSecondairesBas.length < 2) {
-    const backup = tousTries.find(art => !articlesUtilisesIds.has(art.id));
+while (autresSecondairesBasFR.length < 2) {
+    const backup = tousLesArticles.find(art => !articlesUtilisesIdsFR.has(art.id));
     if (!backup) break;
-    autresSecondairesBas.push(backup);
-    articlesUtilisesIds.add(backup.id);
+    autresSecondairesBasFR.push(backup);
+    articlesUtilisesIdsFR.add(backup.id);
 }
 
-// 5. RANGÉE DU BAS (3 ARTICLES)
-let articlesRangeeInferieure: any[] = [];
+let articlesRangeeInferieureFR: any[] = [];
 if (homeSettings.bottomArticles && Array.isArray(homeSettings.bottomArticles)) {
     homeSettings.bottomArticles.forEach((slug: string, index: number) => {
         const art = trouverArticleParSlug(slug);
-        if (art && !articlesUtilisesIds.has(art.id)) {
+        if (art && !articlesUtilisesIdsFR.has(art.id)) {
             const styleDecap = homeSettings.bottomArticlesStyles?.[index] || {};
-            articlesRangeeInferieure.push({
+            articlesRangeeInferieureFR.push({
                 ...art,
                 customStyles: {
                     fontSize: styleDecap.titleSize || "1.2rem",
@@ -69,28 +64,27 @@ if (homeSettings.bottomArticles && Array.isArray(homeSettings.bottomArticles)) {
                     fontFamily: styleDecap.titleFont || "sans-serif"
                 }
             });
-            articlesUtilisesIds.add(art.id);
+            articlesUtilisesIdsFR.add(art.id);
         }
     });
 }
-while (articlesRangeeInferieure.length < 3) {
-    const backup = tousTries.find(art => !articlesUtilisesIds.has(art.id));
+while (articlesRangeeInferieureFR.length < 3) {
+    const backup = tousLesArticles.find(art => !articlesUtilisesIdsFR.has(art.id));
     if (!backup) break;
-    articlesRangeeInferieure.push({
+    articlesRangeeInferieureFR.push({
         ...backup,
         customStyles: { fontSize: "1.2rem", fontWeight: "700", fontFamily: "sans-serif" }
     });
-    articlesUtilisesIds.add(backup.id);
+    articlesUtilisesIdsFR.add(backup.id);
 }
 
-// 6. NOUVEAU : Récupération des 3 articles SUPERPOSÉS (Gauche)
-let articlesAsymGauche: any[] = [];
+let articlesAsymGaucheFR: any[] = [];
 if (homeSettings.asymLeftArticles && Array.isArray(homeSettings.asymLeftArticles)) {
     homeSettings.asymLeftArticles.forEach((slug: string, index: number) => {
         const art = trouverArticleParSlug(slug);
-        if (art && !articlesUtilisesIds.has(art.id)) {
+        if (art && !articlesUtilisesIdsFR.has(art.id)) {
             const styleDecap = homeSettings.asymLeftStyles?.[index] || {};
-            articlesAsymGauche.push({
+            articlesAsymGaucheFR.push({
                 ...art,
                 customStyles: {
                     fontSize: styleDecap.titleSize || "1.1rem",
@@ -98,26 +92,25 @@ if (homeSettings.asymLeftArticles && Array.isArray(homeSettings.asymLeftArticles
                     fontFamily: styleDecap.titleFont || "sans-serif"
                 }
             });
-            articlesUtilisesIds.add(art.id);
+            articlesUtilisesIdsFR.add(art.id);
         }
     });
 }
-while (articlesAsymGauche.length < 3) {
-    const backup = tousTries.find(art => !articlesUtilisesIds.has(art.id));
+while (articlesAsymGaucheFR.length < 3) {
+    const backup = tousLesArticles.find(art => !articlesUtilisesIdsFR.has(art.id));
     if (!backup) break;
-    articlesAsymGauche.push({
+    articlesAsymGaucheFR.push({
         ...backup,
         customStyles: { fontSize: "1.1rem", fontWeight: "700", fontFamily: "sans-serif" }
     });
-    articlesUtilisesIds.add(backup.id);
+    articlesUtilisesIdsFR.add(backup.id);
 }
 
-// 7. NOUVEAU : Récupération du GRAND ARTICLE UNIQUE (Droite)
-let articleAsymDroite = trouverArticleParSlug(homeSettings.asymRightArticle);
-if (!articleAsymDroite || articlesUtilisesIds.has(articleAsymDroite.id)) {
-    articleAsymDroite = tousTries.find(art => !articlesUtilisesIds.has(art.id)) || null;
+let articleAsymDroiteFR = trouverArticleParSlug(homeSettings.asymRightArticle);
+if (!articleAsymDroiteFR || articlesUtilisesIdsFR.has(articleAsymDroiteFR.id)) {
+    articleAsymDroiteFR = tousLesArticles.find(art => !articlesUtilisesIdsFR.has(art.id)) || null;
 }
-if (articleAsymDroite) articlesUtilisesIds.add(articleAsymDroite.id);
+if (articleAsymDroiteFR) articlesUtilisesIdsFR.add(articleAsymDroiteFR.id);
 
 const styleDroiteDecap = homeSettings.asymRightStyle || {};
 const styleGrandArticle = {
@@ -125,41 +118,86 @@ const styleGrandArticle = {
     fontWeight: styleDroiteDecap.titleWeight || "700",
     fontFamily: styleDroiteDecap.titleFont || "sans-serif"
 };
+
+// --- LOGIQUE DE FALLBACK ENGLAIS PAR RECHERCHE DÉDIÉE ---
+const articlesENDisponibles = tousLesArticles.filter(checkHasEn);
+const articlesUtilisesIdsEN = new Set();
+
+// Retourne { article, hasEn } : hasEn indique si une VRAIE traduction
+// (directe ou de secours) a été trouvée pour ce slot.
+const obtenirArticleEN = (artFR: any) => {
+    if (!artFR) return { article: null, hasEn: false };
+    // Si l'article FR possède déjà sa version EN, on l'utilise
+    if (checkHasEn(artFR)) {
+        articlesUtilisesIdsEN.add(artFR.id);
+        return { article: artFR, hasEn: true };
+    }
+    // Sinon on prend le plus récent disponible qui a une version EN
+    const fallback = articlesENDisponibles.find(a => !articlesUtilisesIdsEN.has(a.id));
+    if (fallback) {
+        articlesUtilisesIdsEN.add(fallback.id);
+        return { article: fallback, hasEn: true };
+    }
+    // Aucun fallback disponible : on garde l'article FR, mais pas de vraie traduction
+    return { article: artFR, hasEn: false };
+};
+
+const { article: articleUneEN, hasEn: hasEnUne } = obtenirArticleEN(articleUneFR);
+const { article: premierSecondaireLongEN, hasEn: hasEnLong } = obtenirArticleEN(premierSecondaireLongFR);
+
+const autresSecondairesBasResult = autresSecondairesBasFR.map(artFR => obtenirArticleEN(artFR));
+const autresSecondairesBasEN = autresSecondairesBasResult.map(r => r.article);
+
+const articlesRangeeInferieureResult = articlesRangeeInferieureFR.map(artFR => obtenirArticleEN(artFR));
+const articlesRangeeInferieureEN = articlesRangeeInferieureResult.map(r => r.article);
+
+const articlesAsymGaucheResult = articlesAsymGaucheFR.map(artFR => obtenirArticleEN(artFR));
+const articlesAsymGaucheEN = articlesAsymGaucheResult.map(r => r.article);
+
+const { article: articleAsymDroiteEN, hasEn: hasEnAsymDroite } = obtenirArticleEN(articleAsymDroiteFR);
 ---
 
 <MainLayout title="Accueil" isHome={true}>
     <div class="container-accueil">
         
-        {/* --- GRILLE PRINCIPALE (HAUT) --- */}
+        <!-- --- GRILLE PRINCIPALE (HAUT) --- -->
         <div class="main-grid">
-            {articleUne ? (
-                articleUne.data.use_thumbnail && articleUne.data.thumbnail_bg ? (
-                    // ── MINIATURE CUSTOM ──
-                    <a href={`/articles/${articleUne.id}`} class="thumbnail-wrapper article-une">
+            {articleUneFR ? (
+                articleUneFR.data.use_thumbnail && articleUneFR.data.thumbnail_bg ? (
+                    <a 
+                      href={`/articles/${articleUneFR.id}`} 
+                      class="thumbnail-wrapper article-une article-card-item"
+                      data-href-fr={`/articles/${articleUneFR.id}`}
+                      data-href-en={`/articles/${articleUneEN.id}`}
+                      data-has-en={hasEnUne}
+                    >
                         <div class="thumbnail-canvas" style={`
-                        background-image: url('${articleUne.data.thumbnail_bg}');
-                        background-size: ${articleUne.data.thumbnail_bg_zoom ? articleUne.data.thumbnail_bg_zoom + '%' : 'cover'};
-                        background-position: ${articleUne.data.thumbnail_bg_position || 'center'};
+                        background-image: url('${articleUneFR.data.thumbnail_bg}');
+                        background-size: ${articleUneFR.data.thumbnail_bg_zoom ? articleUneFR.data.thumbnail_bg_zoom + '%' : 'cover'};
+                        background-position: ${articleUneFR.data.thumbnail_bg_position || 'center'};
                         background-repeat: no-repeat;
                         `}>
                             <div class="thumbnail-shadow"></div>
 
-                            {/* Titre */}
-                            {articleUne.data.thumbnail_title && (
-                                <h2 class="thumbnail-text" style={`
-                                left: ${articleUne.data.title_x ?? 20}px;
-                                top: ${articleUne.data.title_y ?? 20}px;
-                                font-size: ${articleUne.data.title_size ?? 24}px;
-                                font-weight: ${articleUne.data.title_weight ?? 700};
-                                font-family: ${articleUne.data.title_font ?? 'sans-serif'};
-                                color: ${articleUne.data.title_color ?? '#ffffff'};
-                                `}>
-                                    {articleUne.data.thumbnail_title}
+                            {articleUneFR.data.thumbnail_title && (
+                                <h2 
+                                  class="thumbnail-text" 
+                                  style={`
+                                    left: ${articleUneFR.data.title_x ?? 20}px;
+                                    top: ${articleUneFR.data.title_y ?? 20}px;
+                                    font-size: ${articleUneFR.data.title_size ?? 24}px;
+                                    font-weight: ${articleUneFR.data.title_weight ?? 700};
+                                    font-family: ${articleUneFR.data.title_font ?? 'sans-serif'};
+                                    color: ${articleUneFR.data.title_color ?? '#ffffff'};
+                                  `}
+                                  data-fr={articleUneFR.data.title}
+                                  data-en={articleUneEN.data.title_en || articleUneFR.data.title}
+                                >
+                                    {articleUneFR.data.title}
                                 </h2>
                             )}
 
-                            {/* Blocs de description */}
-                            {(articleUne.data.thumbnail_descs ?? []).map((bloc: any) => (
+                            {(articleUneFR.data.thumbnail_descs ?? []).map((bloc: any) => (
                                 <p class="thumbnail-text" style={`
                                 left: ${bloc.x ?? 20}px;
                                 top: ${bloc.y ?? 80}px;
@@ -174,15 +212,44 @@ const styleGrandArticle = {
                         </div>
                     </a>
                 ) : (
-                    // ── TEMPLATE PAR DÉFAUT (Rendu cliquable en entier) ──
-                    <a href={`/articles/${articleUne.id}`} class="article-une">
+                    <a 
+                      href={`/articles/${articleUneFR.id}`} 
+                      class="article-une article-card-item"
+                      data-href-fr={`/articles/${articleUneFR.id}`}
+                      data-href-en={`/articles/${articleUneEN.id}`}
+                      data-has-en={hasEnUne}
+                    >
                         <div class="article-une-body">
-                            <p class="article-tag">{articleUne.data.category}</p>
-                            <h2>{articleUne.data.title}</h2>
-                            <p class="article-desc">{articleUne.data.description}</p>
+                            <p 
+                              class="article-tag"
+                              data-fr={articleUneFR.data.category}
+                              data-en={articleUneEN.data.category_en || articleUneEN.data.category || articleUneFR.data.category}
+                            >
+                                {articleUneFR.data.category}
+                            </p>
+                            <h2 
+                              data-fr={articleUneFR.data.title}
+                              data-en={articleUneEN.data.title_en || articleUneFR.data.title}
+                            >
+                                {articleUneFR.data.title}
+                            </h2>
+                            <p 
+                              class="article-desc"
+                              data-fr={articleUneFR.data.description}
+                              data-en={articleUneEN.data.description_en || articleUneFR.data.description}
+                            >
+                                {articleUneFR.data.description}
+                            </p>
                         </div>
-                        {articleUne.data.image && (
-                            <div class="image-wrapper"><img src={articleUne.data.image} alt="" /></div>
+                        {(articleUneFR.data.image || articleUneEN.data.image) && (
+                            <div class="image-wrapper">
+                              <img 
+                                src={articleUneFR.data.image} 
+                                data-img-fr={articleUneFR.data.image}
+                                data-img-en={articleUneEN.data.image || articleUneFR.data.image}
+                                alt="" 
+                              />
+                            </div>
                         )}
                     </a>
                 )
@@ -191,52 +258,144 @@ const styleGrandArticle = {
             )}
 
             <aside class="sidebar-articles">
-                {premierSecondaireLong && (
-                    <a href={`/articles/${premierSecondaireLong.id}`} class="article-sidebar long">
+                {premierSecondaireLongFR && (
+                    <a 
+                      href={`/articles/${premierSecondaireLongFR.id}`} 
+                      class="article-sidebar long article-card-item"
+                      data-href-fr={`/articles/${premierSecondaireLongFR.id}`}
+                      data-href-en={`/articles/${premierSecondaireLongEN.id}`}
+                      data-has-en={hasEnLong}
+                    >
                         <div class="card-content-top">
-                            <p class="sidebar-tag">{premierSecondaireLong.data.category.toUpperCase()}</p>
-                            <h3>{premierSecondaireLong.data.title}</h3>
-                            <p class="sidebar-desc">{premierSecondaireLong.data.description}</p>
+                            <p 
+                              class="sidebar-tag"
+                              data-fr={premierSecondaireLongFR.data.category}
+                              data-en={premierSecondaireLongEN.data.category_en || premierSecondaireLongEN.data.category || premierSecondaireLongFR.data.category}
+                            >
+                                {premierSecondaireLongFR.data.category}
+                            </p>
+                            <h3
+                              data-fr={premierSecondaireLongFR.data.title}
+                              data-en={premierSecondaireLongEN.data.title_en || premierSecondaireLongFR.data.title}
+                            >
+                                {premierSecondaireLongFR.data.title}
+                            </h3>
+                            <p 
+                              class="sidebar-desc"
+                              data-fr={premierSecondaireLongFR.data.description}
+                              data-en={premierSecondaireLongEN.data.description_en || premierSecondaireLongFR.data.description}
+                            >
+                                {premierSecondaireLongFR.data.description}
+                            </p>
                         </div>
                         <div class="card-dynamic-spacer">
-                            <img src={premierSecondaireLong.data.image || "/assets/uploads/default-placeholder.jpg"} alt="" class="spacer-img" />
+                            <img 
+                              src={premierSecondaireLongFR.data.image || "/assets/uploads/default-placeholder.jpg"} 
+                              data-img-fr={premierSecondaireLongFR.data.image || "/assets/uploads/default-placeholder.jpg"}
+                              data-img-en={premierSecondaireLongEN.data.image || premierSecondaireLongFR.data.image || "/assets/uploads/default-placeholder.jpg"}
+                              alt="" 
+                              class="spacer-img" 
+                            />
                         </div>
                     </a>
                 )}
 
-                {autresSecondairesBas.length > 0 && (
+                {autresSecondairesBasFR.length > 0 && (
                     <div class="sub-grid">
-                        {autresSecondairesBas.map(art => (
-                            <a href={`/articles/${art.id}`} class="article-sidebar" set:key={art.id}>
-                                <div class="card-content-top">
-                                    <p class="sidebar-tag">{art.data.category.toUpperCase()}</p>
-                                    <h3>{art.data.title}</h3>
-                                    <p class="sidebar-desc">{art.data.description}</p>
-                                </div>
-                                <div class="card-dynamic-spacer">
-                                    <img src={art.data.image || "/assets/uploads/default-placeholder.jpg"} alt="" class="spacer-img" />
-                                </div>
-                            </a>
-                        ))}
+                        {autresSecondairesBasFR.map((artFR, idx) => {
+                            const artEN = autresSecondairesBasEN[idx] || artFR;
+                            const hasEn = autresSecondairesBasResult[idx]?.hasEn ?? false;
+                            return (
+                                <a 
+                                  href={`/articles/${artFR.id}`} 
+                                  class="article-sidebar article-card-item" 
+                                  set:key={artFR.id}
+                                  data-href-fr={`/articles/${artFR.id}`}
+                                  data-href-en={`/articles/${artEN.id}`}
+                                  data-has-en={hasEn}
+                                >
+                                    <div class="card-content-top">
+                                        <p 
+                                          class="sidebar-tag"
+                                          data-fr={artFR.data.category}
+                                          data-en={artEN.data.category_en || artEN.data.category || artFR.data.category}
+                                        >
+                                            {artFR.data.category}
+                                        </p>
+                                        <h3
+                                          data-fr={artFR.data.title}
+                                          data-en={artEN.data.title_en || artFR.data.title}
+                                        >
+                                            {artFR.data.title}
+                                        </h3>
+                                        <p 
+                                          class="sidebar-desc"
+                                          data-fr={artFR.data.description}
+                                          data-en={artEN.data.description_en || artFR.data.description}
+                                        >
+                                            {artFR.data.description}
+                                        </p>
+                                    </div>
+                                    <div class="card-dynamic-spacer">
+                                        <img 
+                                          src={artFR.data.image || "/assets/uploads/default-placeholder.jpg"} 
+                                          data-img-fr={artFR.data.image || "/assets/uploads/default-placeholder.jpg"}
+                                          data-img-en={artEN.data.image || artFR.data.image || "/assets/uploads/default-placeholder.jpg"}
+                                          alt="" 
+                                          class="spacer-img" 
+                                        />
+                                    </div>
+                                </a>
+                            );
+                        })}
                     </div>
                 )}
             </aside>
         </div>
 
-        {/* --- RANGÉE DU BAS (3 ARTICLES) --- */}
-        {articlesRangeeInferieure.length > 0 && (
+        <!-- --- RANGÉE DU BAS (3 ARTICLES) --- -->
+        {articlesRangeeInferieureFR.length > 0 && (
             <section class="bottom-row-grid scroll-interactive">
-                {articlesRangeeInferieure.map(art => {
-                    const bgImage = art.data.image || "/assets/uploads/default-placeholder.jpg";
+                {articlesRangeeInferieureFR.map((artFR, idx) => {
+                    const artEN = articlesRangeeInferieureEN[idx] || artFR;
+                    const hasEn = articlesRangeeInferieureResult[idx]?.hasEn ?? false;
+                    const bgImageFR = artFR.data.image || "/assets/uploads/default-placeholder.jpg";
+                    const bgImageEN = artEN.data.image || bgImageFR;
                     return (
-                        <a href={`/articles/${art.id}`} class="article-bottom-card has-bg" set:key={art.id} style={`background-image: url('${bgImage}');`}>
+                        <a 
+                          href={`/articles/${artFR.id}`} 
+                          class="article-bottom-card has-bg article-card-item" 
+                          set:key={artFR.id} 
+                          style={`background-image: url('${bgImageFR}');`}
+                          data-bg-fr={bgImageFR}
+                          data-bg-en={bgImageEN}
+                          data-href-fr={`/articles/${artFR.id}`}
+                          data-href-en={`/articles/${artEN.id}`}
+                          data-has-en={hasEn}
+                        >
                             <div class="overlay"></div>
                             <div class="card-content-top">
-                                <p class="card-tag">{art.data.category.toUpperCase()}</p>
-                                <h3 style={`font-size: ${art.customStyles.fontSize} !important; font-weight: ${art.customStyles.fontWeight} !important; font-family: ${art.customStyles.fontFamily} !important;`}>
-                                    {art.data.title}
+                                <p 
+                                  class="card-tag"
+                                  data-fr={artFR.data.category}
+                                  data-en={artEN.data.category_en || artEN.data.category || artFR.data.category}
+                                >
+                                    {artFR.data.category}
+                                </p>
+                                <h3 
+                                  style={`font-size: ${artFR.customStyles.fontSize} !important; font-weight: ${artFR.customStyles.fontWeight} !important; font-family: ${artFR.customStyles.fontFamily} !important;`}
+                                  data-fr={artFR.data.title}
+                                  data-en={artEN.data.title_en || artFR.data.title}
+                                >
+                                    {artFR.data.title}
                                 </h3>
-                                <p class="card-desc">{art.data.description}</p>
+                                <p 
+                                  class="card-desc"
+                                  data-fr={artFR.data.description}
+                                  data-en={artEN.data.description_en || artFR.data.description}
+                                >
+                                    {artFR.data.description}
+                                </p>
                             </div>
                         </a>
                     );
@@ -244,26 +403,41 @@ const styleGrandArticle = {
             </section>
         )}
 
-        {/* --- NOUVELLE RANGÉE ASYMÉTRIQUE ET INTERACTIVE --- */}
+        <!-- --- RANGÉE ASYMÉTRIQUE --- -->
         <section class="asym-container">
-            {/* Colonne Gauche */}
             <div class="asym-left-stack">
-                {articlesAsymGauche.map((art, index) => {
-                    const bgImage = art.data.image || "/assets/uploads/default-placeholder.jpg";
+                {articlesAsymGaucheFR.map((artFR, index) => {
+                    const artEN = articlesAsymGaucheEN[index] || artFR;
+                    const hasEn = articlesAsymGaucheResult[index]?.hasEn ?? false;
+                    const bgImageFR = artFR.data.image || "/assets/uploads/default-placeholder.jpg";
+                    const bgImageEN = artEN.data.image || bgImageFR;
                     return (
-                        /* Le wrapper intercepte l'animation de scroll JS */
-                        <div class="scroll-left-to-right" data-index={index} set:key={art.id}>
-                            {/* La carte gère son survol CSS de façon isolée */}
+                        <div class="scroll-left-to-right article-card-item" data-index={index} set:key={artFR.id}>
                             <a 
-                                href={`/articles/${art.id}`}
-                                class="article-bottom-card has-bg" 
-                                style={`background-image: url('${bgImage}');`}
+                              href={`/articles/${artFR.id}`} 
+                              class="article-bottom-card has-bg" 
+                              style={`background-image: url('${bgImageFR}');`}
+                              data-bg-fr={bgImageFR}
+                              data-bg-en={bgImageEN}
+                              data-href-fr={`/articles/${artFR.id}`}
+                              data-href-en={`/articles/${artEN.id}`}
+                              data-has-en={hasEn}
                             >
                                 <div class="overlay"></div>
                                 <div class="card-content-top">
-                                    <p class="card-tag">{art.data.category.toUpperCase()}</p>
-                                    <h3 style={`font-size: ${art.customStyles.fontSize} !important; font-weight: ${art.customStyles.fontWeight} !important; font-family: ${art.customStyles.fontFamily} !important;`}>
-                                        {art.data.title}
+                                    <p 
+                                      class="card-tag"
+                                      data-fr={artFR.data.category}
+                                      data-en={artEN.data.category_en || artEN.data.category || artFR.data.category}
+                                    >
+                                        {artFR.data.category}
+                                    </p>
+                                    <h3 
+                                      style={`font-size: ${artFR.customStyles.fontSize} !important; font-weight: ${artFR.customStyles.fontWeight} !important; font-family: ${artFR.customStyles.fontFamily} !important;`}
+                                      data-fr={artFR.data.title}
+                                      data-en={artEN.data.title_en || artFR.data.title}
+                                    >
+                                        {artFR.data.title}
                                     </h3>
                                 </div>
                             </a>
@@ -272,37 +446,101 @@ const styleGrandArticle = {
                 })}
             </div>
 
-            {/* Colonne Droite */}
-            {articleAsymDroite && (() => {
-                const bgImage = articleAsymDroite.data.image || "/assets/uploads/default-placeholder.jpg";
+            {articleAsymDroiteFR && (() => {
+                const artEN = articleAsymDroiteEN || articleAsymDroiteFR;
+                const bgImageFR = articleAsymDroiteFR.data.image || "/assets/uploads/default-placeholder.jpg";
+                const bgImageEN = artEN.data.image || bgImageFR;
                 return (
-                    /* 1. Le wrapper intercepte l'animation de scroll JS */
-                    <div class="scroll-bottom-to-top">
-                        {/* 2. La carte asym-right-giant est désormais libre de s'animer au survol */}
+                    <div class="scroll-bottom-to-top article-card-item">
                         <a 
-                            href={`/articles/${articleAsymDroite.id}`}
-                            class="article-bottom-card has-bg asym-right-giant"
-                            style={`background-image: url('${bgImage}');`}
+                          href={`/articles/${articleAsymDroiteFR.id}`} 
+                          class="article-bottom-card has-bg asym-right-giant" 
+                          style={`background-image: url('${bgImageFR}');`}
+                          data-bg-fr={bgImageFR}
+                          data-bg-en={bgImageEN}
+                          data-href-fr={`/articles/${articleAsymDroiteFR.id}`}
+                          data-href-en={`/articles/${artEN.id}`}
+                          data-has-en={hasEnAsymDroite}
                         >
                             <div class="overlay"></div>
                             <div class="card-content-top">
-                                <p class="card-tag">{articleAsymDroite.data.category.toUpperCase()}</p>
-                                <h3 style={`font-size: ${styleGrandArticle.fontSize} !important; font-weight: ${styleGrandArticle.fontWeight} !important; font-family: ${styleGrandArticle.fontFamily} !important;`}>
-                                    {articleAsymDroite.data.title}
+                                <p 
+                                  class="card-tag"
+                                  data-fr={articleAsymDroiteFR.data.category}
+                                  data-en={artEN.data.category_en || artEN.data.category || articleAsymDroiteFR.data.category}
+                                >
+                                    {articleAsymDroiteFR.data.category}
+                                </p>
+                                <h3 
+                                  style={`font-size: ${styleGrandArticle.fontSize} !important; font-weight: ${styleGrandArticle.fontWeight} !important; font-family: ${styleGrandArticle.fontFamily} !important;`}
+                                  data-fr={articleAsymDroiteFR.data.title}
+                                  data-en={artEN.data.title_en || articleAsymDroiteFR.data.title}
+                                >
+                                    {articleAsymDroiteFR.data.title}
                                 </h3>
-                                <p class="card-desc">{articleAsymDroite.data.description}</p>
+                                <p 
+                                  class="card-desc"
+                                  data-fr={articleAsymDroiteFR.data.description}
+                                  data-en={artEN.data.description_en || articleAsymDroiteFR.data.description}
+                                >
+                                    {articleAsymDroiteFR.data.description}
+                                </p>
                             </div>
                         </a>
                     </div>
                 );
             })()}
         </section>
-        
     </div>
 </MainLayout>
 
 <script>
+    function appliquerLangue(lang: string) {
+        // 1. Textes
+        document.querySelectorAll('[data-en]').forEach((el) => {
+            const txtEn = el.getAttribute('data-en');
+            const txtFr = el.getAttribute('data-fr');
+            if (lang === 'en' && txtEn) el.textContent = txtEn;
+            else if (txtFr) el.textContent = txtFr;
+        });
+
+        // 2. Liens (href)
+        document.querySelectorAll('[data-href-en]').forEach((el) => {
+            const hrefEn = el.getAttribute('data-href-en');
+            const hrefFr = el.getAttribute('data-href-fr');
+            if (lang === 'en' && hrefEn) el.setAttribute('href', hrefEn);
+            else if (hrefFr) el.setAttribute('href', hrefFr);
+        });
+
+        // 3. Images
+        document.querySelectorAll('[data-img-en]').forEach((el) => {
+            const imgEn = el.getAttribute('data-img-en');
+            const imgFr = el.getAttribute('data-img-fr');
+            if (lang === 'en' && imgEn) el.setAttribute('src', imgEn);
+            else if (imgFr) el.setAttribute('src', imgFr);
+        });
+
+        // 4. Background-images
+        document.querySelectorAll('[data-bg-en]').forEach((el) => {
+            const bgEn = el.getAttribute('data-bg-en');
+            const bgFr = el.getAttribute('data-bg-fr');
+            const targetBg = (lang === 'en' && bgEn) ? bgEn : bgFr;
+            if (targetBg) (el as HTMLElement).style.backgroundImage = `url('${targetBg}')`;
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
+        const currentLang = localStorage.getItem('user_lang') || 'fr';
+        appliquerLangue(currentLang);
+
+        // Écoute de l'événement personnalisé pour les changements dynamiques de langue
+        window.addEventListener('languageChanged', ((e: CustomEvent) => {
+            if (e.detail && e.detail.lang) {
+                appliquerLangue(e.detail.lang);
+            }
+        }) as EventListener);
+
+        // Scroll interactive animations
         const bottomRow = document.querySelector('.scroll-interactive') as HTMLElement;
         const leftCards = document.querySelectorAll('.scroll-left-to-right');
         const rightGiant = document.querySelector('.scroll-bottom-to-top') as HTMLElement;
@@ -352,145 +590,45 @@ const styleGrandArticle = {
 <style>
     .container-accueil { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 80px; padding-bottom: 80px; }
     .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; color: #000; align-items: stretch; min-height: 700px; }
-    
-    /* --- NETTOYAGE STYLE DES LIENS GLOBAUX --- */
-    .article-une, .article-sidebar, .article-bottom-card { 
-        text-decoration: none; 
-        color: inherit; 
-    }
-
+    .article-une, .article-sidebar, .article-bottom-card { text-decoration: none; color: inherit; }
     .article-une { background: white; padding: 24px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; transition: color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;}
-    .article-une:hover {transform: translateY(-5px); /* Légère élévation pour un effet de survol */box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);}
+    .article-une:hover {transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);}
     .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #111; }
     .image-wrapper { width: 100%; flex-grow: 1; min-height: 350px; position: relative; margin-top: 15px; }
     .image-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
     .sidebar-articles { display: flex; flex-direction: column; gap: 15px; }
     .article-sidebar.long, .sub-grid { flex: 1; }
     .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    
     .article-sidebar { background: white; padding: 15px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: color 0.3s ease, transform 0.2s ease;}
-    .article-sidebar:hover {transform: translateY(-5px); /* Légère élévation pour un effet de survol */}
+    .article-sidebar:hover {transform: translateY(-5px);}
     .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #111; }
-    
     .bottom-row-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; align-items: stretch; }
     .article-bottom-card { background: white; padding: 20px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 320px; border-radius: 2%; transition: color 0.3s ease, transform 0.2s ease;}
-    .article-bottom-card:hover {transform: translateY(-5px); /* Légère élévation pour un effet de survol */}
+    .article-bottom-card:hover {transform: translateY(-5px);}
     .card-content-top { margin-bottom: 5px; }
     .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; }
     .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #f7f7f7; height: 60px; }
     .spacer-img { width: 100%; height: 100%; object-fit: cover; }
-    
     .article-tag, .sidebar-tag, .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
     .article-tag { margin: 0 0 10px 0; }
     .sidebar-tag, .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
     .article-desc, .sidebar-desc, .card-desc { font-size: 0.95rem; line-height: 1.5; color: #333; margin: 0; }
-    
-    /* EFFET AU SURVOL SUR LES TITRES (Remplace l'interaction de l'ancien lien textuel) */
-    .article-une:hover h2, 
-    .article-sidebar:hover h3, 
-    .article-bottom-card:hover h3 { 
-        text-decoration: underline; 
-    }
-
+    .article-une:hover h2, .article-sidebar:hover h3, .article-bottom-card:hover h3 { text-decoration: underline; }
     .scroll-interactive { opacity: 0; transform: translateY(50px); transition: opacity 0.1s ease-out, transform 0.1s ease-out; will-change: opacity, transform; }
-    
     .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }
     .article-bottom-card.has-bg .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)); z-index: -1; }
     .article-bottom-card.has-bg h3 { color: #ffffff !important; }
     .article-bottom-card.has-bg .card-desc { color: #e0e0e0; }
-
-    /* --- NOUVEAUX STYLES POUR LA GRILLE ASYMÉTRIQUE --- */
-    .asym-container {
-        display: grid;
-        grid-template-columns: 3.5fr 6.5fr; 
-        gap: 20px;
-        width: 100%;
-        align-items: stretch;
-        
-    }
-
-    .asym-left-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        justify-content: space-between;
-    }
-
-
-    .asym-left-stack .article-bottom-card {
-        min-height: 120px; 
-        padding: 15px;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        /* Ajout d'une transition pour rendre la montée au survol fluide */
-        transition: transform 0.3s ease, box-shadow 0.3s ease; 
-    }
-
-    .asym-left-stack .article-bottom-card:hover{
-        transform: translateY(-6px); /* Monte de 6px par rapport à sa position actuelle */
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); /* Optionnel : ajoute une jolie ombre portée */
-    }
-
-    .asym-right-giant {
-        min-height: 410px; 
-        height: 100%;
-        /* On ajoute la transition pour que la montée au survol soit fluide */
-        transition: transform 0.3s ease, box-shadow 0.3s ease; 
-    }
-
-    .asym-right-giant:hover {
-        transform: translateY(-6px); /* Il monte de 6px au survol */
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* Optionnel : une ombre un peu plus profonde car la carte est grande */
-    }
-
-    .scroll-left-to-right {
-        opacity: 0;
-        transform: translateX(-20px);
-        transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-        will-change: opacity, transform;
-    }
-
-    .scroll-bottom-to-top {
-        opacity: 0;
-        transform: translateY(70px);
-        transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-        will-change: opacity, transform;
-    }
-
-    .thumbnail-wrapper {
-        display: block;
-        text-decoration: none;
-        width: 100%;
-        height: 100%;
-    }
-
-    .thumbnail-canvas {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 16/9;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .thumbnail-shadow {
-        position: absolute;
-        inset: 0;
-        background: rgba(0,0,0,0.3);
-        z-index: 0;
-    }
-
-    .thumbnail-text {
-        position: absolute;
-        z-index: 1;
-        margin: 0;
-        padding: 0;
-        width: 60%;
-        max-width: 400px;
-        line-height: 1.2;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
-    }
+    .asym-container { display: grid; grid-template-columns: 3.5fr 6.5fr; gap: 20px; width: 100%; align-items: stretch; }
+    .asym-left-stack { display: flex; flex-direction: column; gap: 15px; justify-content: space-between; }
+    .asym-left-stack .article-bottom-card { min-height: 120px; padding: 15px; width: 100%; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .asym-left-stack .article-bottom-card:hover{ transform: translateY(-6px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); }
+    .asym-right-giant { min-height: 410px; height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .asym-right-giant:hover { transform: translateY(-6px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); }
+    .scroll-left-to-right { opacity: 0; transform: translateX(-20px); transition: opacity 0.15s ease-out, transform 0.15s ease-out; will-change: opacity, transform; }
+    .scroll-bottom-to-top { opacity: 0; transform: translateY(70px); transition: opacity 0.15s ease-out, transform 0.15s ease-out; will-change: opacity, transform; }
+    .thumbnail-wrapper { display: block; text-decoration: none; width: 100%; height: 100%; }
+    .thumbnail-canvas { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; }
+    .thumbnail-shadow { position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 0; }
+    .thumbnail-text { position: absolute; z-index: 1; margin: 0; padding: 0; width: 60%; max-width: 400px; line-height: 1.2; word-wrap: break-word; overflow-wrap: break-word; text-shadow: 2px 2px 5px rgba(0,0,0,0.9); }
 </style>

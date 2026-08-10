@@ -1,12 +1,9 @@
 ---
-title: Test pour victor
-description: Test pour voir si ça marche
-title_en: Test for victor
-description_en: Test to see if it works
-body_en: Here is the test.
-date: 2026-08-05T13:23:00.000+02:00
-category: politique
-image: /assets/uploads/ussop-giga-chad.png
+title: Test pour la catégorie société
+description: Petit test pour vérifier que tout fonctionne correctement
+date: 2026-08-10T14:31:00.000+02:00
+category: societe
+image: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-1qXY2AQmkOCY4k-QUOf2hraByCL6i2WjSOlxo_OJEw&s=10
 isVisible: true
 author: Paul Delachaux
 reading_time: 5
@@ -29,4 +26,4 @@ thumbnail_descs:
     color: "#e1e8ed"
 use_thumbnail: false
 ---
-Voici le test
+Super article

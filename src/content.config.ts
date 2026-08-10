@@ -9,6 +9,13 @@ const articles = defineCollection({
     description: z.string(),
     date: z.coerce.date(),
 
+    // --- CHAMPS ANGLAIS (Rétablis et sécurisés) ---
+    title_en: z.string().nullish().optional(),
+    description_en: z.string().nullish().optional(),
+    body_en: z.string().nullish().optional(),
+    category_en: z.string().nullish().optional(),
+    // ----------------------------------------------
+
     category: z.enum([
       'politique',
       'culture',
@@ -18,6 +25,7 @@ const articles = defineCollection({
 
     image: z.string().nullish().optional(),
     tweet_url: z.string().url().optional(),
+    
     // --- NOUVEAUX CHAMPS CMS ---
     article_image: z.string().nullish().optional(),
     author: z.string().optional(),

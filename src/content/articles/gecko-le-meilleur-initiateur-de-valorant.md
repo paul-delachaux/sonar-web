@@ -4,7 +4,7 @@ description: Aujourd'hui nous parlons de ce beau gosse de Gecko
 date: 2026-05-27T14:41:00.000+02:00
 category: culture
 image: https://pbs.twimg.com/media/FuSIgc6XgAg8_1p.png
-isVisible: false
+isVisible: true
 author: Paul Delachaux
 reading_time: 5
 author_about: d

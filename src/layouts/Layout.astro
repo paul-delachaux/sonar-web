@@ -1,8 +1,7 @@
 ---
 // 1. On récupère "isHome" en plus de "title" (par défaut false s'il n'est pas fourni)
 const { title, isHome = false } = Astro.props;
-// On renomme l'import avec une minuscule pour qu'il soit clair que c'est une variable d'image et non un composant
-import logoSonar from '../components/LogoSonar4.png';
+import logoSonar from '../components/LogoSonarVdef.png';
 import backgroundImage from '../assets/background.png';
 ---
 
@@ -13,6 +12,7 @@ import backgroundImage from '../assets/background.png';
 
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
         <title>{title} | Sonar</title>
         <style is:global>
             body { 
@@ -29,16 +29,24 @@ import backgroundImage from '../assets/background.png';
 
             /* --- STYLE DE L'EN-TÊTE DE L'ACCUEIL --- */
             header { 
+                position: relative;
                 text-align: center; 
                 line-height: 60px;
-                background-color: #02001d; /* Même fond bleu sombre */
+                background-color: #02001d; 
                 border-bottom: 2px solid #000; 
                 padding-bottom: 20px; 
                 backdrop-filter: blur(8px);
-                /* Marges pour étirer l'en-tête jusqu'au bord de l'écran */
                 margin-left: -20px;
                 margin-right: -20px;
                 margin-top: -20px;
+            }
+
+            /* --- BOUTON DE LANGUE POUR LA PAGE D'ACCUEIL --- */
+            .lang-selector-home-wrapper {
+                position: absolute;
+                top: 20px;
+                right: 30px;
+                z-index: 9999;
             }
 
             /* --- STYLE DE LA BARRE DE NAVIGATION DE L'ACCUEIL --- */
@@ -46,12 +54,11 @@ import backgroundImage from '../assets/background.png';
                 display: flex; 
                 justify-content: center; 
                 gap: 15px; 
-                background-color: #02001d; /* Même fond bleu sombre */
+                background-color: #02001d; 
                 border-bottom: 1px solid #000; 
                 padding: 10px 0; 
                 margin-bottom: 20px; 
                 backdrop-filter: blur(8px);
-                /* Marges pour l'étirer également sur les bords */
                 margin-left: -20px;
                 margin-right: -20px;
             }
@@ -69,7 +76,7 @@ import backgroundImage from '../assets/background.png';
 
             .fixed-logo-wrapper {
                 position: absolute;
-                top: -5px; /* Ajusté légèrement pour le format image */
+                top: -5px; 
                 left: 0px;
                 z-index: 9999;
             }
@@ -78,9 +85,9 @@ import backgroundImage from '../assets/background.png';
             .header-inner {
                 display: flex;
                 align-items: center;
-                justify-content: space-between; /* Pousse le logo à gauche, et le groupe de droite à droite */
+                justify-content: space-between; 
                 padding: 15px 30px;
-                background-color: #02001d; /* Fond bleu très sombre de la maquette */
+                background-color: #02001d; 
                 border-bottom: 1px solid #102136;
                 backdrop-filter: blur(8px);
                 margin-left: -20px;
@@ -90,7 +97,6 @@ import backgroundImage from '../assets/background.png';
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
 
-            /* Conteneur du logo seul cliquable à gauche */
             .header-inner-logo {
                 display: flex;
                 align-items: center;
@@ -103,14 +109,12 @@ import backgroundImage from '../assets/background.png';
                 cursor: pointer;
             }
 
-            /* Groupe regroupant la navigation ET le sélecteur de langue à droite */
             .header-right-group {
                 display: flex;
                 align-items: center;
-                gap: 40px; /* Espace entre les liens de navigation et le bouton pilule */
+                gap: 40px; 
             }
 
-            /* Barre de navigation interne */
             .nav-bar-inner {
                 display: flex;
                 gap: 25px;
@@ -121,7 +125,7 @@ import backgroundImage from '../assets/background.png';
                 text-decoration: none;
                 color: #ffffff;
                 font-size: 1rem;
-                font-weight: bold; /* Passage des liens en gras */
+                font-weight: bold; 
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 transition: color 0.3s ease;
             }
@@ -137,7 +141,7 @@ import backgroundImage from '../assets/background.png';
                 border: none;
                 padding: 8px 20px;
                 border-radius: 50px;
-                font-weight: bold; /* Déjà en gras, assuré ici */
+                font-weight: bold; 
                 font-size: 0.9rem;
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 cursor: pointer;
@@ -152,7 +156,6 @@ import backgroundImage from '../assets/background.png';
                 transform: scale(1.03);
             }
 
-            /* Reste de vos styles */
             .main-grid { 
                 display: grid; 
                 grid-template-columns: 2fr 1fr; 
@@ -356,6 +359,10 @@ import backgroundImage from '../assets/background.png';
                 .legal-links {
                     gap: 15px 20px;
                 }
+                .lang-selector-home-wrapper {
+                    top: 15px;
+                    right: 15px;
+                }
             }
         </style>
     </head>
@@ -368,7 +375,6 @@ import backgroundImage from '../assets/background.png';
             <>
                 <div class="fixed-logo-wrapper">
                     <a href="/" style="text-decoration: none;">
-                        <!-- Remplacement par une balise img standard -->
                         <img src={logoSonar.src} alt="Logo Sonar" style="width: 140px; height: auto; display: block;" />
                     </a>
                 </div>
@@ -377,42 +383,46 @@ import backgroundImage from '../assets/background.png';
                     <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">
                         <a href="/" style="text-decoration: none; color: inherit;">SONAR</a>
                     </h1>
+
+                    <!-- Bouton Sélecteur de Langue -->
+                    <div class="lang-selector-home-wrapper">
+                        <button class="lang-selector-btn">
+                            FR | ENG
+                        </button>
+                    </div>
                 </header>
 
                 <nav class="nav-bar">
-                    <a href="/">Accueil</a>
-                    <a href="/politique">Politique</a>
-                    <a href="/culture">Culture</a>
-                    <a href="/societe">Société</a>
-                    <a href="/technologie">Technologie</a>
+                    <a href="/" data-i18n="nav_home">Accueil</a>
+                    <a href="/politique" data-i18n="nav_politique">Politique</a>
+                    <a href="/culture" data-i18n="nav_culture">Culture</a>
+                    <a href="/societe" data-i18n="nav_societe">Société</a>
+                    <a href="/technologie" data-i18n="nav_tech">Technologie</a>
                 </nav>
             </>
         ) : (
             /* ==========================================
-               2. NOUVELLE VERSION HORS ACCUEIL
+               2. VERSION HORS ACCUEIL
                ========================================== */
             <header class="header-inner">
-                <!-- À gauche : Le logo seul (cliquable vers le menu/accueil) -->
                 <div class="header-inner-logo">
                     <a href="/" aria-label="Retour au menu principal">
-                        <!-- Remplacement par une balise img standard -->
                         <img src={logoSonar.src} alt="Logo Sonar" style="width: 100%; height: auto; display: block;" />
                     </a>
                 </div>
 
-                <!-- À droite : Le groupe regroupant la navigation ET le bouton de langue -->
                 <div class="header-right-group">
                     <nav class="nav-bar-inner">
-                        <a href="/">Accueil</a>
-                        <a href="/societe">Société</a>
-                        <a href="/technologie">Technologie</a>
-                        <a href="/politique">Politique</a>
-                        <a href="/culture">Culture</a>
+                        <a href="/" data-i18n="nav_home">Accueil</a>
+                        <a href="/societe" data-i18n="nav_societe">Société</a>
+                        <a href="/technologie" data-i18n="nav_tech">Technologie</a>
+                        <a href="/politique" data-i18n="nav_politique">Politique</a>
+                        <a href="/culture" data-i18n="nav_culture">Culture</a>
                     </nav>
 
                     <div class="lang-selector-wrapper">
-                        <button class="lang-selector-btn" id="langBtn">
-                            ENG | FR
+                        <button class="lang-selector-btn">
+                            FR | ENG
                         </button>
                     </div>
                 </div>
@@ -428,17 +438,17 @@ import backgroundImage from '../assets/background.png';
             <div class="footer-container">
                 <div class="footer-brand">
                     <h3>SONAR</h3>
-                    <p>Le média qui amplifie l'information. Analyses, décryptages et perspectives sur l'actualité politique, culturelle et technologique.</p>
+                    <p data-i18n="footer_description">Le média qui amplifie l'information. Analyses, décryptages et perspectives sur l'actualité politique, culturelle et technologique.</p>
                 </div>
                 
                 <div class="footer-links">
-                    <h4>Navigation</h4>
+                    <h4 data-i18n="footer_nav_title">Navigation</h4>
                     <ul>
-                        <li><a href="/">Accueil</a></li>
-                        <li><a href="/politique">Politique</a></li>
-                        <li><a href="/culture">Culture</a></li>
-                        <li><a href="/societe">Société</a></li>
-                        <li><a href="/technologie">Technologie</a></li>
+                        <li><a href="/" data-i18n="nav_home">Accueil</a></li>
+                        <li><a href="/politique" data-i18n="nav_politique">Politique</a></li>
+                        <li><a href="/culture" data-i18n="nav_culture">Culture</a></li>
+                        <li><a href="/societe" data-i18n="nav_societe">Société</a></li>
+                        <li><a href="/technologie" data-i18n="nav_tech">Technologie</a></li>
                     </ul>
                 </div>
 
@@ -468,18 +478,74 @@ import backgroundImage from '../assets/background.png';
             </div>
 
             <div class="footer-legal-section">
-                <p class="legal-section-title">Informations légales Sonar</p>
+                <p class="legal-section-title" data-i18n="footer_legal_title">Informations légales Sonar</p>
                 <div class="legal-links">
-                    <a href="/deontologie" class="legal-link">Méthodologie et Déontologie</a>
+                    <a href="/deontologie" class="legal-link" data-i18n="footer_deontologie">Méthodologie et Déontologie</a>
                 </div>
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; {new Date().getFullYear()} SONAR. Tous droits réservés.</p>
+                <p>&copy; {new Date().getFullYear()} SONAR. <span data-i18n="footer_rights">Tous droits réservés.</span></p>
             </div>
         </footer>
 
+        <!-- SCRIPT D'INTERACTION & GESTION DU DICTIONNAIRE ET DE LA LANGUE -->
         <script>
+            import { dictionary } from '../data/dictionary.js';
+
+            function applyLanguage(lang) {
+                const langKey = lang.toUpperCase(); 
+
+                // 1. Sauvegarde dans le navigateur
+                localStorage.setItem('site_lang', langKey);
+                document.documentElement.lang = langKey.toLowerCase();
+
+                // 2. Application des traductions fixes (navigation, footer)
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (dictionary[langKey] && dictionary[langKey][key]) {
+                        el.textContent = dictionary[langKey][key];
+                    }
+                });
+
+                // 3. Application des traductions d'articles
+                document.querySelectorAll('[data-fr][data-en]').forEach(el => {
+                    const text = langKey === 'EN' ? el.getAttribute('data-en') : el.getAttribute('data-fr');
+                    if (text && text !== 'undefined') {
+                        el.textContent = text;
+                    }
+                });
+
+                // 4. Filtrage / Masquage des cartes d'articles sans traduction Anglaise
+                document.querySelectorAll('.article-card-item').forEach(card => {
+                    const hasEn = card.getAttribute('data-has-en') === 'true';
+                    if (langKey === 'EN' && !hasEn) {
+                        card.style.display = 'none';
+                    } else {
+                        card.style.display = '';
+                    }
+                });
+
+                // 5. Mise à jour visuelle des boutons de langue
+                document.querySelectorAll('.lang-selector-btn').forEach(btn => {
+                    btn.textContent = langKey === 'EN' ? 'ENG | FR' : 'FR | ENG';
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const savedLang = localStorage.getItem('site_lang') || 'FR';
+                applyLanguage(savedLang);
+
+                document.querySelectorAll('.lang-selector-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const currentLang = localStorage.getItem('site_lang') || 'FR';
+                        const newLang = currentLang === 'FR' ? 'EN' : 'FR';
+                        applyLanguage(newLang);
+                    });
+                });
+            });
+
+            // Netlify Identity
             if (window.netlifyIdentity) {
                 window.netlifyIdentity.on("init", user => {
                     if (!user) {

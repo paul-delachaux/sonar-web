@@ -3,27 +3,40 @@ backend:
   name: github
   repo: paul-delachaux/sonar-web 
   branch: main
-  base_url: https://sonar-oauth-media.vercel.app # 👈 L'adresse de ta passerelle
-  auth_endpoint: auth # 👈 L'adresse de ta passerelle
+  base_url: https://sonar-oauth-media.vercel.app
+  auth_endpoint: auth
   allowed_users:
     - paul-delachaux
     - souslesonar-hash
 
-media_folder: "public/assets/uploads" # Où seront stockées les images
+media_folder: "public/assets/uploads"
 public_folder: "/assets/uploads"
 
-
 collections:
+  # ==========================================
+  # COLLECTION PRINCIPALE D'ARTICLES
+  # ==========================================
   - name: "articles"
     label: "Articles"
     folder: "src/content/articles"
     create: true
     slug: "{{slug}}"
     fields:
+      
+      # --- VERSION FRANÇAISE ---
+      - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
+      - { name: "title", label: "Titre (FR)", widget: "string" }
+      - { name: "description", label: "Description (FR)", widget: "string" }
+      - { name: "body", label: "Contenu de l'article (FR)", widget: "markdown" }
 
-      - { label: "CREATION DE L'ARTICLE", name: "sep_article", widget: "separator", required: false}
-      - { label: "Titre", name: "title", widget: "string" }
-      - { label: "Description", name: "description", widget: "text" }
+      # --- VERSION ANGLAISE (FACULTATIVE) ---
+      - { name: "version_en_sep", widget: "separator", label: "🇬🇧 Version Anglaise (Optionnelle)", collapsed: false, required: false }
+      - { name: "title_en", label: "Titre (EN)", widget: "string", required: false }
+      - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
+      - { name: "body_en", label: "Contenu de l'article (EN)", widget: "markdown", required: false }
+
+      # --- INFORMATIONS GÉNÉRALES ---
+      - { label: "INFORMATIONS GÉNÉRALES DE L'ARTICLE", name: "sep_article", widget: "separator", required: false }
       - { label: "Date de publication", name: "date", widget: "datetime" }
       - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe", "technologie"] }
       
@@ -56,7 +69,6 @@ collections:
         fields:
           - { label: "Nom de la source (ex: Article du Monde)", name: "source_title", widget: "string" }
           - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
-      - { label: "Corps de l'article (Contenu)", name: "body", widget: "markdown" }
 
       - { label: "Tweet à intégrer (Optionnel)", name: "tweet_url", widget: "string", required: false, hint: "Colle l'URL complète du tweet, ex: https://x.com/nom_utilisateur/status/123456789" }
 
@@ -116,7 +128,7 @@ collections:
         summary: "{{fields.line}}"
         fields:
           - { label: "Texte", name: "line", widget: "string", required: false }
-          - { label: "Position X (px)", name: "x", widget: "number", default: 20, value_type: "int", min: 0, max: 500,  required: false }
+          - { label: "Position X (px)", name: "x", widget: "number", default: 20, value_type: "int", min: 0, max: 500, required: false }
           - { label: "Position Y (px)", name: "y", widget: "number", default: 80, value_type: "int", min: 0, max: 300, required: false }
           - { label: "Taille police (px)", name: "size", widget: "number", default: 14, value_type: "int", min: 8, max: 60, required: false }
           - label: "Épaisseur"
@@ -140,32 +152,73 @@ collections:
 
       - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
 
+  # ==========================================
+  # VUES FILTRÉES POUR LES MENUS DÉROULANTS
+  # ==========================================
+  - name: "articles_politique"
+    label: "Articles : Politique"
+    folder: "src/content/articles"
+    filter: { field: "category", value: "politique" }
+    create: false
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+
+  - name: "articles_culture"
+    label: "Articles : Culture"
+    folder: "src/content/articles"
+    filter: { field: "category", value: "culture" }
+    create: false
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+
+  - name: "articles_societe"
+    label: "Articles : Société"
+    folder: "src/content/articles"
+    filter: { field: "category", value: "societe" }
+    create: false
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+
+  - name: "articles_technologie"
+    label: "Articles : Technologie"
+    folder: "src/content/articles"
+    filter: { field: "category", value: "technologie" }
+    create: false
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+
+  # ==========================================
+  # PARAMÈTRES DU SITE
+  # ==========================================
   - name: "settings"
     label: "Paramètres"
-    delete: false # Empêche la suppression du fichier de config
+    delete: false
     editor:
       preview: false
     files:
       - name: "homepage"
         label: "Configuration Accueil"
-        file: "src/data/settings.json" # Chemin où sera stocké le choix
+        file: "src/data/settings.json"
         fields:
-
-           # --- ARTICLE A LA UNE ---
+          # --- ARTICLE A LA UNE ---
           - { label: "Article à la une", name: "sep_article_une", widget: "separator", required: false }
           - label: "Article à la une"
             name: "heroArticle"
-            widget: "relation"
-            collection: "articles" # Le nom de votre collection d'articles
+            widget: "relation-filtered"
+            collection: "articles"
             search_fields: ["title"]
-            value_field: "{{slug}}" # Ou "id", la valeur unique de l'article
+            value_field: "{{slug}}"
             display_fields: ["title"]
 
           # --- SECTION DROITE (HAUT - LONG) ---
           - { label: "Première sidebar", name: "sep_sidebar_long", widget: "separator", required: false }
           - label: "Sidebar : Premier article (Format Long)"
             name: "sidebarLongArticle"
-            widget: "relation"
+            widget: "relation-filtered"
             collection: "articles"
             search_fields: ["title"]
             value_field: "{{slug}}"
@@ -184,7 +237,7 @@ collections:
             field:
               label: "Article"
               name: "article"
-              widget: "relation"
+              widget: "relation-filtered"
               collection: "articles"
               search_fields: ["title"]
               value_field: "{{slug}}"
@@ -204,7 +257,7 @@ collections:
             field:
               label: "Article"
               name: "article"
-              widget: "relation"
+              widget: "relation-filtered"
               collection: "articles"
               search_fields: ["title"]
               value_field: "{{slug}}"
@@ -263,7 +316,7 @@ collections:
             field:
               label: "Article"
               name: "article"
-              widget: "relation"
+              widget: "relation-filtered"
               collection: "articles"
               search_fields: ["title"]
               value_field: "{{slug}}"
@@ -310,7 +363,7 @@ collections:
           - { label: "Article géant", name: "sep_giant_article", widget: "separator", required: false }
           - label: "Asymétrique : Grand Article Principal (Droite)"
             name: "asymRightArticle"
-            widget: "relation"
+            widget: "relation-filtered"
             collection: "articles"
             search_fields: ["title"]
             value_field: "{{slug}}"
@@ -349,5 +402,178 @@ collections:
                   - { label: "Journal (Serif)", value: "serif" }
                   - { label: "Code (Monospace)", value: "monospace" }
 
-              
+      # ==========================================
+      # CONFIGURATION DES PAGES DE CATÉGORIES
+      # ==========================================
+      - name: "categories"
+        label: "Configuration Catégories"
+        file: "src/data/categories.json"
+        fields:
 
+          # --- POLITIQUE ---
+          - { label: "POLITIQUE", name: "sep_politique", widget: "separator", required: false, collapsed: true }
+          - label: "Politique : 3 articles mis en avant (Gauche)"
+            name: "politique_topArticles"
+            widget: "list"
+            summary: "Article : {{article}}"
+            min: 0
+            max: 3
+            allow_duplicate: false
+            required: false
+            field:
+              label: "Article"
+              name: "article"
+              widget: "relation-filtered"
+              target_category: "politique"
+              collection: "articles_politique"
+              required: false
+              search_fields: ["title"]
+              value_field: "{{slug}}"
+              display_fields: ["title"]
+
+          - label: "Politique : Styles des 3 articles"
+            name: "politique_topStyles"
+            widget: "list"
+            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            min: 0
+            max: 3
+            required: false
+            fields:
+              - { label: "Taille du titre (ex: 1.2rem)", name: "titleSize", widget: "string", default: "1.2rem", required: false }
+              - label: "Épaisseur du titre"
+                name: "titleWeight"
+                widget: "select"
+                default: "700"
+                required: false
+                options:
+                  - { label: "Fin (300)", value: "300" }
+                  - { label: "Normal (400)", value: "400" }
+                  - { label: "Gras (700)", value: "700" }
+                  - { label: "Ultra-Gras (900)", value: "900" }
+              - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
+
+          # --- CULTURE ---
+          - { label: "CULTURE", name: "sep_culture", widget: "separator", required: false, collapsed: true }
+          - label: "Culture : 3 articles mis en avant (Gauche)"
+            name: "culture_topArticles"
+            widget: "list"
+            summary: "Article : {{article}}"
+            min: 0
+            max: 3
+            allow_duplicate: false
+            required: false
+            field:
+              label: "Article"
+              name: "article"
+              widget: "relation-filtered"
+              target_category: "culture"
+              collection: "articles_culture"
+              required: false
+              search_fields: ["title"]
+              value_field: "{{slug}}"
+              display_fields: ["title"]
+
+          - label: "Culture : Styles des 3 articles"
+            name: "culture_topStyles"
+            widget: "list"
+            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            min: 0
+            max: 3
+            required: false
+            fields:
+              - { label: "Taille du titre (ex: 1.2rem)", name: "titleSize", widget: "string", default: "1.2rem", required: false }
+              - label: "Épaisseur du titre"
+                name: "titleWeight"
+                widget: "select"
+                default: "700"
+                required: false
+                options:
+                  - { label: "Fin (300)", value: "300" }
+                  - { label: "Normal (400)", value: "400" }
+                  - { label: "Gras (700)", value: "700" }
+                  - { label: "Ultra-Gras (900)", value: "900" }
+              - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
+
+          # --- SOCIÉTÉ ---
+          - { label: "SOCIÉTÉ", name: "sep_societe", widget: "separator", required: false, collapsed: true }
+          - label: "Société : 3 articles mis en avant (Gauche)"
+            name: "societe_topArticles"
+            widget: "list"
+            summary: "Article : {{article}}"
+            min: 0
+            max: 3
+            allow_duplicate: false
+            required: false
+            field:
+              label: "Article"
+              name: "article"
+              widget: "relation-filtered"
+              target_category: "societe"
+              collection: "articles_societe"
+              required: false
+              search_fields: ["title"]
+              value_field: "{{slug}}"
+              display_fields: ["title"]
+
+          - label: "Société : Styles des 3 articles"
+            name: "societe_topStyles"
+            widget: "list"
+            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            min: 0
+            max: 3
+            required: false
+            fields:
+              - { label: "Taille du titre (ex: 1.2rem)", name: "titleSize", widget: "string", default: "1.2rem", required: false }
+              - label: "Épaisseur du titre"
+                name: "titleWeight"
+                widget: "select"
+                default: "700"
+                required: false
+                options:
+                  - { label: "Fin (300)", value: "300" }
+                  - { label: "Normal (400)", value: "400" }
+                  - { label: "Gras (700)", value: "700" }
+                  - { label: "Ultra-Gras (900)", value: "900" }
+              - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
+
+          # --- TECHNOLOGIE ---
+          - { label: "TECHNOLOGIE", name: "sep_technologie", widget: "separator", required: false, collapsed: true }
+          - label: "Technologie : 3 articles mis en avant (Gauche)"
+            name: "technologie_topArticles"
+            widget: "list"
+            summary: "Article : {{article}}"
+            min: 0
+            max: 3
+            allow_duplicate: false
+            required: false
+            field:
+              label: "Article"
+              name: "article"
+              widget: "relation-filtered"
+              target_category: "technologie"
+              collection: "articles_technologie"
+              required: false
+              search_fields: ["title"]
+              value_field: "{{slug}}"
+              display_fields: ["title"]
+
+          - label: "Technologie : Styles des 3 articles"
+            name: "technologie_topStyles"
+            widget: "list"
+            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            min: 0
+            max: 3
+            required: false
+            fields:
+              - { label: "Taille du titre (ex: 1.2rem)", name: "titleSize", widget: "string", default: "1.2rem", required: false }
+              - label: "Épaisseur du titre"
+                name: "titleWeight"
+                widget: "select"
+                default: "700"
+                required: false
+                options:
+                  - { label: "Fin (300)", value: "300" }
+                  - { label: "Normal (400)", value: "400" }
+                  - { label: "Gras (700)", value: "700" }
+                  - { label: "Ultra-Gras (900)", value: "900" }
+              - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }

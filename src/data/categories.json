@@ -1,0 +1,90 @@
+{
+  "politique_topArticles": [
+    "article",
+    "premier-article-en-ligne",
+    "sonar-réussi-sa-première-publication"
+  ],
+  "politique_topStyles": [
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    }
+  ],
+  "culture_topArticles": [
+    null,
+    null,
+    null
+  ],
+  "culture_topStyles": [
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    }
+  ],
+  "societe_topArticles": [
+    null,
+    null,
+    null
+  ],
+  "societe_topStyles": [
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    }
+  ],
+  "technologie_topArticles": [
+    null,
+    null,
+    null
+  ],
+  "technologie_topStyles": [
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    }
+  ]
+}

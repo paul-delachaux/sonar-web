@@ -4,7 +4,7 @@ description: fzoarpeicueifz^POEFIG HDULER
 date: 2026-06-08T10:34:00.000+02:00
 category: politique
 image: /assets/uploads/ussop-giga-chad.png
-isVisible: false
+isVisible: true
 author: Paul Delachaux
 reading_time: 5
 author_about: d
