@@ -1,6 +1,7 @@
 ---
 import MainLayout from './Layout.astro';
 import categorySettings from '../data/categories.json';
+import { t, categoryDictKey, categoryLabel } from '../utils/i18n.js';
 
 interface Props {
   categoryTitle: string;
@@ -10,62 +11,146 @@ interface Props {
 
 const { categoryTitle, categorySlug, articles } = Astro.props;
 
-// Fonction de nettoyage ultra-rigoureuse des slugs
-const nettoyer = (s: any) => String(s || '').replace(/\.mdx?$/, '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const IMG_PLACEHOLDER = "/assets/uploads/default-placeholder.jpg";
+const DEFAULT_STYLES = { titleSize: "1.2rem", titleWeight: "700", descSize: "0.8rem" };
 
-// Helper pour retrouver un article à partir d'un slug
-const trouverArticleParSlug = (slugCible: string | undefined) => {
-  if (!slugCible) return null;
+const nettoyer = (s: any) =>
+  String(s || '')
+    .replace(/\.mdx?$/, '')
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const slugEstVide = (s: any) => s == null || String(s).trim() === "";
+
+const trouverArticleParSlug = (slugCible: string | undefined | null) => {
+  if (slugEstVide(slugCible)) return null;
   const cibleClean = nettoyer(slugCible);
-  return articles.find(art => {
-    const idClean = nettoyer(art.id || art.slug);
-    return idClean === cibleClean;
-  });
+  return articles.find((art) => nettoyer(art.id || art.slug) === cibleClean) || null;
 };
+
+const checkHasEn = (art: any) =>
+  Boolean(art && art.data && art.data.title_en && String(art.data.title_en).trim() !== "");
 
 const currentSlug = categorySlug.toLowerCase();
 const selectedSlugs = (categorySettings as any)[`${currentSlug}_topArticles`] || [];
 const selectedStyles = (categorySettings as any)[`${currentSlug}_topStyles`] || [];
 
-const usedArticleIds = new Set<string>();
-let topThreeArticles: any[] = [];
+const slotsAdmin = (Array.isArray(selectedSlugs) && selectedSlugs.length > 0)
+  ? [...selectedSlugs, null, null, null].slice(0, 3)
+  : [null, null, null];
 
-// 1. Charger les 3 articles configurés dans le CMS (s'ils sont définis)
-if (Array.isArray(selectedSlugs) && selectedSlugs.length > 0) {
-  selectedSlugs.forEach((slug: string, index: number) => {
+const avecStyles = (art: any, index: number) => {
+  if (!art) return null;
+  const styleConfig = selectedStyles[index] || {};
+  return {
+    ...art,
+    customStyles: {
+      titleSize: styleConfig.titleSize || DEFAULT_STYLES.titleSize,
+      titleWeight: styleConfig.titleWeight || DEFAULT_STYLES.titleWeight,
+      descSize: styleConfig.descSize || DEFAULT_STYLES.descSize,
+    },
+  };
+};
+
+// --- PLACEMENT FR : 2 PASSES (admin puis trous par date) ---
+const usedIdsFR = new Set<string>();
+
+const reserverAdmin = (slug: any) => {
+  const art = trouverArticleParSlug(slug);
+  if (!art || usedIdsFR.has(art.id)) return null;
+  usedIdsFR.add(art.id);
+  return art;
+};
+
+const prochainRecent = () => {
+  const art = articles.find((a) => !usedIdsFR.has(a.id)) || null;
+  if (art) usedIdsFR.add(art.id);
+  return art;
+};
+
+let topThreeFR: any[] = slotsAdmin.map((slug: any, index: number) =>
+  avecStyles(reserverAdmin(slug), index)
+);
+topThreeFR = topThreeFR.map((art, index) => art || avecStyles(prochainRecent(), index));
+topThreeFR = topThreeFR.filter(Boolean);
+
+const remainingFR = articles.filter((art) => !usedIdsFR.has(art.id));
+
+// --- PLACEMENT EN (même logique que l'accueil) ---
+const articlesENDisponibles = articles.filter(checkHasEn);
+
+const assignerSlotsEN = (slotsFR: any[], adminSlugs: any[]) => {
+  const usedIds = new Set<string>();
+  const result = slotsFR.map(() => ({ article: null as any, hasEn: false }));
+
+  const adminEnQueue: any[] = [];
+  for (const slug of adminSlugs) {
+    if (slugEstVide(slug)) continue;
     const art = trouverArticleParSlug(slug);
-    if (art && !usedArticleIds.has(art.id)) {
-      const styleConfig = selectedStyles[index] || {};
-      topThreeArticles.push({
-        ...art,
-        customStyles: {
-          titleSize: styleConfig.titleSize || "1.2rem",
-          titleWeight: styleConfig.titleWeight || "700",
-          descSize: styleConfig.descSize || "0.8rem"
-        }
-      });
-      usedArticleIds.add(art.id);
-    }
-  });
-}
-
-// 2. Remplir avec les articles récents si moins de 3 sélectionnés
-articles.forEach((art) => {
-  if (topThreeArticles.length < 3 && !usedArticleIds.has(art.id)) {
-    topThreeArticles.push({
-      ...art,
-      customStyles: {
-        titleSize: "1.2rem",
-        titleWeight: "700",
-        descSize: "0.8rem"
-      }
-    });
-    usedArticleIds.add(art.id);
+    if (!art || !checkHasEn(art)) continue;
+    if (adminEnQueue.some((a) => a.id === art.id)) continue;
+    adminEnQueue.push(art);
   }
+
+  const prochainAdminEn = () => adminEnQueue.find((a) => !usedIds.has(a.id)) || null;
+  const prochainDateEn = () => articlesENDisponibles.find((a) => !usedIds.has(a.id)) || null;
+
+  const placer = (index: number, art: any) => {
+    if (!art || usedIds.has(art.id) || result[index].hasEn) return false;
+    usedIds.add(art.id);
+    result[index] = { article: art, hasEn: true };
+    return true;
+  };
+
+  for (let i = 0; i < slotsFR.length; i++) {
+    const artFR = slotsFR[i];
+    if (!artFR) continue;
+
+    if (checkHasEn(artFR) && !usedIds.has(artFR.id)) {
+      placer(i, artFR);
+      continue;
+    }
+
+    placer(i, prochainAdminEn() || prochainDateEn());
+  }
+
+  return result;
+};
+
+const topThreeEN = assignerSlotsEN(topThreeFR, slotsAdmin);
+
+// Sidebar EN : garder si traduit, sinon combler par date (sans reprendre les EN déjà en top)
+const usedEnIds = new Set(
+  topThreeEN.filter((r) => r.hasEn && r.article).map((r) => r.article.id)
+);
+const remainingEN = remainingFR.map((artFR) => {
+  if (checkHasEn(artFR) && !usedEnIds.has(artFR.id)) {
+    usedEnIds.add(artFR.id);
+    return { article: artFR, hasEn: true };
+  }
+  const fill = articlesENDisponibles.find((a) => !usedEnIds.has(a.id));
+  if (fill) {
+    usedEnIds.add(fill.id);
+    return { article: fill, hasEn: true };
+  }
+  return { article: null, hasEn: false };
 });
 
-// 3. Reste des articles pour la sidebar
-const remainingArticles = articles.filter(art => !usedArticleIds.has(art.id));
+const enText = (artEN: any, hasEn: boolean, field: string) => {
+  if (!hasEn || !artEN) return "";
+  const val = artEN.data?.[field];
+  return val != null && String(val).trim() !== "" ? String(val) : "";
+};
+const enImage = (artEN: any, hasEn: boolean) => {
+  if (!hasEn || !artEN) return "";
+  return artEN.data?.image || artEN.data?.article_image || IMG_PLACEHOLDER;
+};
+const enHref = (artEN: any, hasEn: boolean) => {
+  if (!hasEn || !artEN) return "";
+  return `/articles/${artEN.id}`;
+};
 ---
 
 <MainLayout title={categoryTitle}>
@@ -73,7 +158,7 @@ const remainingArticles = articles.filter(art => !usedArticleIds.has(art.id));
     
     <!-- BANDEAU TITRE -->
     <header class="category-header">
-      <h1 class="category-title" data-i18n={`category_${currentSlug}`}>{categoryTitle.toUpperCase()}</h1>
+      <h1 class="category-title" data-i18n={categoryDictKey(currentSlug) || undefined}>{categoryLabel(currentSlug, 'FR')}</h1>
       <div class="title-separator"></div>
     </header>
 
@@ -82,36 +167,43 @@ const remainingArticles = articles.filter(art => !usedArticleIds.has(art.id));
 
       <!-- COLONNE GAUCHE : 3 articles HERO -->
       <main class="left-stack">
-        {topThreeArticles.length > 0 ? (
-          topThreeArticles.map((art) => {
-            const bgImage = art.data.image || art.data.article_image || "/assets/uploads/default-placeholder.jpg";
-            const hasEn = Boolean(art.data?.title_en && String(art.data.title_en).trim() !== "");
-            
+        {topThreeFR.length > 0 ? (
+          topThreeFR.map((artFR, idx) => {
+            const artEN = topThreeEN[idx]?.article ?? null;
+            const hasEn = topThreeEN[idx]?.hasEn ?? false;
+            const bgImageFR = artFR.data.image || artFR.data.article_image || IMG_PLACEHOLDER;
             return (
               <a 
-                href={`/articles/${art.id}`} 
+                href={`/articles/${artFR.id}`} 
                 class="hero-card-bg article-card-item"
                 data-has-en={hasEn ? "true" : "false"}
+                data-href-fr={`/articles/${artFR.id}`}
+                data-href-en={enHref(artEN, hasEn)}
               >
-                <div class="bg-image" style={`background-image: url('${bgImage}');`}></div>
+                <div
+                  class="bg-image"
+                  style={`background-image: url('${bgImageFR}');`}
+                  data-bg-fr={bgImageFR}
+                  data-bg-en={enImage(artEN, hasEn)}
+                ></div>
                 <div class="card-overlay"></div>
                 
                 <div class="card-text-container">
                   <h2 
                     class="card-title"
-                    style={`font-size: ${art.customStyles.titleSize} !important; font-weight: ${art.customStyles.titleWeight} !important;`}
-                    data-fr={art.data.title}
-                    data-en={art.data.title_en || art.data.title}
+                    style={`font-size: ${artFR.customStyles.titleSize} !important; font-weight: ${artFR.customStyles.titleWeight} !important;`}
+                    data-fr={artFR.data.title}
+                    data-en={enText(artEN, hasEn, "title_en")}
                   >
-                    {art.data.title}
+                    {artFR.data.title}
                   </h2>
                   <p 
                     class="card-desc"
-                    style={`font-size: ${art.customStyles.descSize} !important;`}
-                    data-fr={art.data.description}
-                    data-en={art.data.description_en || art.data.description}
+                    style={`font-size: ${artFR.customStyles.descSize} !important;`}
+                    data-fr={artFR.data.description}
+                    data-en={enText(artEN, hasEn, "description_en")}
                   >
-                    {art.data.description}
+                    {artFR.data.description}
                   </p>
                 </div>
               </a>
@@ -125,33 +217,38 @@ const remainingArticles = articles.filter(art => !usedArticleIds.has(art.id));
       <!-- COLONNE DROITE : Sidebar -->
       <aside class="right-sidebar">
         <div class="sidebar-scroll-box">
-          <p class="sidebar-label" data-i18n="other_news">AUTRES ACTUALITÉS</p>
+          <p class="sidebar-label" data-i18n="sidebar_other_news">{t('sidebar_other_news', 'FR')}</p>
           
           <div class="sidebar-feed">
-            {remainingArticles.length > 0 ? (
-              remainingArticles.map((art) => {
-                const hasEn = Boolean(art.data?.title_en && String(art.data.title_en).trim() !== "");
-                
+            {remainingFR.length > 0 ? (
+              remainingFR.map((artFR, idx) => {
+                const artEN = remainingEN[idx]?.article ?? null;
+                const hasEn = remainingEN[idx]?.hasEn ?? false;
+                const imgFR = artFR.data.image || artFR.data.article_image || "";
                 return (
                   <a 
-                    href={`/articles/${art.id}`} 
+                    href={`/articles/${artFR.id}`} 
                     class="sidebar-card article-card-item"
                     data-has-en={hasEn ? "true" : "false"}
+                    data-href-fr={`/articles/${artFR.id}`}
+                    data-href-en={enHref(artEN, hasEn)}
                   >
-                    {(art.data.image || art.data.article_image) && (
+                    {imgFR && (
                       <img
-                        src={art.data.image || art.data.article_image}
-                        alt={art.data.title}
+                        src={imgFR}
+                        alt={artFR.data.title}
                         class="sidebar-card-img"
+                        data-img-fr={imgFR}
+                        data-img-en={enImage(artEN, hasEn)}
                       />
                     )}
                     <div class="sidebar-card-body">
                       <p 
                         class="sidebar-card-title"
-                        data-fr={art.data.title}
-                        data-en={art.data.title_en || art.data.title}
+                        data-fr={artFR.data.title}
+                        data-en={enText(artEN, hasEn, "title_en")}
                       >
-                        {art.data.title}
+                        {artFR.data.title}
                       </p>
                     </div>
                   </a>
@@ -177,9 +274,9 @@ const remainingArticles = articles.filter(art => !usedArticleIds.has(art.id));
   .left-stack { display: flex; flex-direction: column; gap: 25px; }
   .hero-card-bg { position: relative; width: 100%; height: 200px; border-radius: 4px; overflow: hidden; text-decoration: none; display: block; transition: transform 0.3s ease, box-shadow 0.3s ease; }
   .hero-card-bg:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); }
-  .bg-image { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.5s ease; }
+  .bg-image { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.5s ease; pointer-events: none; }
   .hero-card-bg:hover .bg-image { transform: scale(1.03); }
-  .card-overlay { position: absolute; inset: 0; background: linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 60%, rgba(0, 0, 0, 0.1) 100%); z-index: 1; }
+  .card-overlay { position: absolute; inset: 0; background: linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 60%, rgba(0, 0, 0, 0.1) 100%); z-index: 1; pointer-events: none; }
   .card-text-container { position: relative; z-index: 2; padding: 20px; max-width: 80%; height: 100%; display: flex; flex-direction: column; justify-content: top; box-sizing: border-box; }
   .card-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: 700; color: #ffffff; margin: 0 0 10px 0; line-height: 1.3; }
   .card-desc { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 0.8rem; font-weight: 400; color: #ffffff; margin: 0; line-height: 1.4; }

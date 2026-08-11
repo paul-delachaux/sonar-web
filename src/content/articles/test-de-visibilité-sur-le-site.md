@@ -1,6 +1,9 @@
 ---
 title: Test de visibilité sur le site
 description: fzoarpeicueifz^POEFIG HDULER
+title_en: On-site visibility test
+description_en: fzoarpeicueifz^POEFIG HDULER
+body_en: czqehafrziugvnofpqrhgzu
 date: 2026-06-08T10:34:00.000+02:00
 category: politique
 image: /assets/uploads/ussop-giga-chad.png

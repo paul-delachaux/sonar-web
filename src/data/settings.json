@@ -1,13 +1,13 @@
 {
-  "asymRightArticle": "",
+  "asymRightArticle": "gecko-le-meilleur-initiateur-de-valorant",
   "bottomArticles": [
-    null,
-    null,
-    null
+    "test-pour-la-catégorie-société",
+    "test-pour-la-catégorie-technologie",
+    ""
   ],
   "sidebarSmallArticles": [
-    null,
-    null
+    "test-pour-victor",
+    ""
   ],
   "bottomArticlesStyles": [
     {
@@ -27,8 +27,8 @@
     }
   ],
   "asymLeftArticles": [
-    null,
-    null,
+    "",
+    "",
     null
   ],
   "asymLeftStyles": [
@@ -54,5 +54,5 @@
     "titleFont": "sans-serif"
   },
   "heroArticle": "article",
-  "sidebarLongArticle": "test-pour-victor"
+  "sidebarLongArticle": ""
 }

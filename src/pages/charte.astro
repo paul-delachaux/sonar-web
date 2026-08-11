@@ -1,0 +1,243 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+---
+
+<MainLayout title="Charte journalistique — Le Sonar">
+  <div class="presentation-wrapper">
+    <div class="presentation-container">
+
+      {/* --- VERSION FRANÇAISE --- */}
+      <div data-lang-content="FR">
+        <header class="presentation-header">
+          <h1 class="main-title">Charte journalistique</h1>
+          <div class="header-accent-bar"></div>
+        </header>
+
+        <main class="presentation-content">
+
+          <ul>
+            <li>
+              Prend la responsabilité de toutes ses productions professionnelles, même anonymes ;
+            </li>
+            <li>
+              Respecte la dignité des personnes et la présomption d’innocence ;
+            </li>
+            <li>
+              Tient l’esprit critique, la véracité, l’exactitude, l’intégrité, l’équité, l’impartialité, la poursuite de la neutralité pour les piliers de l’action journalistique ; tient l’accusation sans preuve, l’intention de nuire, l’altération des documents, la déformation des faits, le détournement d’images, le mensonge, la manipulation, la censure et l’autocensure, la non vérification des faits, pour les plus graves dérives professionnelles ;
+            </li>
+            <li>
+              Exerce la plus grande vigilance avant de diffuser des informations d’où qu’elles viennent ;
+            </li>
+            <li>
+              Dispose d’un droit de suite, qui est aussi un devoir, sur les informations qu’il diffuse et fait en sorte de rectifier rapidement toute information diffusée qui se révèlerait inexacte ;
+            </li>
+            <li>
+              N’accepte en matière de déontologie et d’honneur professionnel que la juridiction de ses pairs ; répond devant la justice des délits prévus par la loi ;
+            </li>
+            <li>
+              Défend la liberté d’expression, d’opinion, de l’information, du commentaire et de la critique ;
+            </li>
+            <li>
+              Proscrit tout moyen déloyal et vénal pour obtenir une information. Dans le cas où sa sécurité, celle de ses sources ou la gravité des faits l’obligent à taire sa qualité de journaliste, il prévient sa hiérarchie et en donne dès que possible explication au public ;
+            </li>
+            <li>
+              Ne touche pas d’argent dans un service public, une institution ou une entreprise privée où sa qualité de journaliste, ses influences, ses relations seraient susceptibles d’être exploitées ;
+            </li>
+            <li>
+              N’use pas de la liberté de la presse dans une intention intéressée ;
+            </li>
+            <li>
+              Refuse et combat, comme contraire à son éthique professionnelle, toute confusion entre journalisme et communication ;
+            </li>
+            <li>
+              Cite les confrères dont il utilise le travail, ne commet aucun plagiat ;
+            </li>
+            <li>
+              Ne sollicite pas la place d’un confrère en offrant de travailler à des conditions inférieures ;
+            </li>
+            <li>
+              Garde le secret professionnel et protège les sources de ses informations ;
+            </li>
+            <li>
+              Ne confond pas son rôle avec celui du policier ou du juge.
+            </li>
+          </ul>
+        </main>
+      </div>
+
+      {/* --- VERSION ANGLAISE --- */}
+      <div data-lang-content="EN" hidden>
+        <header class="presentation-header">
+          <h1 class="main-title">Journalistic Charter</h1>
+          <div class="header-accent-bar"></div>
+        </header>
+
+        <main class="presentation-content">
+
+          <ul>
+            <li>
+              Takes responsibility for all professional work, even if published anonymously;
+            </li>
+            <li>
+              Respects human dignity and the presumption of innocence;
+            </li>
+            <li>
+              Holds critical thinking, truthfulness, accuracy, integrity, fairness, impartiality, and the pursuit of neutrality as the pillars of journalistic practice; considers unproven accusations, intent to harm, alteration of documents, distortion of facts, misuse of images, lies, manipulation, censorship, self-censorship, and failure to verify facts to be the most serious professional misconduct;
+            </li>
+            <li>
+              Exercises the utmost vigilance before disseminating information, regardless of its source;
+            </li>
+            <li>
+              Holds both the right and the duty to follow up on published information, ensuring prompt correction of any information that turns out to be inaccurate;
+            </li>
+            <li>
+              Accepts only the jurisdiction of peers regarding professional ethics and honor; answers to the courts for offenses defined by law;
+            </li>
+            <li>
+              Defends freedom of expression, opinion, information, commentary, and criticism;
+            </li>
+            <li>
+              Rejects all unfair or venal methods of obtaining information. Should personal safety, source security, or the gravity of the circumstances require withholding journalist status, informs management and provides a public explanation as soon as possible;
+            </li>
+            <li>
+              Refuses payment from public services, institutions, or private enterprises where journalist status, influence, or connections might be exploited;
+            </li>
+            <li>
+              Does not misuse press freedom for personal gain;
+            </li>
+            <li>
+              Rejects and fights any confusion between journalism and public relations as contrary to professional ethics;
+            </li>
+            <li>
+              Credits colleagues whose work is used and commits no plagiarism;
+            </li>
+            <li>
+              Does not undercut a colleague's position by offering to work under inferior conditions;
+            </li>
+            <li>
+              Upholds professional secrecy and protects confidential sources;
+            </li>
+            <li>
+              Does not confuse the role of a journalist with that of a police officer or judge.
+            </li>
+          </ul>
+        </main>
+      </div>
+
+    </div>
+  </div>
+</MainLayout>
+
+<style is:global>
+  /* Ne pas écraser le fond du Layout (html) — garder seulement le panneau de contenu */
+  .presentation-wrapper {
+    background-color: #02001d;
+    max-width: 900px;
+    margin: 60px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .presentation-container {
+    padding: 50px 60px;
+  }
+
+  .presentation-header {
+    margin-bottom: 40px;
+    text-align: left;
+  }
+
+  .presentation-header .main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin: 0 0 15px 0;
+  }
+
+  .header-accent-bar {
+    width: 80px;
+    height: 4px;
+    background-color: #ea580c;
+    border-radius: 2px;
+  }
+
+  .presentation-content {
+    color: #e5e7eb;
+    font-size: 1.15rem;
+    line-height: 1.8;
+  }
+
+  .presentation-content p {
+    margin-bottom: 25px;
+  }
+
+  .presentation-content .lead-text {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: #ffffff;
+    line-height: 1.7;
+    border-left: 3px solid #ea580c;
+    padding-left: 20px;
+    margin-bottom: 35px;
+  }
+
+  .presentation-content h2 {
+    font-size: 1.6rem;
+    color: #ffffff;
+    margin-top: 45px;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+
+  .presentation-content ul {
+    margin: 0 0 30px 0;
+    padding-left: 25px;
+    list-style-type: none;
+  }
+
+  .presentation-content li {
+    position: relative;
+    margin-bottom: 15px;
+  }
+
+  .presentation-content li::before {
+    content: "•";
+    color: #ea580c;
+    font-weight: bold;
+    font-size: 1.4rem;
+    position: absolute;
+    left: -20px;
+    top: -2px;
+  }
+
+  .presentation-content strong {
+    color: #ffffff;
+  }
+
+  .highlight-box {
+    border-left: 4px solid #ea580c;
+    padding: 20px 25px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 40px;
+    font-weight: 500;
+    color: #ffffff;
+  }
+
+  @media (max-width: 768px) {
+    .presentation-wrapper {
+      margin: 0;
+      border-radius: 0;
+    }
+    .presentation-container {
+      padding: 40px 24px;
+    }
+    .presentation-header .main-title {
+      font-size: 1.8rem;
+    }
+    .presentation-content .lead-text {
+      font-size: 1.15rem;
+      padding-left: 15px;
+    }
+  }
+</style>

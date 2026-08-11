@@ -1,6 +1,9 @@
 ---
 title: Test pour la catégorie société
 description: Petit test pour vérifier que tout fonctionne correctement
+title_en: Test for the Society category
+description_en: A quick test to verify that everything is working correctly.
+body_en: Great article
 date: 2026-08-10T14:31:00.000+02:00
 category: societe
 image: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-1qXY2AQmkOCY4k-QUOf2hraByCL6i2WjSOlxo_OJEw&s=10

@@ -12,18 +12,64 @@ import backgroundImage from '../assets/background.png';
 
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+        <!-- sizes=48x48 : empêche Chrome de préférer l'ICO au PNG adaptatif -->
+        <link rel="icon" type="image/png" href="/favicon.png" media="(prefers-color-scheme: light)" />
+        <link rel="icon" type="image/png" href="/favicon_dark.png" media="(prefers-color-scheme: dark)" />
+        <script is:inline>
+            (function () {
+                var DARK = '/favicon.png';
+                var LIGHT = '/favicon_dark.png';
+
+                function isDarkMode() {
+                    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                }
+
+                function applyFavicon() {
+                    var href = (isDarkMode() ? DARK : LIGHT) + '?theme=' + (isDarkMode() ? 'dark' : 'light');
+
+                    // Retirer tous les favicons PNG/SVG dynamiques (garder l'ICO legacy en secours)
+                    document.querySelectorAll('link[rel="icon"]').forEach(function (el) {
+                        var h = el.getAttribute('href') || '';
+                        if (h.indexOf('favicon-legacy') !== -1) return;
+                        el.parentNode.removeChild(el);
+                    });
+
+                    var link = document.createElement('link');
+                    link.rel = 'icon';
+                    link.type = 'image/png';
+                    link.sizes = '32x32';
+                    link.href = href;
+                    document.head.appendChild(link);
+                }
+
+                applyFavicon();
+
+                var mql = window.matchMedia('(prefers-color-scheme: dark)');
+                if (mql.addEventListener) mql.addEventListener('change', applyFavicon);
+                else if (mql.addListener) mql.addListener(applyFavicon);
+            })();
+        </script>
         <title>{title} | Sonar</title>
         <style is:global>
+            html {
+                /* Le fond est posé sur <html> et fixé (cover), plutôt que sur <body>
+                   avec background-size:100% 100% : il ne dépend donc plus de la
+                   hauteur du contenu, qui varie quand des cartes se masquent en
+                   changeant de langue. */
+                background-color: #121f2f;
+                background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('../assets/fond_sonar.png');
+                background-repeat: no-repeat;
+                background-position: center top;
+                background-size: cover;
+                background-attachment: fixed;
+                min-height: 100%;
+            }
+
             body { 
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
                 margin: 0; 
                 padding: 20px 20px 0 20px;
-                background-color: #121f2f;
-                background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('../assets/fond_sonar.png');
-                background-repeat: repeat;
-                background-position: center;
-                background-size: 100% 100%;
+                background: transparent;
                 color: #eee; 
             }
 
@@ -337,6 +383,11 @@ import backgroundImage from '../assets/background.png';
             }
 
             /* Responsive */
+            /* EN : masquer sans retirer du flux → même grille / emplacements que FR */
+            .article-card-item.is-lang-hidden {
+                visibility: hidden;
+                pointer-events: none;
+            }
             @media (max-width: 768px) {
                 .header-inner {
                     flex-direction: column;
@@ -516,17 +567,52 @@ import backgroundImage from '../assets/background.png';
                     }
                 });
 
-                // 4. Filtrage / Masquage des cartes d'articles sans traduction Anglaise
-                document.querySelectorAll('.article-card-item').forEach(card => {
-                    const hasEn = card.getAttribute('data-has-en') === 'true';
-                    if (langKey === 'EN' && !hasEn) {
-                        card.style.display = 'none';
-                    } else {
-                        card.style.display = '';
+                // 4. Liens article (href)
+                document.querySelectorAll('[data-href-fr]').forEach(el => {
+                    const hrefEn = el.getAttribute('data-href-en');
+                    const hrefFr = el.getAttribute('data-href-fr');
+                    if (langKey === 'EN' && hrefEn) el.setAttribute('href', hrefEn);
+                    else if (hrefFr) el.setAttribute('href', hrefFr);
+                });
+
+                // 5. Images
+                document.querySelectorAll('[data-img-fr]').forEach(el => {
+                    const imgEn = el.getAttribute('data-img-en');
+                    const imgFr = el.getAttribute('data-img-fr');
+                    if (langKey === 'EN' && imgEn) el.setAttribute('src', imgEn);
+                    else if (imgFr) el.setAttribute('src', imgFr);
+                });
+
+                // 6. Background-images
+                document.querySelectorAll('[data-bg-fr]').forEach(el => {
+                    const bgEn = el.getAttribute('data-bg-en');
+                    const bgFr = el.getAttribute('data-bg-fr');
+                    const targetBg = (langKey === 'EN' && bgEn) ? bgEn : bgFr;
+                    if (targetBg) {
+                        el.style.backgroundImage = `url('${targetBg}')`;
                     }
                 });
 
-                // 5. Mise à jour visuelle des boutons de langue
+                // 7. Masquer les cartes sans version EN sans casser la grille (même layout que FR)
+                document.documentElement.classList.toggle('lang-en', langKey === 'EN');
+                document.querySelectorAll('.article-card-item').forEach(card => {
+                    const hasEn = card.getAttribute('data-has-en') === 'true';
+                    const hide = langKey === 'EN' && !hasEn;
+                    card.classList.toggle('is-lang-hidden', hide);
+                    card.setAttribute('aria-hidden', hide ? 'true' : 'false');
+                    if (hide) card.setAttribute('tabindex', '-1');
+                    else card.removeAttribute('tabindex');
+                });
+
+                // 8. Blocs de contenu long FR/EN (ex: page déontologie)
+                document.querySelectorAll('[data-lang-content]').forEach(el => {
+                    const blockLang = (el.getAttribute('data-lang-content') || '').toUpperCase();
+                    const show = blockLang === langKey;
+                    el.hidden = !show;
+                    el.setAttribute('aria-hidden', show ? 'false' : 'true');
+                });
+
+                // 9. Mise à jour visuelle des boutons de langue
                 document.querySelectorAll('.lang-selector-btn').forEach(btn => {
                     btn.textContent = langKey === 'EN' ? 'ENG | FR' : 'FR | ENG';
                 });

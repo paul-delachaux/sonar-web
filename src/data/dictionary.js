@@ -10,8 +10,13 @@ export const dictionary = {
     // Libellés généraux
     read_time: "min de lecture",
     published_on: "Publié le",
+    published_at: "à",
     by_author: "Par",
     no_english_version: "Article non disponible en anglais",
+    no_articles_category: "Aucun article dans cette catégorie pour le moment.",
+    no_more_articles: "Pas d'autres articles pour le moment.",
+    author_about_empty: "Aucune information fournie pour le moment.",
+    author_interests_empty: "L'auteur déclare n'avoir aucun conflit d'intérêt.",
 
     // Titres des blocs / Sidebars
     sidebar_other_news: "AUTRES ACTUALITÉS",
@@ -32,6 +37,7 @@ export const dictionary = {
     footer_nav_title: "Navigation",
     footer_legal_title: "Informations légales Sonar",
     footer_deontologie: "Méthodologie et Déontologie",
+    footer_charte: "Charte journalistique",
     footer_rights: "Tous droits réservés."
   },
 
@@ -46,8 +52,13 @@ export const dictionary = {
     // Libellés généraux
     read_time: "min read",
     published_on: "Published on",
+    published_at: "at",
     by_author: "By",
     no_english_version: "Article not available in English",
+    no_articles_category: "No articles in this category yet.",
+    no_more_articles: "No more articles for now.",
+    author_about_empty: "No information provided yet.",
+    author_interests_empty: "The author declares no conflict of interest.",
 
     // Titres des blocs / Sidebars
     sidebar_other_news: "OTHER NEWS",
@@ -68,6 +79,7 @@ export const dictionary = {
     footer_nav_title: "Navigation",
     footer_legal_title: "Sonar Legal Information",
     footer_deontologie: "Methodology and Ethics",
+    footer_charte: "Journalistic Charter",
     footer_rights: "All rights reserved."
   }
 };

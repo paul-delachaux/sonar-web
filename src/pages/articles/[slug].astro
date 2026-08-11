@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import MainLayout from '../../layouts/Layout.astro';
 import { Tweet } from 'astro-embed';
+import { t, categoryLabel } from '../../utils/i18n.js';
 
 export async function getStaticPaths() {
   const articles = await getCollection('articles');
@@ -11,7 +12,6 @@ export async function getStaticPaths() {
   }));
 }
 
-// Les avatars devront être placés dans le dossier "public/assets/uploads/"
 const AUTHORS_DATA: Record<string, { avatarUrl: string }> = {
   "Victor Zhâ": {
     avatarUrl: "/assets/uploads/avatar-victor.jpg"
@@ -21,14 +21,37 @@ const AUTHORS_DATA: Record<string, { avatarUrl: string }> = {
   }
 };
 
+/** Rendu basique du markdown Decap (body_en) → HTML */
+const markdownToHtml = (md: string) => {
+  const escaped = String(md || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return escaped
+    .split(/\n\n+/)
+    .map((block) => {
+      const withInline = block
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br/>');
+      return `<p>${withInline}</p>`;
+    })
+    .join('');
+};
+
 const { article } = Astro.props;
 const { Content } = await render(article);
 
-// --- Articles similaires (même catégorie) ---
+const hasEn = Boolean(article.data.title_en && String(article.data.title_en).trim() !== "");
+const bodyEnHtml = article.data.body_en ? markdownToHtml(String(article.data.body_en)) : "";
+
 const tousLesArticles = await getCollection('articles');
+const checkHasEnArt = (art: any) =>
+  Boolean(art?.data?.title_en && String(art.data.title_en).trim() !== "");
+
 const similaires = tousLesArticles
   .filter(art =>
-    art.data.isVisible === true &&
+    art.data.isVisible !== false &&
     art.data.category.toLowerCase() === article.data.category.toLowerCase() &&
     art.id !== article.id
   )
@@ -36,51 +59,85 @@ const similaires = tousLesArticles
 
 const autresRecents = tousLesArticles
   .filter(art =>
-    art.data.isVisible === true &&
+    art.data.isVisible !== false &&
     art.id !== article.id &&
     !similaires.find(s => s.id === art.id)
   )
   .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
 
-const articlesSimilaires = [...similaires, ...autresRecents].slice(0, 3);
+const articlesSimilairesFR = [...similaires, ...autresRecents].slice(0, 3);
+
+// Pool EN : même catégorie d'abord, puis le reste (par date) — hors article courant
+const poolEN = [
+  ...similaires.filter(checkHasEnArt),
+  ...autresRecents.filter(checkHasEnArt),
+];
+
+const usedEnIds = new Set<string>();
+const sidebarSlots = articlesSimilairesFR.map((artFR) => {
+  if (checkHasEnArt(artFR) && !usedEnIds.has(artFR.id)) {
+    usedEnIds.add(artFR.id);
+    return { artFR, artEN: artFR, hasEn: true };
+  }
+  const fill = poolEN.find((a) => !usedEnIds.has(a.id));
+  if (fill) {
+    usedEnIds.add(fill.id);
+    return { artFR, artEN: fill, hasEn: true };
+  }
+  return { artFR, artEN: null, hasEn: false };
+});
 
 const currentAuthorName = article.data.author || "Auteur Anonyme";
 const authorInfo = AUTHORS_DATA[currentAuthorName] || { avatarUrl: "/assets/uploads/avatar-default.jpg"};
-console.log("Auteur actuel :", currentAuthorName, "Avatar :", authorInfo.avatarUrl);
 const articleHeroImage = article.data.article_image || article.data.image || "/assets/uploads/default-placeholder.jpg";
 
 const rawDate = article.data.date;
 const dateObj = rawDate instanceof Date ? rawDate : new Date(rawDate);
-const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-const dateAffichee = dateObj.toLocaleDateString('fr-FR', options);
-const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+const dateAfficheeFR = dateObj.toLocaleDateString('fr-FR', dateOptions);
+const heureAfficheeFR = dateObj.toLocaleTimeString('fr-FR', timeOptions);
+const dateAfficheeEN = dateObj.toLocaleDateString('en-US', dateOptions);
+const heureAfficheeEN = dateObj.toLocaleTimeString('en-US', timeOptions);
+
+const readingTime = article.data.reading_time || 5;
+const titleFR = article.data.title;
+const titleEN = hasEn ? String(article.data.title_en) : titleFR;
+const descFR = article.data.description;
+const descEN = hasEn && article.data.description_en
+  ? String(article.data.description_en)
+  : descFR;
 ---
 
 <MainLayout title={article.data.title}>
   <div class="article-wrapper">
     <div class="article-container">
 
-      {/* --- BANDEAU SUPERIEUR : TITRE & META --- */}
       <header class="article-header">
-        <h1 class="main-title">{article.data.title}</h1>
-        <p class="main-description">{article.data.description}</p>
+        <h1 class="main-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
+        <p class="main-description" data-fr={descFR} data-en={descEN}>{descFR}</p>
 
-        {/* Transformé en lien cliquable vers le footer */}
         <a href="#author-info-section" class="author-meta-block">
           <img src={authorInfo.avatarUrl} alt={`Portrait de ${currentAuthorName}`} class="author-avatar" />
           <div class="author-text-meta">
-            <p class="author-name">Par {currentAuthorName}</p>
+            <p class="author-name">
+              <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}{currentAuthorName}
+            </p>
             <p class="publication-date">
-              Lecture en {article.data.reading_time || 5} Minutes - Publié le {dateAffichee} à {heureAffichee}
+              {readingTime}{" "}
+              <span data-i18n="read_time">{t('read_time', 'FR')}</span>
+              {" — "}
+              <span data-i18n="published_on">{t('published_on', 'FR')}</span>{" "}
+              <span data-fr={dateAfficheeFR} data-en={dateAfficheeEN}>{dateAfficheeFR}</span>{" "}
+              <span data-i18n="published_at">{t('published_at', 'FR')}</span>{" "}
+              <span data-fr={heureAfficheeFR} data-en={heureAfficheeEN}>{heureAfficheeFR}</span>
             </p>
           </div>
         </a>
       </header>
 
-      {/* --- GRILLE PRINCIPALE (CONTENU VS SIDEBAR) --- */}
       <div class="article-grid">
 
-        {/* Colonne Gauche : Image, Tweet (optionnel) et texte Markdown */}
         <main class="article-main-content">
           <div class="hero-image-wrapper">
             <img src={articleHeroImage} alt={`Illustration de l'article : ${article.data.title}`} class="hero-img" />
@@ -92,32 +149,66 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
             </div>
           )}
 
-          <div class="prose-content">
+          <div class="prose-content" data-lang-content="FR">
             <Content />
           </div>
+
+          {bodyEnHtml ? (
+            <div class="prose-content" data-lang-content="EN" hidden set:html={bodyEnHtml} />
+          ) : (
+            <div class="prose-content" data-lang-content="EN" hidden>
+              <p data-i18n="no_english_version">{t('no_english_version', 'FR')}</p>
+            </div>
+          )}
         </main>
 
-        {/* Colonne Droite : Articles similaires */}
         <aside class="article-sidebar">
           <div class="sidebar-sticky-box">
-            {articlesSimilaires.length > 0 && (
+            {sidebarSlots.length > 0 && (
               <div class="sidebar-similaires">
-                <p class="sidebar-label">À LIRE AUSSI</p>
-                {articlesSimilaires.map(art => (
-                  <a href={`/articles/${art.id}`} class="sidebar-card">
-                    {(art.data.article_image || art.data.image) && (
-                      <img
-                        src={art.data.image || art.data.article_image}
-                        alt={art.data.title}
-                        class="sidebar-card-img"
-                      />
-                    )}
-                    <div class="sidebar-card-body">
-                      <p class="sidebar-card-tag">{art.data.category.toUpperCase()}</p>
-                      <p class="sidebar-card-title">{art.data.title}</p>
-                    </div>
-                  </a>
-                ))}
+                <p class="sidebar-label" data-i18n="sidebar_read_also">{t('sidebar_read_also', 'FR')}</p>
+                {sidebarSlots.map(({ artFR, artEN, hasEn: slotHasEn }) => {
+                  const imgFR = artFR.data.image || artFR.data.article_image || "";
+                  const imgEN = slotHasEn && artEN
+                    ? (artEN.data.image || artEN.data.article_image || "")
+                    : "";
+                  const imgShow = imgFR || imgEN;
+                  return (
+                    <a
+                      href={`/articles/${artFR.id}`}
+                      class="sidebar-card article-card-item"
+                      data-has-en={slotHasEn ? "true" : "false"}
+                      data-href-fr={`/articles/${artFR.id}`}
+                      data-href-en={slotHasEn && artEN ? `/articles/${artEN.id}` : ""}
+                    >
+                      {imgShow && (
+                        <img
+                          src={imgFR || imgEN}
+                          alt={artFR.data.title}
+                          class="sidebar-card-img"
+                          data-img-fr={imgFR || imgEN}
+                          data-img-en={imgEN || imgFR}
+                        />
+                      )}
+                      <div class="sidebar-card-body">
+                        <p
+                          class="sidebar-card-tag"
+                          data-fr={categoryLabel(artFR.data.category, 'FR')}
+                          data-en={slotHasEn && artEN ? categoryLabel(artEN.data.category, 'EN') : ""}
+                        >
+                          {categoryLabel(artFR.data.category, 'FR')}
+                        </p>
+                        <p
+                          class="sidebar-card-title"
+                          data-fr={artFR.data.title}
+                          data-en={slotHasEn && artEN ? String(artEN.data.title_en) : ""}
+                        >
+                          {artFR.data.title}
+                        </p>
+                      </div>
+                    </a>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -125,23 +216,30 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
 
       </div>
 
-      {/* --- BLOC DE FIN DE PAGE : Ajout de l'ID pour l'ancre de défilement --- */}
       <footer id="author-info-section" class="article-footer-transparency">
         <div class="transparency-card">
           <div class="card-accent-bar"></div>
-          <h3>À propos de l'auteur</h3>
-          <p>{article.data.author_about || "Aucune information fournie pour le moment."}</p>
+          <h3 data-i18n="transparency_author">{t('transparency_author', 'FR')}</h3>
+          {article.data.author_about ? (
+            <p>{article.data.author_about}</p>
+          ) : (
+            <p data-i18n="author_about_empty">{t('author_about_empty', 'FR')}</p>
+          )}
         </div>
 
         <div class="transparency-card">
           <div class="card-accent-bar"></div>
-          <h3>Déclaration d'intérêt</h3>
-          <p>{article.data.author_interests || "L'auteur déclare n'avoir aucun conflit d'intérêt."}</p>
+          <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
+          {article.data.author_interests ? (
+            <p>{article.data.author_interests}</p>
+          ) : (
+            <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
+          )}
         </div>
 
         <div class="transparency-card">
           <div class="card-accent-bar"></div>
-          <h3>Sources consultables</h3>
+          <h3 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h3>
           {article.data.consulted_sources && article.data.consulted_sources.length > 0 ? (
             <ul class="sources-list">
               {article.data.consulted_sources.map((src: any) => (
@@ -155,7 +253,7 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
               ))}
             </ul>
           ) : (
-            <p>Aucune source externe enregistrée.</p>
+            <p data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
           )}
         </div>
       </footer>
@@ -165,18 +263,11 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
 </MainLayout>
 
 <style is:global>
-  /* Active le défilement fluide lors du clic sur une ancre sur tout le site */
   html {
     scroll-behavior: smooth;
   }
 
-  body {
-    background-color: #000000 !important;
-    color: #ffffff !important;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    margin: 0;
-  }
-
+  /* Ne pas écraser le fond du Layout */
   .article-wrapper {
     background-color: #02001d;
     max-width: 1200px;
@@ -189,7 +280,6 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     padding: 50px 40px;
   }
 
-  /* --- HEADER STYLES --- */
   .article-header {
     border-bottom: 1px solid #1f2937;
     padding-bottom: 30px;
@@ -215,18 +305,16 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     margin: 0 0 30px 0;
   }
 
-  /* --- ZONE AUTEUR --- */
   .author-meta-block {
     display: flex;
     align-items: center;
     gap: 20px;
-    text-decoration: none; /* Évite le soulignement par défaut des liens */
-    color: inherit; /* Conserve la couleur blanche du texte */
+    text-decoration: none;
+    color: inherit;
     cursor: pointer;
     width: fit-content;
   }
 
-  /* Petit effet de survol pour indiquer que c'est cliquable */
   .author-meta-block:hover .author-name {
     text-decoration: underline;
     color: #ea580c;
@@ -267,7 +355,6 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     line-height: 1.3;
   }
 
-  /* --- STRUCTURE EN GRILLE --- */
   .article-grid {
     display: grid;
     grid-template-columns: 7.5fr 2.5fr;
@@ -275,7 +362,6 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     align-items: start;
   }
 
-  /* Zone principale & Image */
   .article-main-content {
     display: flex;
     flex-direction: column;
@@ -297,13 +383,11 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     object-fit: cover;
   }
 
-  /* --- TWEET EMBED --- */
   .tweet-embed-wrapper {
     display: flex;
     justify-content: center;
   }
 
-  /* --- CONTENU MARKDOWN PROSE --- */
   .prose-content {
     color: #ffffff;
     font-size: 1.3rem;
@@ -322,7 +406,6 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     font-weight: 700;
   }
 
-  /* --- SIDEBAR DROITE --- */
   .article-sidebar {
     height: 100%;
     background-color: #02001d !important;
@@ -334,7 +417,6 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     background-color: #02001d;
   }
 
-  /* --- ARTICLES SIMILAIRES --- */
   .sidebar-similaires {
     display: flex;
     flex-direction: column;
@@ -397,7 +479,11 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     color: #ea580c;
   }
 
-  /* --- FOOTER CARD-BASED DESIGN (Orange, Taille Fixe & Centré) --- */
+  /* Sidebar : pas de trous en EN — on retire du flux au lieu de visibility:hidden */
+  .article-sidebar .article-card-item.is-lang-hidden {
+    display: none !important;
+  }
+
   .article-footer-transparency {
     display: flex;
     justify-content: center;
@@ -406,7 +492,7 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     padding: 30px;
     background-color: #02001d;
     border-radius: 8px;
-    scroll-margin-top: 40px; /* Ajoute un espace au-dessus de la cible après le défilement */
+    scroll-margin-top: 40px;
   }
 
   .transparency-card {
@@ -414,7 +500,6 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     width: 160px;
     height: 210px;
     background-color: #00002c;
-    /*border: 1px solid #374151;*/
     border-radius: 8px;
     padding: 15px 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
@@ -476,7 +561,6 @@ const heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', min
     text-decoration: underline;
   }
 
-  /* --- RESPONSIVE --- */
   @media (max-width: 968px) {
     .article-footer-transparency {
       flex-direction: column;

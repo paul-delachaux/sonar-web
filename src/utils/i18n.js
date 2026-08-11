@@ -1,11 +1,36 @@
-import { dictionary } from '../data/dictionary'; // Ton dictionnaire de l'étape 1
+import { dictionary } from '../data/dictionary';
 
-// 1. Traduire un mot-clé du dictionnaire
+/** Traduire une clé du dictionnaire (lang: 'FR' | 'EN') */
 export function t(key, lang = 'FR') {
-  return dictionary[lang]?.[key] || dictionary['FR']?.[key] || key;
+  const langKey = String(lang || 'FR').toUpperCase();
+  return dictionary[langKey]?.[key] || dictionary.FR?.[key] || key;
 }
 
-// 2. Filtrer les articles selon la langue
+/** Slug catégorie CMS → clé dictionnaire (ex: technologie → category_title_tech) */
+const CATEGORY_DICT_KEYS = {
+  politique: 'category_title_politique',
+  culture: 'category_title_culture',
+  societe: 'category_title_societe',
+  technologie: 'category_title_tech',
+  tech: 'category_title_tech',
+};
+
+export function categoryDictKey(slug) {
+  const s = String(slug || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  return CATEGORY_DICT_KEYS[s] || null;
+}
+
+/** Libellé traduit d'une catégorie */
+export function categoryLabel(slug, lang = 'FR') {
+  const key = categoryDictKey(slug);
+  return key ? t(key, lang) : String(slug || '');
+}
+
+// Filtrer les articles selon la langue
 export function getVisibleArticles(articlesList, currentLang) {
   return articlesList.filter(article => {
     if (article.data.isVisible === false) return false;
@@ -14,11 +39,11 @@ export function getVisibleArticles(articlesList, currentLang) {
       return article.data.title_en && article.data.title_en.trim() !== "";
     }
 
-    return true; // En FR on affiche tout
+    return true;
   });
 }
 
-// 3. Récupérer le bon contenu d'un article selon la langue
+// Récupérer le bon contenu d'un article selon la langue
 export function getArticleData(article, currentLang) {
   if (currentLang === 'EN' && article.data.title_en) {
     return {
