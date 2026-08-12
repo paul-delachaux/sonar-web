@@ -22,7 +22,7 @@
     }
   ],
   "culture_topArticles": [
-    null,
+    "test-admin",
     null,
     null
   ],
@@ -83,7 +83,7 @@
     },
     {
       "titleSize": "1.2rem",
-      "titleWeight": "700",
+      "titleWeight": "400",
       "descSize": "0.8rem"
     }
   ]

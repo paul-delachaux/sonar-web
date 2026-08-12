@@ -1,24 +1,10 @@
 ---
-title: Gecko le meilleur initiateur de valorant
-description: Aujourd'hui nous parlons de ce beau gosse de Gecko
-date: 2026-05-27T14:41:00.000+02:00
-category: culture
-image: https://pbs.twimg.com/media/FuSIgc6XgAg8_1p.png
+reading_time: 5
+thumbnail_title: Gecko
+title_size: 30
 isVisible: true
 author: Paul Delachaux
-reading_time: 5
-author_about: d
-author_interests: d
-thumbnail_bg: https://pbs.twimg.com/media/FuSIgc6XgAg8_1p.png
-thumbnail_bg_position: right
-thumbnail_bg_zoom: 50
-thumbnail_title: Gecko
-title_x: 150
-title_y: 20
-title_size: 30
-title_weight: "900"
-title_font: sans-serif
-title_color: "#ff0000"
+date: 2026-05-27T14:41:00.000+02:00
 thumbnail_descs:
   - x: 250
     y: 80
@@ -34,6 +20,20 @@ thumbnail_descs:
     font: sans-serif
     color: "#0095ff"
     line: Verti
+thumbnail_bg_position: right
+title_x: 150
+title_y: 20
 use_thumbnail: false
+author_interests: d
+title_font: sans-serif
+thumbnail_bg: https://pbs.twimg.com/media/FuSIgc6XgAg8_1p.png
+title: Gecko le meilleur initiateur de valorant
+author_about: d
+thumbnail_bg_zoom: 50
+image: https://pbs.twimg.com/media/FuSIgc6XgAg8_1p.png
+title_color: "#ff0000"
+description: Aujourd'hui nous parlons de ce beau gosse de Gecko
+category: culture
+title_weight: "900"
 ---
 Je sais pas quoi dire sur lui en vrai sa flash pue la merde, mais mordicus j'aime bien.

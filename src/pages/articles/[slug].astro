@@ -13,15 +13,10 @@ export async function getStaticPaths() {
 }
 
 const AUTHORS_DATA: Record<string, { avatarUrl: string }> = {
-  "Victor Zhâ": {
-    avatarUrl: "/assets/uploads/avatar-victor.jpg"
-  },
-  "Paul Delachaux": {
-    avatarUrl: "/assets/uploads/avatar-paul.jpg"
-  }
+  "Victor Zhâ": { avatarUrl: "/assets/uploads/avatar-victor.jpg" },
+  "Paul Delachaux": { avatarUrl: "/assets/uploads/avatar-paul.jpg" }
 };
 
-/** Rendu basique du markdown Decap (body_en) → HTML */
 const markdownToHtml = (md: string) => {
   const escaped = String(md || '')
     .replace(/&/g, '&amp;')
@@ -41,6 +36,8 @@ const markdownToHtml = (md: string) => {
 
 const { article } = Astro.props;
 const { Content } = await render(article);
+
+const isBreve = article.data.layout_type === 'breve';
 
 const hasEn = Boolean(article.data.title_en && String(article.data.title_en).trim() !== "");
 const bodyEnHtml = article.data.body_en ? markdownToHtml(String(article.data.body_en)) : "";
@@ -67,7 +64,6 @@ const autresRecents = tousLesArticles
 
 const articlesSimilairesFR = [...similaires, ...autresRecents].slice(0, 3);
 
-// Pool EN : même catégorie d'abord, puis le reste (par date) — hors article courant
 const poolEN = [
   ...similaires.filter(checkHasEnArt),
   ...autresRecents.filter(checkHasEnArt),
@@ -89,7 +85,41 @@ const sidebarSlots = articlesSimilairesFR.map((artFR) => {
 
 const currentAuthorName = article.data.author || "Auteur Anonyme";
 const authorInfo = AUTHORS_DATA[currentAuthorName] || { avatarUrl: "/assets/uploads/avatar-default.jpg"};
-const articleHeroImage = article.data.article_image || article.data.image || "/assets/uploads/default-placeholder.jpg";
+const articleHeroImage = article.data.article_image || article.data.image;
+
+// --------------------------------------------------------------------------
+// Extractions multilingues des Légendes d'Images (avec Fallbacks)
+// --------------------------------------------------------------------------
+const imageInfoData = article.data.image_info?.[0];
+
+const imageCaptionFR = 
+  imageInfoData?.image_caption || 
+  article.data.article_image_caption || 
+  article.data.image_caption || 
+  "";
+
+const imageCaptionEN =
+  imageInfoData?.image_caption_en ||
+  article.data.article_image_caption_en ||
+  article.data.image_caption_en ||
+  imageCaptionFR;
+
+// Extrait du tableau author_info (avec fallback rétrocompatible)
+const authorData = article.data.author_info?.[0];
+
+const authorAboutFR = authorData?.author_about || article.data.author_about || t('author_about_empty', 'FR');
+const authorAboutEN = authorData?.author_about_en || article.data.author_about_en || authorData?.author_about || article.data.author_about || t('author_about_empty', 'EN');
+
+const authorInterestsFR = authorData?.author_interests || article.data.author_interests || "";
+const authorInterestsEN = authorData?.author_interests_en || article.data.author_interests_en || authorInterestsFR;
+
+// 0 = image au-dessus de tout le texte, N = après le N-ème paragraphe
+const imagePos = article.data.image_position ?? 0;
+// Idem pour le tweet intégré (articles classiques uniquement)
+const tweetPos = article.data.tweet_position ?? 0;
+
+const categoryFR = categoryLabel(article.data.category, 'FR');
+const categoryEN = article.data.category_en || categoryLabel(article.data.category, 'EN');
 
 const rawDate = article.data.date;
 const dateObj = rawDate instanceof Date ? rawDate : new Date(rawDate);
@@ -100,488 +130,599 @@ const heureAfficheeFR = dateObj.toLocaleTimeString('fr-FR', timeOptions);
 const dateAfficheeEN = dateObj.toLocaleDateString('en-US', dateOptions);
 const heureAfficheeEN = dateObj.toLocaleTimeString('en-US', timeOptions);
 
-const readingTime = article.data.reading_time || 5;
+const readingTime = article.data.reading_time || (isBreve ? 2 : 5);
 const titleFR = article.data.title;
 const titleEN = hasEn ? String(article.data.title_en) : titleFR;
-const descFR = article.data.description;
+const descFR = article.data.description || "";
 const descEN = hasEn && article.data.description_en
   ? String(article.data.description_en)
   : descFR;
 ---
 
 <MainLayout title={article.data.title}>
-  <div class="article-wrapper">
-    <div class="article-container">
-
-      <header class="article-header">
-        <h1 class="main-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
-        <p class="main-description" data-fr={descFR} data-en={descEN}>{descFR}</p>
-
-        <a href="#author-info-section" class="author-meta-block">
-          <img src={authorInfo.avatarUrl} alt={`Portrait de ${currentAuthorName}`} class="author-avatar" />
-          <div class="author-text-meta">
-            <p class="author-name">
-              <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}{currentAuthorName}
-            </p>
-            <p class="publication-date">
-              {readingTime}{" "}
-              <span data-i18n="read_time">{t('read_time', 'FR')}</span>
-              {" — "}
-              <span data-i18n="published_on">{t('published_on', 'FR')}</span>{" "}
-              <span data-fr={dateAfficheeFR} data-en={dateAfficheeEN}>{dateAfficheeFR}</span>{" "}
-              <span data-i18n="published_at">{t('published_at', 'FR')}</span>{" "}
-              <span data-fr={heureAfficheeFR} data-en={heureAfficheeEN}>{heureAfficheeFR}</span>
-            </p>
-          </div>
-        </a>
-      </header>
-
-      <div class="article-grid">
-
-        <main class="article-main-content">
-          <div class="hero-image-wrapper">
-            <img src={articleHeroImage} alt={`Illustration de l'article : ${article.data.title}`} class="hero-img" />
+  {isBreve ? (
+    /* ========================================================================
+       LAYOUT 1 : BRÈVES
+       ======================================================================== */
+    <div class="breve-wrapper">
+      <article class="breve-layout-container">
+        
+        <!-- Header : Catégorie en haut à gauche, Titre (gauche) & Description (droite) -->
+        <header class="breve-header">
+          <div class="breve-theme" data-fr={categoryFR} data-en={categoryEN}>
+            {categoryFR}
           </div>
 
-          {article.data.tweet_url && (
-            <div class="tweet-embed-wrapper">
-              <Tweet id={article.data.tweet_url} theme="dark" />
-            </div>
-          )}
+          <div class="breve-header-main">
+            <h1 class="breve-title" data-fr={titleFR} data-en={titleEN}>
+              {titleFR}
+            </h1>
 
-          <div class="prose-content" data-lang-content="FR">
-            <Content />
-          </div>
-
-          {bodyEnHtml ? (
-            <div class="prose-content" data-lang-content="EN" hidden set:html={bodyEnHtml} />
-          ) : (
-            <div class="prose-content" data-lang-content="EN" hidden>
-              <p data-i18n="no_english_version">{t('no_english_version', 'FR')}</p>
-            </div>
-          )}
-        </main>
-
-        <aside class="article-sidebar">
-          <div class="sidebar-sticky-box">
-            {sidebarSlots.length > 0 && (
-              <div class="sidebar-similaires">
-                <p class="sidebar-label" data-i18n="sidebar_read_also">{t('sidebar_read_also', 'FR')}</p>
-                {sidebarSlots.map(({ artFR, artEN, hasEn: slotHasEn }) => {
-                  const imgFR = artFR.data.image || artFR.data.article_image || "";
-                  const imgEN = slotHasEn && artEN
-                    ? (artEN.data.image || artEN.data.article_image || "")
-                    : "";
-                  const imgShow = imgFR || imgEN;
-                  return (
-                    <a
-                      href={`/articles/${artFR.id}`}
-                      class="sidebar-card article-card-item"
-                      data-has-en={slotHasEn ? "true" : "false"}
-                      data-href-fr={`/articles/${artFR.id}`}
-                      data-href-en={slotHasEn && artEN ? `/articles/${artEN.id}` : ""}
-                    >
-                      {imgShow && (
-                        <img
-                          src={imgFR || imgEN}
-                          alt={artFR.data.title}
-                          class="sidebar-card-img"
-                          data-img-fr={imgFR || imgEN}
-                          data-img-en={imgEN || imgFR}
-                        />
-                      )}
-                      <div class="sidebar-card-body">
-                        <p
-                          class="sidebar-card-tag"
-                          data-fr={categoryLabel(artFR.data.category, 'FR')}
-                          data-en={slotHasEn && artEN ? categoryLabel(artEN.data.category, 'EN') : ""}
-                        >
-                          {categoryLabel(artFR.data.category, 'FR')}
-                        </p>
-                        <p
-                          class="sidebar-card-title"
-                          data-fr={artFR.data.title}
-                          data-en={slotHasEn && artEN ? String(artEN.data.title_en) : ""}
-                        >
-                          {artFR.data.title}
-                        </p>
-                      </div>
-                    </a>
-                  );
-                })}
+            {descFR && (
+              <div class="breve-description" data-fr={descFR} data-en={descEN}>
+                {descFR}
               </div>
             )}
           </div>
-        </aside>
+        </header>
+
+        <!-- Trait horizontal -->
+        <hr class="breve-divider" />
+
+        <!-- Section principale : Contenu + Image dynamique / Auteur à droite -->
+        <div class="breve-body-grid">
+          
+          <main class="breve-main-content">
+            <div class="prose-content breve-prose" data-lang-content="FR" data-image-position={imagePos}>
+              <Content />
+            </div>
+
+            {bodyEnHtml ? (
+              <div class="prose-content breve-prose" data-lang-content="EN" data-image-position={imagePos} hidden set:html={bodyEnHtml} />
+            ) : (
+              <div class="prose-content breve-prose" data-lang-content="EN" data-image-position={imagePos} hidden>
+                <p data-i18n="no_english_version">{t('no_english_version', 'FR')}</p>
+              </div>
+            )}
+
+            {article.data.tweet_url && (
+              <div class="tweet-embed-wrapper">
+                <Tweet id={article.data.tweet_url} theme="dark" />
+              </div>
+            )}
+          </main>
+
+          <!-- Bloc Auteur Fléché sur la droite -->
+          <aside class="breve-sidebar">
+            <div class="breve-author-block">
+              <div class="breve-avatar-wrapper">
+                <img src={authorInfo.avatarUrl} alt={currentAuthorName} class="breve-avatar" />
+                <div class="breve-avatar-pointer"></div>
+              </div>
+              
+              <div class="breve-author-bio">
+                <p class="breve-author-name">{currentAuthorName}</p>
+                <p data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
+                
+                {(authorInterestsFR || authorInterestsEN) && (
+                  <p class="breve-author-interests" data-fr={authorInterestsFR} data-en={authorInterestsEN}>
+                    {authorInterestsFR}
+                  </p>
+                )}
+              </div>
+            </div>
+          </aside>
+
+        </div>
+
+        <!-- Trait horizontal bas de page -->
+        <hr class="breve-divider" />
+
+        <!-- Sources cliquables en puces -->
+        {article.data.consulted_sources && article.data.consulted_sources.length > 0 && (
+          <footer class="breve-sources-section">
+            <h3 class="breve-sources-title" data-i18n="transparency_sources">Sources :</h3>
+            <ul class="breve-sources-list">
+              {article.data.consulted_sources.map((src: any) => {
+                const titleFR = src.source_title;
+                const titleEN = src.source_title_en || titleFR;
+
+                return (
+                  <li class="breve-source-item">
+                    {src.source_url ? (
+                      <a 
+                        href={src.source_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        class="breve-source-link"
+                        data-fr={titleFR}
+                        data-en={titleEN}
+                      >
+                        {titleFR}
+                      </a>
+                    ) : (
+                      <span 
+                        class="breve-source-text"
+                        data-fr={titleFR}
+                        data-en={titleEN}
+                      >
+                        {titleFR}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </footer>
+        )}
+
+        <!-- Template HTML caché pour l'image -->
+        {articleHeroImage && (
+          <template id="breve-hero-template">
+            <figure class="breve-figure">
+              <img src={articleHeroImage} alt={article.data.title} class="breve-image" />
+              {(imageCaptionFR || imageCaptionEN) && (
+                <figcaption class="breve-caption" data-fr={imageCaptionFR} data-en={imageCaptionEN}>
+                  {imageCaptionFR}
+                </figcaption>
+              )}
+            </figure>
+          </template>
+        )}
+
+      </article>
+    </div>
+  ) : (
+    /* ========================================================================
+       LAYOUT 2 : ARTICLE CLASSIQUE
+       ======================================================================== */
+    <div class="article-wrapper">
+      <div class="article-container">
+
+        <header class="article-header">
+          <h1 class="main-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
+          {descFR && <p class="main-description" data-fr={descFR} data-en={descEN}>{descFR}</p>}
+
+          <a href="#author-info-section" class="author-meta-block">
+            <img src={authorInfo.avatarUrl} alt={`Portrait de ${currentAuthorName}`} class="author-avatar" />
+            <div class="author-text-meta">
+              <p class="author-name">
+                <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}{currentAuthorName}
+              </p>
+              <p class="publication-date">
+                {readingTime}{" "}
+                <span data-i18n="read_time">{t('read_time', 'FR')}</span>
+                {" — "}
+                <span data-i18n="published_on">{t('published_on', 'FR')}</span>{" "}
+                <span data-fr={dateAfficheeFR} data-en={dateAfficheeEN}>{dateAfficheeFR}</span>{" "}
+                <span data-i18n="published_at">{t('published_at', 'FR')}</span>{" "}
+                <span data-fr={heureAfficheeFR} data-en={heureAfficheeEN}>{heureAfficheeFR}</span>
+              </p>
+            </div>
+          </a>
+        </header>
+
+        <div class="article-grid">
+
+          <main class="article-main-content">
+            {article.data.tweet_url && (
+              <div class="tweet-embed-wrapper" id="tweet-embed-mount" data-tweet-position={tweetPos}>
+                <Tweet id={article.data.tweet_url} theme="dark" />
+              </div>
+            )}
+
+            <div class="prose-content" data-lang-content="FR" data-image-position={imagePos}>
+              <Content />
+            </div>
+
+            {bodyEnHtml ? (
+              <div class="prose-content" data-lang-content="EN" data-image-position={imagePos} hidden set:html={bodyEnHtml} />
+            ) : (
+              <div class="prose-content" data-lang-content="EN" data-image-position={imagePos} hidden>
+                <p data-i18n="no_english_version">{t('no_english_version', 'FR')}</p>
+              </div>
+            )}
+          </main>
+
+          <aside class="article-sidebar">
+            <div class="sidebar-sticky-box">
+              {sidebarSlots.length > 0 && (
+                <div class="sidebar-similaires">
+                  <p class="sidebar-label" data-i18n="sidebar_read_also">{t('sidebar_read_also', 'FR')}</p>
+                  {sidebarSlots.map(({ artFR, artEN, hasEn: slotHasEn }) => {
+                    const imgFR = artFR.data.image || artFR.data.article_image || "";
+                    const imgEN = slotHasEn && artEN
+                      ? (artEN.data.image || artEN.data.article_image || "")
+                      : "";
+                    const imgShow = imgFR || imgEN;
+                    return (
+                      <a
+                        href={`/articles/${artFR.id}`}
+                        class="sidebar-card article-card-item"
+                        data-has-en={slotHasEn ? "true" : "false"}
+                        data-href-fr={`/articles/${artFR.id}`}
+                        data-href-en={slotHasEn && artEN ? `/articles/${artEN.id}` : ""}
+                      >
+                        {imgShow && (
+                          <img
+                            src={imgFR || imgEN}
+                            alt={artFR.data.title}
+                            class="sidebar-card-img"
+                            data-img-fr={imgFR || imgEN}
+                            data-img-en={imgEN || imgFR}
+                          />
+                        )}
+                        <div class="sidebar-card-body">
+                          <p
+                            class="sidebar-card-tag"
+                            data-fr={categoryLabel(artFR.data.category, 'FR')}
+                            data-en={slotHasEn && artEN ? categoryLabel(artEN.data.category, 'EN') : ""}
+                          >
+                            {categoryLabel(artFR.data.category, 'FR')}
+                          </p>
+                          <p
+                            class="sidebar-card-title"
+                            data-fr={artFR.data.title}
+                            data-en={slotHasEn && artEN ? String(artEN.data.title_en) : ""}
+                          >
+                            {artFR.data.title}
+                          </p>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </aside>
+
+        </div>
+
+        <footer id="author-info-section" class="article-footer-transparency">
+          <div class="transparency-card">
+            <div class="card-accent-bar"></div>
+            <h3 data-i18n="transparency_author">{t('transparency_author', 'FR')}</h3>
+            <p data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
+          </div>
+
+          <div class="transparency-card">
+            <div class="card-accent-bar"></div>
+            <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
+            {authorInterestsFR || authorInterestsEN ? (
+              <p data-fr={authorInterestsFR} data-en={authorInterestsEN}>{authorInterestsFR}</p>
+            ) : (
+              <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
+            )}
+          </div>
+
+          <div class="transparency-card">
+            <div class="card-accent-bar"></div>
+            <h3 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h3>
+            {article.data.consulted_sources && article.data.consulted_sources.length > 0 ? (
+              <ul class="sources-list">
+                {article.data.consulted_sources.map((src: any) => {
+                  const titleFR = src.source_title;
+                  const titleEN = src.source_title_en || titleFR;
+
+                  return (
+                    <li>
+                      {src.source_url ? (
+                        <a 
+                          href={src.source_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          data-fr={titleFR}
+                          data-en={titleEN}
+                        >
+                          {titleFR}
+                        </a>
+                      ) : (
+                        <span 
+                          data-fr={titleFR}
+                          data-en={titleEN}
+                        >
+                          {titleFR}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
+            )}
+          </div>
+        </footer>
+
+        <!-- Template HTML caché pour l'image (positionnée dans le texte via script) -->
+        {articleHeroImage && (
+          <template id="article-hero-template">
+            <figure class="hero-image-wrapper">
+              <img src={articleHeroImage} alt={`Illustration : ${article.data.title}`} class="hero-img" />
+              {(imageCaptionFR || imageCaptionEN) && (
+                <figcaption class="image-caption" data-fr={imageCaptionFR} data-en={imageCaptionEN}>
+                  {imageCaptionFR}
+                </figcaption>
+              )}
+            </figure>
+          </template>
+        )}
 
       </div>
-
-      <footer id="author-info-section" class="article-footer-transparency">
-        <div class="transparency-card">
-          <div class="card-accent-bar"></div>
-          <h3 data-i18n="transparency_author">{t('transparency_author', 'FR')}</h3>
-          {article.data.author_about ? (
-            <p>{article.data.author_about}</p>
-          ) : (
-            <p data-i18n="author_about_empty">{t('author_about_empty', 'FR')}</p>
-          )}
-        </div>
-
-        <div class="transparency-card">
-          <div class="card-accent-bar"></div>
-          <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
-          {article.data.author_interests ? (
-            <p>{article.data.author_interests}</p>
-          ) : (
-            <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
-          )}
-        </div>
-
-        <div class="transparency-card">
-          <div class="card-accent-bar"></div>
-          <h3 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h3>
-          {article.data.consulted_sources && article.data.consulted_sources.length > 0 ? (
-            <ul class="sources-list">
-              {article.data.consulted_sources.map((src: any) => (
-                <li>
-                  {src.source_url ? (
-                    <a href={src.source_url} target="_blank" rel="noopener noreferrer">{src.source_title}</a>
-                  ) : (
-                    src.source_title
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
-          )}
-        </div>
-      </footer>
-
     </div>
-  </div>
+  )}
 </MainLayout>
+
+<!-- Script JS : injection de l'image positionnée dans le texte + sync langue (site_lang, comme le Layout) -->
+<script is:inline>
+  function setupArticlePage() {
+    // Un seul des deux templates existe selon le layout (brève ou classique)
+    const heroTemplate = document.getElementById('breve-hero-template') || document.getElementById('article-hero-template');
+
+    function getSiteLang() {
+      return (localStorage.getItem('site_lang') || 'FR').toUpperCase();
+    }
+
+    function applyDataLangAttributes(lang) {
+      document.querySelectorAll('[data-fr][data-en]').forEach(el => {
+        const valFr = el.getAttribute('data-fr');
+        const valEn = el.getAttribute('data-en');
+        if (lang === 'EN' && valEn) el.textContent = valEn;
+        else if (valFr) el.textContent = valFr;
+      });
+    }
+
+    // Place un élément dans un conteneur de texte : 0 = au-dessus de tout, N = après le N-ème paragraphe
+    function insertAtParagraphPosition(container, element, targetPos) {
+      const paragraphs = Array.from(container.querySelectorAll(':scope > p')).filter(
+        p => p.textContent.trim().length > 0
+      );
+
+      if (paragraphs.length === 0) {
+        // Pas de paragraphe détecté (ex : message "non disponible en anglais") : on colle l'élément en bas
+        container.appendChild(element);
+      } else if (targetPos <= 0) {
+        container.insertBefore(element, paragraphs[0]);
+      } else {
+        const targetIndex = Math.min(targetPos, paragraphs.length) - 1;
+        paragraphs[targetIndex].insertAdjacentElement('afterend', element);
+      }
+    }
+
+    // Insère l'image dans le texte selon data-image-position
+    function injectHeroImages() {
+      if (!heroTemplate) return;
+      const proseContainers = document.querySelectorAll('.prose-content[data-image-position]');
+
+      proseContainers.forEach(container => {
+        if (container.querySelector('.injected-hero-figure')) return;
+
+        const posRaw = container.getAttribute('data-image-position');
+        const parsedPos = parseInt(posRaw, 10);
+        const targetPos = isNaN(parsedPos) ? 0 : parsedPos;
+
+        const clone = heroTemplate.content.cloneNode(true);
+        const figureElement = clone.querySelector('figure');
+        if (!figureElement) return;
+        figureElement.classList.add('injected-hero-figure');
+
+        insertAtParagraphPosition(container, figureElement, targetPos);
+      });
+    }
+
+    // Déplace le bloc tweet (articles classiques) dans le texte actuellement visible, selon data-tweet-position
+    function positionTweetEmbed() {
+      const tweetBlock = document.getElementById('tweet-embed-mount');
+      if (!tweetBlock) return;
+
+      const visibleProse = document.querySelector('.prose-content[data-lang-content]:not([hidden])');
+      if (!visibleProse) return;
+
+      const posRaw = tweetBlock.getAttribute('data-tweet-position');
+      const parsedPos = parseInt(posRaw, 10);
+      const targetPos = isNaN(parsedPos) ? 0 : parsedPos;
+
+      insertAtParagraphPosition(visibleProse, tweetBlock, targetPos);
+    }
+
+    function updateLanguageUI(lang) {
+      const currentLang = (lang || getSiteLang()).toUpperCase();
+
+      document.querySelectorAll('.prose-content[data-lang-content]').forEach(el => {
+        const isTargetLang = el.getAttribute('data-lang-content') === currentLang;
+        if (isTargetLang) el.removeAttribute('hidden');
+        else el.setAttribute('hidden', '');
+      });
+
+      injectHeroImages();
+      positionTweetEmbed();
+      // Après injection : appliquer FR/EN sur la légende fraîchement insérée (et le reste de la page)
+      applyDataLangAttributes(currentLang);
+    }
+
+    updateLanguageUI(getSiteLang());
+
+    window.addEventListener('languageChanged', (e) => {
+      const newLang = (e.detail && e.detail.lang) || e.detail || getSiteLang();
+      updateLanguageUI(newLang);
+    });
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'site_lang') updateLanguageUI(e.newValue);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', setupArticlePage);
+  } else {
+    setupArticlePage();
+  }
+</script>
 
 <style is:global>
   html {
     scroll-behavior: smooth;
-  }
-
-  /* Ne pas écraser le fond du Layout */
-  .article-wrapper {
-    background-color: #02001d;
-    max-width: 1200px;
-    margin: 40px auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  }
-
-  .article-container {
-    padding: 50px 40px;
-  }
-
-  .article-header {
-    border-bottom: 1px solid #1f2937;
-    padding-bottom: 30px;
-    margin-bottom: 30px;
-    text-align: left;
-  }
-
-  .main-title {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: #ffffff;
-    line-height: 1.3;
-    margin: 0 0 15px 0;
   }
 
-  .main-description {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: #ffffff;
-    line-height: 1.5;
-    margin: 0 0 30px 0;
-  }
+  /* ==========================================
+     1. STYLES POUR LES BRÈVES
+     ========================================== */
+  .breve-wrapper { background-color: #02001d; max-width: 1200px; margin: 40px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .author-meta-block {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    text-decoration: none;
-    color: inherit;
-    cursor: pointer;
-    width: fit-content;
-  }
+  .breve-layout-container { padding: 50px 40px; color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .author-meta-block:hover .author-name {
-    text-decoration: underline;
-    color: #ea580c;
-  }
+  .breve-header { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; border-bottom: none; }
 
-  .author-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: #374151;
-    flex-shrink: 0;
-  }
+  .breve-theme { color: #ea580c; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin-left: 25px; }
 
-  .author-text-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    justify-content: center;
-  }
+  .breve-header-main { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; width: 100%; }
 
-  .author-name {
-    margin: 0;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #ffffff;
-    line-height: 1.3;
-    transition: color 0.2s ease;
-  }
+  .breve-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 2.2rem; font-weight: 800; line-height: 1.15; color: #ffffff; margin: 0; letter-spacing: -0.02em; text-align: left; flex: 1; margin-left: 25px; }
 
-  .publication-date {
-    margin: 0;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 1rem;
-    font-style: italic;
-    color: #ffffff;
-    line-height: 1.3;
-  }
+  .breve-description { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 0.9rem; line-height: 1.5; color: #e5e7eb; font-weight: 400; text-align: left; margin: 0; width: 500px; flex-shrink: 0; }
 
-  .article-grid {
-    display: grid;
-    grid-template-columns: 7.5fr 2.5fr;
-    gap: 40px;
-    align-items: start;
-  }
+  .breve-divider { border: none; border-top: 1px solid #1f2937; height: 0; margin: 25px 0 35px 0; }
 
-  .article-main-content {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-  }
+  .breve-body-grid { display: grid; grid-template-columns: 7fr 3fr; gap: 50px; align-items: start; }
 
-  .hero-image-wrapper {
-    width: 100%;
-    border-radius: 4px;
-    overflow: hidden;
-    background-color: #111827;
-  }
+  .breve-main-content { display: flex; flex-direction: column; gap: 20px; }
 
-  .hero-img {
-    width: 100%;
-    height: auto;
-    display: block;
-    max-height: 550px;
-    object-fit: cover;
-  }
+  .breve-figure { margin: 25px 0; width: 100%; }
 
-  .tweet-embed-wrapper {
-    display: flex;
-    justify-content: center;
-  }
+  .breve-image { width: 100%; height: auto; display: block; object-fit: cover; border-radius: 4px; }
 
-  .prose-content {
-    color: #ffffff;
-    font-size: 1.3rem;
-    line-height: 1.8;
-  }
+  .breve-caption { margin-top: 8px; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .prose-content p {
-    margin-bottom: 24px;
-  }
+  .breve-sidebar { position: sticky; top: 30px; }
 
-  .prose-content h2 {
-    font-size: 1.7rem;
-    color: #ffffff;
-    margin-top: 40px;
-    margin-bottom: 20px;
-    font-weight: 700;
-  }
+  .breve-author-block { display: flex; flex-direction: column; align-items: center; text-align: left; }
 
-  .article-sidebar {
-    height: 100%;
-    background-color: #02001d !important;
-  }
+  .breve-avatar-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; }
 
-  .sidebar-sticky-box {
-    position: sticky;
-    top: 20px;
-    background-color: #02001d;
-  }
+  .breve-avatar { width: 70px; height: 70px; border-radius: 50%; background-color: #ffffff; object-fit: cover; }
 
-  .sidebar-similaires {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+  .breve-avatar-pointer { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #ffffff; margin-top: 4px; }
 
-  .sidebar-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    color: #ea580c;
-    margin: 0 0 4px 0;
-  }
+  .breve-author-bio { font-size: 0.78rem; line-height: 1.4; color: #9ca3af; border-top: 1px solid #ffffff; padding-top: 10px; width: 100%; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .sidebar-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    text-decoration: none;
-    border-bottom: 1px solid #1f2937;
-    padding-bottom: 16px;
-  }
+  .breve-author-name { font-weight: 700; color: #ffffff; margin-bottom: 4px; font-size: 0.85rem; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .sidebar-card:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
+  .breve-author-interests { margin-top: 6px; opacity: 0.8; font-style: italic; }
 
-  .sidebar-card-img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 4px;
-    display: block;
-  }
+  .breve-sources-section { margin-top: 25px; margin-bottom: 20px; }
 
-  .sidebar-card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+  .breve-sources-title { color: #ea580c; font-size: 0.95rem; font-weight: 700; margin-bottom: 15px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .sidebar-card-tag {
-    margin: 0;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #ea580c;
-  }
+  .breve-sources-list { list-style-type: none; padding: 0; margin: 0; }
 
-  .sidebar-card-title {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #ffffff;
-    line-height: 1.4;
-    transition: color 0.2s ease;
-  }
+  .breve-source-item { position: relative; padding-left: 15px; margin-bottom: 10px; font-size: 0.85rem; line-height: 1.4; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .sidebar-card:hover .sidebar-card-title {
-    color: #ea580c;
-  }
+  .breve-source-item::before { content: "▪"; color: #ea580c; position: absolute; left: 0; top: 0; }
 
-  /* Sidebar : pas de trous en EN — on retire du flux au lieu de visibility:hidden */
-  .article-sidebar .article-card-item.is-lang-hidden {
-    display: none !important;
-  }
+  .breve-source-link { color: #ea580c; text-decoration: none; font-weight: 600; }
 
-  .article-footer-transparency {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    margin-top: 60px;
-    padding: 30px;
-    background-color: #02001d;
-    border-radius: 8px;
-    scroll-margin-top: 40px;
-  }
+  .breve-source-link:hover { text-decoration: underline; }
 
-  .transparency-card {
-    position: relative;
-    width: 160px;
-    height: 210px;
-    background-color: #00002c;
-    border-radius: 8px;
-    padding: 15px 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+  .breve-source-text { color: #ea580c; font-weight: 600; }
 
-  .card-accent-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background-color: #ea580c;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-  }
+  /* ==========================================
+     2. STYLES CLASSIQUES
+     ========================================== */
+  .article-wrapper { background-color: #02001d; max-width: 1200px; margin: 40px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .transparency-card h3 {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #ffffff;
-    margin: 8px 0 10px 0;
-    font-weight: 700;
-    line-height: 1.2;
-  }
+  .article-container { padding: 50px 40px; }
 
-  .transparency-card p {
-    font-size: 0.8rem;
-    line-height: 1.5;
-    color: #9ca3af;
-    margin: 0;
-    flex-grow: 1;
-  }
+  .article-header { border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; text-align: left; }
 
-  .sources-list {
-    margin: 0;
-    padding-left: 15px;
-    font-size: 0.8rem;
-    color: #9ca3af;
-    list-style-type: disc;
-  }
+  .main-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.8rem; font-weight: 800; color: #ffffff; line-height: 1.3; margin: 0 0 15px 0; }
 
-  .sources-list li {
-    margin-bottom: 5px;
-  }
+  .main-description { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: 500; color: #ffffff; line-height: 1.5; margin: 0 0 30px 0; }
 
-  .sources-list a {
-    color: #ea580c;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s ease;
-  }
+  .author-meta-block { display: flex; align-items: center; gap: 20px; text-decoration: none; color: inherit; cursor: pointer; width: fit-content; }
 
-  .sources-list a:hover {
-    color: #d4510b;
-    text-decoration: underline;
-  }
+  .author-meta-block:hover .author-name { text-decoration: underline; color: #ea580c; }
 
+  .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; flex-shrink: 0; }
+
+  .author-text-meta { display: flex; flex-direction: column; gap: 0; justify-content: center; }
+
+  .author-name { margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1rem; font-weight: 600; color: #ffffff; line-height: 1.3; transition: color 0.2s ease; }
+
+  .publication-date { margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1rem; font-style: italic; color: #ffffff; line-height: 1.3; }
+
+  .article-grid { display: grid; grid-template-columns: 7.5fr 2.5fr; gap: 40px; align-items: start; }
+
+  .article-main-content { display: flex; flex-direction: column; gap: 30px; }
+
+  .hero-image-wrapper { width: 100%; margin: 25px 0; border-radius: 4px; overflow: hidden; background-color: #111827; }
+
+  .hero-img { width: 100%; height: auto; display: block; max-height: 550px; object-fit: cover; }
+
+  .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; }
+
+  .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .prose-content p { margin-bottom: 24px; }
+
+  .prose-content h2 { font-size: 1.7rem; color: #ffffff; margin-top: 40px; margin-bottom: 20px; font-weight: 700; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .article-sidebar { height: 100%; background-color: #02001d !important; }
+
+  .sidebar-sticky-box { position: sticky; top: 20px; background-color: #02001d; }
+
+  .sidebar-similaires { display: flex; flex-direction: column; gap: 16px; }
+
+  .sidebar-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; color: #ea580c; margin: 0 0 4px 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .sidebar-card { display: flex; flex-direction: column; gap: 8px; text-decoration: none; border-bottom: 1px solid #1f2937; padding-bottom: 16px; }
+
+  .sidebar-card:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .sidebar-card-img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; display: block; }
+
+  .sidebar-card-body { display: flex; flex-direction: column; gap: 4px; }
+
+  .sidebar-card-tag { margin: 0; font-size: 0.75rem; font-weight: 700; color: #ea580c; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .sidebar-card-title { margin: 0; font-size: 0.95rem; font-weight: 600; color: #ffffff; line-height: 1.4; transition: color 0.2s ease; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .sidebar-card:hover .sidebar-card-title { color: #ea580c; }
+
+  .article-sidebar .article-card-item.is-lang-hidden { display: none !important; }
+
+  .article-footer-transparency { display: flex; justify-content: center; gap: 30px; margin-top: 60px; padding: 30px; background-color: #02001d; border-radius: 8px; scroll-margin-top: 40px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .transparency-card { position: relative; width: 160px; height: 210px; background-color: #00002c; border-radius: 8px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; }
+
+  .card-accent-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background-color: #ea580c; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+
+  .transparency-card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffffff; margin: 8px 0 10px 0; font-weight: 700; line-height: 1.2; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .transparency-card p { font-size: 0.8rem; line-height: 1.5; color: #9ca3af; margin: 0; flex-grow: 1; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .sources-list { margin: 0; padding-left: 15px; font-size: 0.8rem; color: #9ca3af; list-style-type: disc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+  .sources-list li { margin-bottom: 5px; }
+
+  .sources-list a { color: #ea580c; text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
+
+  .sources-list a:hover { color: #d4510b; text-decoration: underline; }
+
+  /* MEDIA QUERIES RESPONSIVE */
   @media (max-width: 968px) {
-    .article-footer-transparency {
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
+    .breve-header-main { flex-direction: column; gap: 15px; }
+    .breve-description { width: 100%; }
+    .article-footer-transparency { flex-direction: column; align-items: center; gap: 20px; }
   }
 
   @media (max-width: 768px) {
-    .article-wrapper {
-      margin: 0;
-      border-radius: 0;
-    }
-    .article-container {
-      padding: 30px 20px;
-    }
-    .article-grid {
-      grid-template-columns: 1fr;
-    }
-    .article-sidebar {
-      order: -1;
-    }
+    .breve-body-grid { grid-template-columns: 1fr; gap: 20px; }
+    .breve-wrapper, .article-wrapper { margin: 0; border-radius: 0; }
+    .breve-layout-container, .article-container { padding: 30px 20px; }
+    .article-grid { grid-template-columns: 1fr; }
+    .article-sidebar { order: -1; }
   }
 </style>

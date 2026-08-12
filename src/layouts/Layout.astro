@@ -3,6 +3,7 @@
 const { title, isHome = false } = Astro.props;
 import logoSonar from '../components/LogoSonarVdef.png';
 import backgroundImage from '../assets/background.png';
+import substackIcon from '../components/substack.png';
 ---
 
 <html lang="fr">
@@ -49,7 +50,7 @@ import backgroundImage from '../assets/background.png';
                 else if (mql.addListener) mql.addListener(applyFavicon);
             })();
         </script>
-        <title>{title} | Sonar</title>
+        <title>Sonar | {title}</title>
         <style is:global>
             html {
                 /* Le fond est posé sur <html> et fixé (cover), plutôt que sur <body>
@@ -415,6 +416,41 @@ import backgroundImage from '../assets/background.png';
                     right: 15px;
                 }
             }
+            .substack-link {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                color: #b0c0d2; 
+                text-decoration: none;
+                font-size: 0.95rem;
+                line-height: 1;
+                transition: color 0.3s ease, transform 0.2s ease;
+            }
+
+            /* Style de l'icône Substack par défaut (Blanc) */
+            .substack-icon {
+                width: 20px;
+                height: 20px;
+                max-width: 20px;
+                max-height: 20px;
+                display: block;
+                object-fit: contain;
+                /* Rend le logo complètement blanc */
+                filter: brightness(0) invert(1);
+                transition: filter 0.3s ease, transform 0.2s ease;
+            }
+
+            /* Au survol du lien Substack */
+            .substack-link:hover {
+                color: #ff7900;
+                transform: translateY(-2px);
+            }
+
+            /* Au survol : l'icône retrouve sa couleur originale (orange Substack) */
+            .substack-link:hover .substack-icon {
+                filter: none;
+            }
         </style>
     </head>
     <body>
@@ -525,6 +561,12 @@ import backgroundImage from '../assets/background.png';
                             <span>@banshee.international</span>
                         </a>
                     </div>
+                    <div class="instagram-wrapper">
+                        <a href="https://substack.com/@souslesonar/notes" target="_blank" rel="noopener noreferrer" class="substack-link" aria-label="Suivez SONAR sur Substack">
+                            <img src={substackIcon.src} alt="Substack logo" class="substack-icon" />
+                            <span>@souslesonar</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -617,6 +659,9 @@ import backgroundImage from '../assets/background.png';
                 document.querySelectorAll('.lang-selector-btn').forEach(btn => {
                     btn.textContent = langKey === 'EN' ? 'ENG | FR' : 'FR | ENG';
                 });
+
+                // 10. Notifier les pages (ex: brèves) qui écoutent le changement
+                window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: langKey } }));
             }
 
             document.addEventListener('DOMContentLoaded', () => {

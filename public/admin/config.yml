@@ -14,15 +14,15 @@ public_folder: "/assets/uploads"
 
 collections:
   # ==========================================
-  # COLLECTION PRINCIPALE D'ARTICLES
+  # 1. COLLECTION : ARTICLES (Création / Édition)
   # ==========================================
   - name: "articles"
     label: "Articles"
     folder: "src/content/articles"
     create: true
     slug: "{{slug}}"
+    filter: { field: "layout_type", pattern: "^(?!breve$).*" }
     fields:
-      
       # --- VERSION FRANÇAISE ---
       - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
       - { name: "title", label: "Titre (FR)", widget: "string" }
@@ -42,7 +42,20 @@ collections:
       
       # --- IMAGES ---
       - { label: "Image de miniature", name: "image", widget: "image", hint: "Sert de miniature globale et d'image d'article par défaut" }
+      - label: "Légende de l'image (Optionnelle)"
+        name: "image_info"
+        widget: "list"
+        required: false
+        min: 1
+        default:
+          - image_caption: ""
+            image_caption_en: ""
+        collapsed: false
+        fields:
+          - { name: "image_caption", label: "Légende de l'image (FR)", widget: "string", required: false }
+          - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
       - { label: "Image interne de l'article (Optionnelle)", name: "article_image", widget: "image", required: false, hint: "Si laissée vide, l'image de miniature sera utilisée" }
+      - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
       
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
@@ -53,13 +66,19 @@ collections:
         options:
           - { label: "Victor Zhâ", value: "Victor Zhâ" }
           - { label: "Paul Delachaux", value: "Paul Delachaux" }
+      - label: "Informations sur l'auteur"
+        name: "author_info"
+        widget: "list"
+        required: false
+        collapsed: false
+        max : 1
+        fields:
+          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
+          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
+          - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
+          - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
+      
       - { label: "Temps de lecture (minutes)", name: "reading_time", widget: "number", default: 5, value_type: "int" }
-
-      # ==========================================
-      # BLOCS TRANSPARENCE JOURNALISTIQUE (BAS)
-      # ==========================================
-      - { label: "À propos de l'auteur", name: "author_about", widget: "text", default: "Travailleur acharné..." }
-      - { label: "Déclaration d'intérêt", name: "author_interests", widget: "text", default: "N'a pas de liens d'intérêts avec..." }
       
       - label: "Sources consultables"
         name: "consulted_sources"
@@ -67,14 +86,14 @@ collections:
         summary: "{{fields.source_title}}"
         required: false
         fields:
-          - { label: "Nom de la source (ex: Article du Monde)", name: "source_title", widget: "string" }
+          - { label: "Nom de la source (FR)", name: "source_title", widget: "string" }
+          - { label: "Nom de la source (EN)", name: "source_title_en", widget: "string" }
           - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
 
       - { label: "Tweet à intégrer (Optionnel)", name: "tweet_url", widget: "string", required: false, hint: "Colle l'URL complète du tweet, ex: https://x.com/nom_utilisateur/status/123456789" }
+      - { label: "Position du tweet (après le paragraphe N)", name: "tweet_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = le tweet apparaît au-dessus de tout le texte. 1, 2, 3... = il apparaît après ce paragraphe." }
 
-      # ==========================================
-      # CONFIGURATION GRAPHIQUE DE LA MINIATURE
-      # ==========================================
+      # --- MINIATURE CUSTOM ---
       - { label: "CONFIGURATION GRAPHIQUE DE LA MINIATURE (optionnel)", name: "sep_miniature", widget: "separator", required: false, collapsed: true }
       - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false, title: "Partie Miniature (optionnel)" }
       - label: "Position du fond"
@@ -94,7 +113,6 @@ collections:
           - { label: "Bas droite", value: "bottom right" }
       - { label: "Zoom du fond (%)", name: "thumbnail_bg_zoom", widget: "number", default: 100, value_type: "int", min: 50, max: 300, required: false }
 
-      # --- CONFIG DU TITRE ---
       - { label: "Titre sur la Miniature", name: "thumbnail_title", widget: "string", required: false }
       - { label: "Position X Titre (en px)", name: "title_x", widget: "number", default: 20, value_type: "int", min: 0, max: 500, required: false }
       - { label: "Position Y Titre (en px)", name: "title_y", widget: "number", default: 20, value_type: "int", min: 0, max: 300, required: false }
@@ -120,7 +138,6 @@ collections:
           - { label: "Code (Monospace)", value: "monospace" }
       - { label: "Couleur titre (ex: #ffffff)", name: "title_color", widget: "color", default: "#ffffff", required: false }
 
-      # --- CONFIG DES BLOCS DE DESCRIPTION ---
       - label: "Blocs de description sur la Miniature"
         name: "thumbnail_descs"
         widget: "list"
@@ -153,10 +170,83 @@ collections:
       - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
 
   # ==========================================
-  # VUES FILTRÉES POUR LES MENUS DÉROULANTS
+  # 2. COLLECTION : BRÈVES (Création / Édition)
+  # ==========================================
+  - name: "breves"
+    label: "Brèves"
+    label_singular: "Brève"
+    folder: "src/content/articles"
+    create: true
+    slug: "{{slug}}"
+    filter: { field: "layout_type", value: "breve" }
+    fields:
+      - { name: "layout_type", widget: "hidden", default: "breve" }
+      # --- VERSION FRANCAISE ---
+      - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
+      - { name: "title", label: "Titre de la brève (FR)", widget: "string" }
+      - { name: "description", label: "Description (FR)", widget: "string" }
+      - { name: "body", label: "Texte court", widget: "markdown" }
+
+      # --- VERSION ANGLAISE (FACULTATIVE) ---
+      - { name: "version_en_sep", widget: "separator", label: "🇬🇧 Version Anglaise (Optionnelle)", collapsed: false, required: false }
+      - { name: "title_en", label: "Titre de la brève (EN)", widget: "string", required: false }
+      - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
+      - { name: "body_en", label: "Texte court", widget: "markdown", required: false }
+
+      - { label: "INFORMATIONS GÉNÉRALES DE L'ARTICLE", name: "sep_article", widget: "separator", required: false }
+      - { label: "Date de publication", name: "date", widget: "datetime" }
+      - label: "Auteur de l'article"
+        name: "author"
+        widget: "select"
+        options:
+          - { label: "Victor Zhâ", value: "Victor Zhâ" }
+          - { label: "Paul Delachaux", value: "Paul Delachaux" }
+
+      - label: "Informations sur l'auteur"
+        name: "author_info"
+        widget: "list"
+        required: false
+        collapsed: false
+        max : 1
+        fields:
+          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
+          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
+          - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
+          - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
+
+      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe", "technologie"] }
+      - { label: "Image de miniature", name: "image", widget: "image" }
+      - label: "Légende de l'image (Optionnelle)"
+        name: "image_info"
+        widget: "list"
+        required: false
+        min: 1
+        default:
+          - image_caption: ""
+            image_caption_en: ""
+        collapsed: false
+        fields:
+          - { name: "image_caption", label: "Légende de l'image (FR)", widget: "string", required: false }
+          - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
+
+      - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+
+      - label: "Sources consultables"
+        name: "consulted_sources"
+        widget: "list"
+        summary: "{{fields.source_title}}"
+        required: false
+        fields:
+          - { label: "Nom de la source (FR)", name: "source_title", widget: "string" }
+          - { label: "Nom de la source (EN)", name: "source_title_en", widget: "string", required: false }
+          - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
+
+  # ==========================================
+  # 3. VUES FILTRÉES : ARTICLES PAR CATÉGORIE
   # ==========================================
   - name: "articles_politique"
-    label: "Articles : Politique"
+    label: "Politique"
     folder: "src/content/articles"
     filter: { field: "category", value: "politique" }
     create: false
@@ -165,7 +255,7 @@ collections:
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
   - name: "articles_culture"
-    label: "Articles : Culture"
+    label: "Culture"
     folder: "src/content/articles"
     filter: { field: "category", value: "culture" }
     create: false
@@ -174,7 +264,7 @@ collections:
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
   - name: "articles_societe"
-    label: "Articles : Société"
+    label: "Société"
     folder: "src/content/articles"
     filter: { field: "category", value: "societe" }
     create: false
@@ -183,7 +273,7 @@ collections:
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
   - name: "articles_technologie"
-    label: "Articles : Technologie"
+    label: "Technologie"
     folder: "src/content/articles"
     filter: { field: "category", value: "technologie" }
     create: false
@@ -192,7 +282,28 @@ collections:
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
   # ==========================================
-  # PARAMÈTRES DU SITE
+  # 5. VUES FILTRÉES : PAR VISIBILITÉ
+  # ==========================================
+  - name: "contenus_visibles"
+    label: "👁️ En ligne / Visibles"
+    folder: "src/content/articles"
+    filter: { field: "isVisible", value: true }
+    create: false
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean" }
+
+  - name: "contenus_masques"
+    label: "🚫 Masqués / Non visibles"
+    folder: "src/content/articles"
+    filter: { field: "isVisible", value: false }
+    create: false
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean" }
+
+  # ==========================================
+  # 6. PARAMÈTRES DU SITE
   # ==========================================
   - name: "settings"
     label: "Paramètres"
@@ -209,7 +320,7 @@ collections:
           - label: "Article à la une"
             name: "heroArticle"
             widget: "relation-filtered"
-            collection: "articles"
+            collection: "contenus_visibles"
             search_fields: ["title"]
             value_field: "{{slug}}"
             display_fields: ["title"]
@@ -219,7 +330,7 @@ collections:
           - label: "Sidebar : Premier article (Format Long)"
             name: "sidebarLongArticle"
             widget: "relation-filtered"
-            collection: "articles"
+            collection: "contenus_visibles"
             search_fields: ["title"]
             value_field: "{{slug}}"
             display_fields: ["title"]
@@ -238,7 +349,7 @@ collections:
               label: "Article"
               name: "article"
               widget: "relation-filtered"
-              collection: "articles"
+              collection: "contenus_visibles"
               search_fields: ["title"]
               value_field: "{{slug}}"
               display_fields: ["title"]
@@ -258,7 +369,7 @@ collections:
               label: "Article"
               name: "article"
               widget: "relation-filtered"
-              collection: "articles"
+              collection: "contenus_visibles"
               search_fields: ["title"]
               value_field: "{{slug}}"
               display_fields: ["title"]
@@ -317,7 +428,7 @@ collections:
               label: "Article"
               name: "article"
               widget: "relation-filtered"
-              collection: "articles"
+              collection: "contenus_visibles"
               search_fields: ["title"]
               value_field: "{{slug}}"
               display_fields: ["title"]
@@ -364,7 +475,7 @@ collections:
           - label: "Asymétrique : Grand Article Principal (Droite)"
             name: "asymRightArticle"
             widget: "relation-filtered"
-            collection: "articles"
+            collection: "contenus_visibles"
             search_fields: ["title"]
             value_field: "{{slug}}"
             display_fields: ["title"]

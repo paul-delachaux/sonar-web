@@ -6,15 +6,22 @@ const articles = defineCollection({
 
   schema: z.object({
     title: z.string(),
-    description: z.string(),
+    description: z.string().nullish().optional(), // Rend-le optionnel au cas où une brève n'a pas de description
+
+    // --- NOUVEAU : TYPE DE LAYOUT ---
+    layout_type: z.enum(['classique', 'breve']).default('classique'),
+
     date: z.coerce.date(),
 
-    // --- CHAMPS ANGLAIS (Rétablis et sécurisés) ---
+    // --- CHAMPS ANGLAIS ---
     title_en: z.string().nullish().optional(),
     description_en: z.string().nullish().optional(),
     body_en: z.string().nullish().optional(),
     category_en: z.string().nullish().optional(),
-    // ----------------------------------------------
+    author_about_en: z.string().nullish().optional(),
+    author_interests_en: z.string().nullish().optional(),
+    image_caption_en: z.string().nullish().optional(),
+    article_image_caption_en: z.string().nullish().optional(),
 
     category: z.enum([
       'politique',
@@ -24,65 +31,77 @@ const articles = defineCollection({
     ]),
 
     image: z.string().nullish().optional(),
-    tweet_url: z.string().url().optional(),
+    image_caption: z.string().nullish().optional(), // NOUVEAU
     
-    // --- NOUVEAUX CHAMPS CMS ---
+    tweet_url: z.string().url().optional(),
+    tweet_position: z.union([z.number(), z.string()]).nullish().optional()
+      .transform(v => {
+      const n = typeof v === 'string' ? parseInt(v, 10) : v;
+      return typeof n === 'number' && !isNaN(n) ? n : undefined;
+    }),
+    
+    // --- CHAMPS ARTICLE ---
     article_image: z.string().nullish().optional(),
+    image_info: z.array(
+      z.object({
+        image_caption: z.string().optional(),
+        image_caption_en: z.string().nullish().optional(),
+      })
+    ).optional(),
     author: z.string().optional(),
     reading_time: z.number().optional(),
-    author_about: z.string().optional(),
-    author_interests: z.string().optional(),
+    author_info: z.array(
+      z.object({
+        author_about: z.string().optional(),
+        author_about_en: z.string().nullish().optional(),
+        author_interests: z.string().optional(),
+        author_interests_en: z.string().nullish().optional()
+      })
+    ).optional(),
+    image_position: z.union([z.number(), z.string()]).nullish().optional()
+      .transform(v => {
+      const n = typeof v === 'string' ? parseInt(v, 10) : v;
+      return typeof n === 'number' && !isNaN(n) ? n : undefined;
+    }),
     consulted_sources: z.array(
       z.object({
         source_title: z.string(),
+        source_title_en: z.string().nullish().optional(),
         source_url: z.string().nullish().optional()
       })
     ).optional(),
-    // ---------------------------
 
     isVisible: z.preprocess(
       val => val === undefined ? true : val,
       z.boolean()
     ),
     isHero: z.boolean().default(false),
-    source: z.string().nullish().optional(), // Conservé au cas où de vieux articles l'utilisent encore
+    source: z.string().nullish().optional(),
 
+    // --- THUMBNAILS (Rétrocompatibilité / Générateur) ---
     use_thumbnail: z.boolean().optional(),
-
     thumbnail_bg: z.string().nullish().optional(),
     thumbnail_bg_position: z.string().nullish().optional(),
     thumbnail_bg_zoom: z.union([z.number(), z.string()]).nullish().optional()
       .transform(v => typeof v === 'number' ? v : undefined),
-
     thumbnail_title: z.string().nullish().optional(),
-
     title_x: z.union([z.number(), z.string()]).nullish().optional()
       .transform(v => typeof v === 'number' ? v : undefined),
-
     title_y: z.union([z.number(), z.string()]).nullish().optional()
       .transform(v => typeof v === 'number' ? v : undefined),
-
     title_size: z.union([z.number(), z.string()]).nullish().optional()
       .transform(v => typeof v === 'number' ? v : undefined),
-
     title_weight: z.union([z.string(), z.number()]).nullish().optional(),
     title_font: z.string().nullish().optional(),
     title_color: z.string().nullish().optional(),
-
     thumbnail_descs: z.array(
       z.object({
         x: z.number().optional(),
         y: z.number().optional(),
         size: z.number().optional(),
-
-        weight: z.union([
-          z.string(),
-          z.number()
-        ]).nullish().optional(),
-
+        weight: z.union([z.string(), z.number()]).nullish().optional(),
         font: z.string().nullish().optional(),
         color: z.string().nullish().optional(),
-
         line: z.string().optional()
       })
     ).optional()

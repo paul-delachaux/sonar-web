@@ -8,25 +8,48 @@
 
   <style>
     /* 1. BARRE SUPÉRIEURE */
-    #nc-root header, #nc-root nav[role="navigation"], header { background-color: #062016 !important; }
+    #nc-root header, #nc-root nav[role="navigation"], header { background-color: #01002b !important; }
 
     /* 2. BOUTON DE CONNEXION GITHUB */
-    #nc-root div[class*="LoginContainer"] button, #nc-root div[class*="login"] button, #nc-root button[class*="StyledAuthenticationPageButton"] { background-color: #1D9E75 !important; color: #ffffff !important; border: none !important; box-shadow: none !important; }
-    #nc-root div[class*="LoginContainer"] button:hover, #nc-root button[class*="StyledAuthenticationPageButton"]:hover { background-color: #0b6e50 !important; }
+    #nc-root div[class*="LoginContainer"] button, #nc-root div[class*="login"] button, #nc-root button[class*="StyledAuthenticationPageButton"] { background-color: #ff7900 !important; color: #ffffff !important; border: none !important; box-shadow: none !important; }
+    #nc-root div[class*="LoginContainer"] button:hover, #nc-root button[class*="StyledAuthenticationPageButton"]:hover { background-color: #ff7900 !important; }
 
     /* 3. BOUTON DE PUBLICATION */
-    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button, #nc-root button[class*="Button-button-Primary"] { background-color: #1D9E75 !important; color: #ffffff !important; border: none !important; }
-    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button:hover, #nc-root button[class*="Button-button-Primary"]:hover { background-color: #0b6e50 !important; }
+    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button, #nc-root button[class*="Button-button-Primary"] { background-color: #ff7900 !important; color: #ffffff !important; border: none !important; }
+    #nc-root header[class*="AppHeader"] div[class*="ActionsMenu"] button:hover, #nc-root button[class*="Button-button-Primary"]:hover { background-color: #ff7900 !important; }
 
     /* 4. TEXTES & LIENS */
     #nc-root h1, #nc-root h2, #nc-root p, #nc-root sidebar a, #nc-root span { font-family: 'Helvetica', serif !important; }
-    #nc-root a[aria-current="page"], #nc-root a:hover { color: #1D9E75 !important; }
+    #nc-root a[aria-current="page"], #nc-root a:hover { color: #ff7900 !important; }
 
     /* 5. LABELS */
     #nc-root label { font-family: 'Helvetica', serif !important; text-transform: uppercase !important; letter-spacing: 1px !important; }
-    #nc-root div:has(> label:contains("ARTICLE À LA UNE")) label { color: #1D9E75 !important; font-size: 14px !important; font-weight: 900 !important; }
-    #nc-root div:has(> label:contains("SIDEBAR : PREMIER ARTICLE")) label { color: #062016 !important; font-size: 13px !important; }
+    #nc-root div:has(> label:contains("ARTICLE À LA UNE")) label { color: #ff7900 !important; font-size: 14px !important; font-weight: 900 !important; }
+    #nc-root div:has(> label:contains("SIDEBAR : PREMIER ARTICLE")) label { color: #01002b !important; font-size: 13px !important; }
     #nc-root div:has(> label:contains("Description")) label { color: #708078 !important; font-size: 12px !important; }
+
+    /* 6. STYLE CUSTOM DU GROUPEMENT SIDEBAR */
+    .cms-sidebar-header {
+      background-color: #01002b;
+      color: #ff7900;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      border-radius: 4px;
+      user-select: none;
+      border-left: 3px solid #ff7900;
+    }
+    .cms-sidebar-header:hover { background-color: #01002b; }
+    .cms-sidebar-header .arrow { font-size: 10px; transition: transform 0.2s ease; }
+    .cms-sidebar-header.collapsed .arrow { transform: rotate(-90deg); }
   </style>
 </head>
 <body>
@@ -38,9 +61,21 @@
         if (window.CMS) {
           clearInterval(checkCMS);
           console.log("=== CMS LOADED ===");
+          
           window.CMS.registerEventListener({
             name: 'prePublish',
             handler: ({ entry }) => console.log('Entry:', entry.toJS()),
+          });
+
+          // 🔁 Événement déclenché après l'enregistrement/publication
+          window.CMS.registerEventListener({
+            name: 'postSave',
+            handler: ({ entry }) => {
+              console.log('Post sauvegardé avec succès:', entry.toJS());
+              setTimeout(() => {
+                window.location.reload();
+              }, 500);
+            },
           });
         }
       }, 500);
@@ -105,7 +140,7 @@
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             cursor: 'pointer',
             display: 'flex',
-            justifyContent: 'space-between',
+            justifySpaceBetween: 'space-between',
             alignItems: 'center',
             userSelect: 'none'
           },
@@ -171,17 +206,13 @@
     const NativeRelationWidget = CMS.getWidget('relation');
 
     class FilteredRelationControl extends NativeRelationWidget.control {
-      // On intercepte la demande de recherche pour filtrer uniquement les éléments visibles
       onSearch = (searchTerm, metadata) => {
         const { search, field } = this.props;
         const collection = field.get('collection');
         const searchFields = field.get('search_fields').toJS();
-
-        // On injecte directement la condition isVisible dans la recherche
         search(collection, searchFields, searchTerm, metadata);
       };
 
-      // On filtre les options reçues avant le rendu du menu déroulant
       getMatchAtIndex = (index) => {
         return super.getMatchAtIndex(index);
       };
@@ -190,16 +221,13 @@
         const originalHits = this.props.queryHits;
 
         if (originalHits) {
-          // On filtre les résultats Redux directement au moment du rendu
           const hitsArray = originalHits.toJS ? originalHits.toJS() : originalHits;
           
           const visibleHits = hitsArray.filter(hit => {
             const data = hit.data || hit;
-            // Exclut uniquement si isVisible est explicitement égal à false
             return data.isVisible !== false && data.isVisible !== 'false';
           });
 
-          // Réinjection propre selon la structure d'origine
           this.props = {
             ...this.props,
             queryHits: originalHits.toJS ? Immutable.fromJS(visibleHits) : visibleHits
@@ -212,41 +240,262 @@
 
     CMS.registerWidget('relation-filtered', FilteredRelationControl, NativeRelationWidget.preview);
 
-    // 👁️ Preview Articles
+    // ==========================================================================
+    // 👁️ Aperçus (Previews) — Articles & Brèves
+    // Reproduisent fidèlement les layouts réels de src/pages/articles/[slug].astro
+    // ==========================================================================
+
+    const AUTHORS_AVATARS = {
+      "Victor Zhâ": "/assets/uploads/avatar-victor.jpg",
+      "Paul Delachaux": "/assets/uploads/avatar-paul.jpg"
+    };
+
+    const CATEGORY_LABELS_FR = {
+      politique: "POLITIQUE",
+      culture: "CULTURE",
+      societe: "SOCIÉTÉ",
+      technologie: "TECHNOLOGIE"
+    };
+
+    function getAuthorAvatar(name) {
+      return AUTHORS_AVATARS[name] || "/assets/uploads/avatar-default.jpg";
+    }
+
+    function getCategoryLabelFR(cat) {
+      const key = String(cat || '').trim().toLowerCase();
+      return CATEGORY_LABELS_FR[key] || String(cat || '').toUpperCase();
+    }
+
+    function formatDateFR(rawDate) {
+      if (!rawDate) return { date: "date inconnue", time: "--:--" };
+      const dateObj = new Date(rawDate);
+      if (isNaN(dateObj.getTime())) return { date: "date inconnue", time: "--:--" };
+      return {
+        date: dateObj.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        time: dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      };
+    }
+
+    function getImageCaption(entry) {
+      return entry.getIn(['data', 'image_info', 0, 'image_caption'])
+        || entry.getIn(['data', 'article_image_caption'])
+        || entry.getIn(['data', 'image_caption'])
+        || "";
+    }
+
+    function getAuthorAboutInterests(entry) {
+      const about = entry.getIn(['data', 'author_info', 0, 'author_about'])
+        || entry.getIn(['data', 'author_about'])
+        || "Aucune information fournie pour le moment.";
+      const interests = entry.getIn(['data', 'author_info', 0, 'author_interests'])
+        || entry.getIn(['data', 'author_interests'])
+        || "";
+      return { about: about, interests: interests };
+    }
+
+    function renderSourcesList(entry) {
+      const sources = entry.getIn(['data', 'consulted_sources']);
+      const sourcesArray = sources && sources.toJS ? sources.toJS() : [];
+      if (!sourcesArray.length) return null;
+      return h('ul', { className: 'sources-list' },
+        ...sourcesArray.map(function(src, i) {
+          return h('li', { key: i },
+            src.source_url
+              ? h('a', { href: src.source_url, target: '_blank', rel: 'noopener noreferrer' }, src.source_title)
+              : h('span', {}, src.source_title)
+          );
+        })
+      );
+    }
+
+    function renderBreveSourcesList(entry) {
+      const sources = entry.getIn(['data', 'consulted_sources']);
+      const sourcesArray = sources && sources.toJS ? sources.toJS() : [];
+      if (!sourcesArray.length) return null;
+      return h('ul', { className: 'breve-sources-list' },
+        ...sourcesArray.map(function(src, i) {
+          return h('li', { key: i, className: 'breve-source-item' },
+            src.source_url
+              ? h('a', { href: src.source_url, target: '_blank', rel: 'noopener noreferrer', className: 'breve-source-link' }, src.source_title)
+              : h('span', { className: 'breve-source-text' }, src.source_title)
+          );
+        })
+      );
+    }
+
+    function renderTweetPlaceholder(tweetUrl) {
+      if (!tweetUrl) return null;
+      return h('div', { className: 'tweet-embed-wrapper' },
+        h('a', { href: tweetUrl, target: '_blank', rel: 'noopener noreferrer', className: 'tweet-placeholder-card' },
+          '🐦 Tweet intégré (aperçu non disponible en édition) : ' + tweetUrl
+        )
+      );
+    }
+
+    // 0 = image au-dessus de tout le texte, N = après le N-ème paragraphe (même logique que [slug].astro)
+    function getImagePosition(entry) {
+      const raw = entry.getIn(['data', 'image_position']);
+      const parsed = Number(raw);
+      return raw === undefined || raw === null || raw === '' || isNaN(parsed) ? 0 : parsed;
+    }
+
+    // Reproduit l'injection cliente de [slug].astro : insère la figure dans le conteneur de texte
+    // au-dessus de tout (position 0), après le N-ème paragraphe, ou en bas si aucun paragraphe.
+    function makeHeroInjectionRef(options) {
+      const heroImage = options.heroImage;
+      const title = options.title;
+      const imageCaption = options.imageCaption;
+      const imagePos = options.imagePos;
+      const figureClass = options.figureClass;
+      const imgClass = options.imgClass;
+      const captionClass = options.captionClass;
+
+      return function(container) {
+        if (!container) return;
+        const existing = container.querySelector('.injected-hero-figure');
+        if (existing) existing.remove();
+        if (!heroImage) return;
+
+        const figure = document.createElement('figure');
+        figure.className = figureClass + ' injected-hero-figure';
+        const img = document.createElement('img');
+        img.src = heroImage;
+        img.alt = title;
+        img.className = imgClass;
+        figure.appendChild(img);
+        if (imageCaption) {
+          const figcaption = document.createElement('figcaption');
+          figcaption.className = captionClass;
+          figcaption.textContent = imageCaption;
+          figure.appendChild(figcaption);
+        }
+
+        const paragraphs = Array.from(container.querySelectorAll(':scope > p')).filter(
+          function(p) { return p.textContent.trim().length > 0; }
+        );
+
+        if (paragraphs.length === 0) {
+          container.appendChild(figure);
+        } else if (imagePos <= 0) {
+          container.insertBefore(figure, paragraphs[0]);
+        } else {
+          const targetIndex = Math.min(imagePos, paragraphs.length) - 1;
+          paragraphs[targetIndex].insertAdjacentElement('afterend', figure);
+        }
+      };
+    }
+
+    // Feuille de style partagée, reprise à l'identique de [slug].astro
+    const PREVIEW_STYLES = `
+      .article-wrapper, .breve-wrapper { background-color: #02001d; max-width: 1200px; margin: 20px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #ffffff; text-align: left; }
+      .article-container, .breve-layout-container { padding: 40px 30px; }
+
+      /* --- Articles classiques --- */
+      .article-header { border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; }
+      .main-title { font-size: 1.8rem; font-weight: 800; color: #ffffff; margin: 0 0 15px 0; line-height: 1.3; }
+      .main-description { font-size: 1.2rem; font-weight: 500; color: #ffffff; margin: 0 0 30px 0; line-height: 1.5; }
+      .author-meta-block { display: flex; align-items: center; gap: 20px; }
+      .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; flex-shrink: 0; }
+      .author-text-meta { display: flex; flex-direction: column; gap: 0; }
+      .author-name { margin: 0; font-size: 1rem; font-weight: 600; color: #ffffff; }
+      .publication-date { margin: 0; font-size: 1rem; font-style: italic; color: #ffffff; }
+      .article-grid { display: grid; grid-template-columns: 7.5fr 2.5fr; gap: 40px; align-items: start; }
+      .article-main-content { display: flex; flex-direction: column; gap: 30px; }
+      .hero-image-wrapper { width: 100%; margin: 25px 0; border-radius: 4px; overflow: hidden; background-color: #111827; }
+      .hero-img { width: 100%; height: auto; max-height: 550px; object-fit: cover; display: block; }
+      .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; margin: 0; }
+      .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; }
+      .prose-content p { margin-bottom: 24px; }
+      .article-sidebar { height: 100%; }
+      .sidebar-sticky-box { position: sticky; top: 20px; }
+      .sidebar-similaires { display: flex; flex-direction: column; gap: 16px; }
+      .sidebar-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; color: #ea580c; margin: 0 0 4px 0; }
+      .sidebar-note { font-size: 0.85rem; color: #9ca3af; font-style: italic; line-height: 1.4; }
+      .article-footer-transparency { display: flex; justify-content: center; gap: 30px; margin-top: 60px; padding: 30px; background-color: #02001d; border-radius: 8px; flex-wrap: wrap; }
+      .transparency-card { position: relative; width: 160px; height: 210px; background-color: #00002c; border-radius: 8px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; }
+      .card-accent-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background-color: #ea580c; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+      .transparency-card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffffff; margin: 8px 0 10px 0; font-weight: 700; line-height: 1.2; }
+      .transparency-card p { font-size: 0.8rem; line-height: 1.5; color: #9ca3af; margin: 0; flex-grow: 1; }
+      .sources-list { margin: 0; padding-left: 15px; font-size: 0.8rem; color: #9ca3af; list-style-type: disc; }
+      .sources-list a { color: #ea580c; text-decoration: none; font-weight: 500; }
+      .sources-list a:hover { text-decoration: underline; }
+
+      /* --- Brèves --- */
+      .breve-header { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; }
+      .breve-theme { color: #ea580c; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 25px; }
+      .breve-header-main { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; width: 100%; flex-wrap: wrap; }
+      .breve-title { font-size: 2.2rem; font-weight: 800; line-height: 1.15; color: #ffffff; margin: 0; letter-spacing: -0.02em; flex: 1; margin-left: 25px; }
+      .breve-description { font-size: 0.9rem; line-height: 1.5; color: #e5e7eb; font-weight: 400; margin: 0; width: 500px; max-width: 100%; flex-shrink: 0; }
+      .breve-divider { border: none; border-top: 1px solid #1f2937; height: 0; margin: 25px 0 35px 0; }
+      .breve-body-grid { display: grid; grid-template-columns: 7fr 3fr; gap: 50px; align-items: start; }
+      .breve-main-content { display: flex; flex-direction: column; gap: 20px; }
+      .breve-figure { margin: 25px 0; width: 100%; }
+      .breve-image { width: 100%; height: auto; display: block; object-fit: cover; border-radius: 4px; }
+      .breve-caption { margin-top: 8px; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; }
+      .breve-sidebar { position: sticky; top: 30px; }
+      .breve-author-block { display: flex; flex-direction: column; align-items: center; text-align: left; }
+      .breve-avatar-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; }
+      .breve-avatar { width: 70px; height: 70px; border-radius: 50%; background-color: #ffffff; object-fit: cover; }
+      .breve-avatar-pointer { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #ffffff; margin-top: 4px; }
+      .breve-author-bio { font-size: 0.78rem; line-height: 1.4; color: #9ca3af; border-top: 1px solid #ffffff; padding-top: 10px; width: 100%; }
+      .breve-author-name { font-weight: 700; color: #ffffff; margin-bottom: 4px; font-size: 0.85rem; }
+      .breve-author-interests { margin-top: 6px; opacity: 0.8; font-style: italic; }
+      .breve-sources-section { margin-top: 25px; margin-bottom: 20px; }
+      .breve-sources-title { color: #ea580c; font-size: 0.95rem; font-weight: 700; margin-bottom: 15px; }
+      .breve-sources-list { list-style-type: none; padding: 0; margin: 0; }
+      .breve-source-item { position: relative; padding-left: 15px; margin-bottom: 10px; font-size: 0.85rem; line-height: 1.4; }
+      .breve-source-item::before { content: "▪"; color: #ea580c; position: absolute; left: 0; top: 0; }
+      .breve-source-link, .breve-source-text { color: #ea580c; text-decoration: none; font-weight: 600; }
+      .breve-source-link:hover { text-decoration: underline; }
+
+      /* --- Commun --- */
+      .tweet-embed-wrapper { display: flex; justify-content: center; }
+      .tweet-placeholder-card { display: inline-block; padding: 10px 16px; border: 1px dashed #1D9E75; border-radius: 8px; color: #1D9E75; text-decoration: none; font-size: 0.85rem; }
+
+      @media (max-width: 768px) {
+        .article-grid, .breve-body-grid { grid-template-columns: 1fr; }
+        .breve-header-main { flex-direction: column; }
+        .breve-description { width: 100%; }
+      }
+    `;
+
+    // 👁️ Preview Articles (layout classique)
     const ArticlePreview = createClass({
       render: function() {
         const entry = this.props.entry;
 
         const title = entry.getIn(['data', 'title']) || "Titre de l'article";
-        const description = entry.getIn(['data', 'description']) || "Description de l'article...";
+        const description = entry.getIn(['data', 'description']) || "";
         const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
         const readingTime = entry.getIn(['data', 'reading_time']) || 5;
         const image = entry.getIn(['data', 'image']);
         const articleImage = entry.getIn(['data', 'article_image']);
         const articleHeroImage = articleImage || image || "/assets/uploads/default-placeholder.jpg";
+        const imageCaption = getImageCaption(entry);
+        const imagePos = getImagePosition(entry);
+        const tweetUrl = entry.getIn(['data', 'tweet_url']);
         const body = this.props.widgetFor('body');
 
-        const authorAbout = entry.getIn(['data', 'author_about']) || "Aucune information fournie pour le moment.";
-        const authorInterests = entry.getIn(['data', 'author_interests']) || "L'auteur déclare n'avoir aucun conflit d'intérêt.";
-        const consultedSourcesList = entry.getIn(['data', 'consulted_sources']);
-        const consultedSourcesArray = consultedSourcesList ? consultedSourcesList.toJS() : [];
+        const proseRef = makeHeroInjectionRef({
+          heroImage: articleHeroImage,
+          title: title,
+          imageCaption: imageCaption,
+          imagePos: imagePos,
+          figureClass: 'hero-image-wrapper',
+          imgClass: 'hero-img',
+          captionClass: 'image-caption'
+        });
+
+        const authorInfo = getAuthorAboutInterests(entry);
+        const authorAbout = authorInfo.about;
+        const authorInterests = authorInfo.interests;
 
         const rawDate = entry.getIn(['data', 'date']);
-        let dateAffichee = "date inconnue";
-        let heureAffichee = "--:--";
-        if (rawDate) {
-          const dateObj = new Date(rawDate);
-          if (!isNaN(dateObj.getTime())) {
-            dateAffichee = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            heureAffichee = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-          }
-        }
+        const dateFormatted = formatDateFR(rawDate);
+        const dateAffichee = dateFormatted.date;
+        const heureAffichee = dateFormatted.time;
 
-        const AUTHORS_DATA = {
-          "Victor Zhâ": "/assets/uploads/avatar-victor.jpg",
-          "Paul Delachaux": "/assets/uploads/avatar-paul.jpg"
-        };
-        const avatarUrl = AUTHORS_DATA[author] || "/assets/uploads/avatar-default.jpg";
+        const avatarUrl = getAuthorAvatar(author);
 
         const bg = entry.getIn(['data', 'thumbnail_bg']);
         const bgPosition = entry.getIn(['data', 'thumbnail_bg_position']) || 'center';
@@ -262,65 +511,38 @@
         const descsList = entry.getIn(['data', 'thumbnail_descs']);
         const descsArray = descsList ? descsList.toJS() : [];
 
-        return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh' } },
-          
-          h('style', {}, `
-            .article-wrapper { background-color: #02001d; max-width: 1200px; margin: 20px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); text-align: left; color: #ffffff !important; }
-            .article-container { padding: 40px 30px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-            .article-header { border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; }
-            .main-title { font-size: 1.8rem; font-weight: 800; color: #ffffff; margin: 0 0 15px 0; line-height: 1.3; }
-            .main-description { font-size: 1.2rem; font-weight: 500; color: #ffffff; margin: 0 0 30px 0; line-height: 1.5; }
-            .author-meta-block { display: flex; align-items: center; gap: 20px; }
-            .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; }
-            .author-text-meta { display: flex; flex-direction: column; gap: 0; }
-            .author-name { margin: 0; font-size: 1rem; font-style: italic; color: #ffffff; }
-            .publication-date { margin: 0; font-size: 1rem; font-style: italic; color: #ffffff; }
-            .article-grid { display: grid; grid-template-columns: 7.5fr 2.5fr; gap: 40px; }
-            .article-main-content { display: flex; flex-direction: column; gap: 30px; }
-            .hero-image-wrapper { width: 100%; border-radius: 4px; overflow: hidden; background-color: #111827; }
-            .hero-img { width: 100%; height: auto; max-height: 550px; object-fit: cover; display: block; }
-            .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; }
-            .article-sidebar { background-color: #02001d; border-left: 1px solid #1f2937; padding-left: 20px; }
-            .sidebar-label { font-size: 0.75rem; font-weight: 700; color: #ea580c; letter-spacing: 0.1em; margin-bottom: 10px; }
-            .sidebar-dummy-card { font-size: 0.95rem; color: #ffffff; font-weight: 600; line-height: 1.4; opacity: 0.6; }
-            
-            .article-footer-transparency { display: flex; justify-content: center; gap: 30px; margin-top: 60px; padding: 30px; background-color: #02001d; border-radius: 8px; }
-            .transparency-card { position: relative; width: 160px; height: 210px; background-color: #00002c; border-radius: 8px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; }
-            .card-accent-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background-color: #ea580c; border-top-left-radius: 8px; border-top-right-radius: 8px; }
-            .transparency-card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffffff; margin: 8px 0 10px 0; font-weight: 700; line-height: 1.2; }
-            .transparency-card p { font-size: 0.8rem; line-height: 1.5; color: #9ca3af; margin: 0; flex-grow: 1; }
-            .sources-list { margin: 0; padding-left: 15px; font-size: 0.8rem; color: #9ca3af; list-style-type: disc; }
-            .sources-list li { margin-bottom: 5px; }
-            .sources-list a { color: #ea580c; text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
-            .sources-list a:hover { color: #d4510b; text-decoration: underline; }
-          `),
+        return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
+
+          h('style', {}, PREVIEW_STYLES),
 
           h('div', { className: 'article-wrapper' },
             h('div', { className: 'article-container' },
-              
+
               h('header', { className: 'article-header' },
                 h('h1', { className: 'main-title' }, title),
-                h('p', { className: 'main-description' }, description),
+                description && h('p', { className: 'main-description' }, description),
                 h('div', { className: 'author-meta-block' },
                   h('img', { src: avatarUrl, className: 'author-avatar', alt: 'Avatar' }),
                   h('div', { className: 'author-text-meta' },
                     h('p', { className: 'author-name' }, 'Par ' + author),
-                    h('p', { className: 'publication-date' }, 'Lecture en ' + readingTime + ' Minutes - Publié le ' + dateAffichee + ' à ' + heureAffichee)
+                    h('p', { className: 'publication-date' }, readingTime + ' min de lecture — Publié le ' + dateAffichee + ' à ' + heureAffichee)
                   )
                 )
               ),
 
               h('div', { className: 'article-grid' },
                 h('main', { className: 'article-main-content' },
-                  h('div', { className: 'hero-image-wrapper' },
-                    h('img', { src: articleHeroImage, className: 'hero-img', alt: 'Hero' })
-                  ),
-                  h('div', { className: 'prose-content' }, body)
+                  renderTweetPlaceholder(tweetUrl),
+                  h('div', { className: 'prose-content', ref: proseRef }, body)
                 ),
-                
+
                 h('aside', { className: 'article-sidebar' },
-                  h('p', { className: 'sidebar-label' }, 'À LIRE AUSSI (Simulation)'),
-                  h('div', { className: 'sidebar-dummy-card' }, "Les articles similaires apparaîtront ici sur le site en production.")
+                  h('div', { className: 'sidebar-sticky-box' },
+                    h('div', { className: 'sidebar-similaires' },
+                      h('p', { className: 'sidebar-label' }, 'À LIRE AUSSI'),
+                      h('p', { className: 'sidebar-note' }, "Les articles similaires de la même catégorie apparaîtront ici sur le site en production.")
+                    )
+                  )
                 )
               ),
 
@@ -333,22 +555,12 @@
                 h('div', { className: 'transparency-card' },
                   h('div', { className: 'card-accent-bar' }),
                   h('h3', {}, "Déclaration d'intérêt"),
-                  h('p', {}, authorInterests)
+                  h('p', {}, authorInterests || "L'auteur déclare n'avoir aucun conflit d'intérêt.")
                 ),
                 h('div', { className: 'transparency-card' },
                   h('div', { className: 'card-accent-bar' }),
                   h('h3', {}, "Sources consultables"),
-                  consultedSourcesArray.length > 0
-                    ? h('ul', { className: 'sources-list' },
-                        ...consultedSourcesArray.map(function(src, i) {
-                          return h('li', { key: i },
-                            src.source_url
-                              ? h('a', { href: src.source_url, target: '_blank', rel: 'noopener noreferrer' }, src.source_title)
-                              : src.source_title
-                          );
-                        })
-                      )
-                    : h('p', {}, "Aucune source externe enregistrée.")
+                  renderSourcesList(entry) || h('p', {}, "Aucune source externe enregistrée.")
                 )
               )
 
@@ -400,7 +612,196 @@
       }
     });
 
+    // 👁️ Preview Brèves (layout court, deux colonnes avec auteur en aside)
+    const BrevePreview = createClass({
+      render: function() {
+        const entry = this.props.entry;
+
+        const title = entry.getIn(['data', 'title']) || "Titre de la brève";
+        const description = entry.getIn(['data', 'description']) || "";
+        const category = entry.getIn(['data', 'category']) || "";
+        const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
+        const image = entry.getIn(['data', 'image']);
+        const heroImage = image || "/assets/uploads/default-placeholder.jpg";
+        const imageCaption = getImageCaption(entry);
+        const imagePos = getImagePosition(entry);
+        const tweetUrl = entry.getIn(['data', 'tweet_url']);
+        const body = this.props.widgetFor('body');
+
+        const authorInfo = getAuthorAboutInterests(entry);
+        const authorAbout = authorInfo.about;
+        const authorInterests = authorInfo.interests;
+
+        const avatarUrl = getAuthorAvatar(author);
+        const categoryLabel = getCategoryLabelFR(category);
+        const sourcesList = renderBreveSourcesList(entry);
+
+        // Injecte l'image au-dessus de tout (position 0) ou après le N-ème paragraphe, comme [slug].astro
+        const proseRef = makeHeroInjectionRef({
+          heroImage: heroImage,
+          title: title,
+          imageCaption: imageCaption,
+          imagePos: imagePos,
+          figureClass: 'breve-figure',
+          imgClass: 'breve-image',
+          captionClass: 'breve-caption'
+        });
+
+        return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
+
+          h('style', {}, PREVIEW_STYLES),
+
+          h('div', { className: 'breve-wrapper' },
+            h('article', { className: 'breve-layout-container' },
+
+              h('header', { className: 'breve-header' },
+                h('div', { className: 'breve-theme' }, categoryLabel),
+                h('div', { className: 'breve-header-main' },
+                  h('h1', { className: 'breve-title' }, title),
+                  description && h('div', { className: 'breve-description' }, description)
+                )
+              ),
+
+              h('hr', { className: 'breve-divider' }),
+
+              h('div', { className: 'breve-body-grid' },
+                h('main', { className: 'breve-main-content' },
+                  h('div', { className: 'prose-content breve-prose', ref: proseRef }, body),
+                  renderTweetPlaceholder(tweetUrl)
+                ),
+
+                h('aside', { className: 'breve-sidebar' },
+                  h('div', { className: 'breve-author-block' },
+                    h('div', { className: 'breve-avatar-wrapper' },
+                      h('img', { src: avatarUrl, alt: author, className: 'breve-avatar' }),
+                      h('div', { className: 'breve-avatar-pointer' })
+                    ),
+                    h('div', { className: 'breve-author-bio' },
+                      h('p', { className: 'breve-author-name' }, author),
+                      h('p', {}, authorAbout),
+                      authorInterests && h('p', { className: 'breve-author-interests' }, authorInterests)
+                    )
+                  )
+                )
+              ),
+
+              h('hr', { className: 'breve-divider' }),
+
+              sourcesList && h('footer', { className: 'breve-sources-section' },
+                h('h3', { className: 'breve-sources-title' }, 'Sources :'),
+                sourcesList
+              )
+
+            )
+          )
+        );
+      }
+    });
+
     CMS.registerPreviewTemplate("articles", ArticlePreview);
+    CMS.registerPreviewTemplate("breves", BrevePreview);
+
+    // 📂 SCRIPT : ORGANISATEUR / ACCORDÉON DE SIDEBAR
+    // Configure ici la hiérarchie de tes collections (nom unique du name dans config.yml)
+    window.addEventListener('load', () => {
+      const SIDEBAR_GROUPS = [
+        {
+          title: "Création d'articles",
+          collections: ["articles", "breves"]
+        },
+        {
+          title: "Catégories",
+          collections: ["articles_politique", "articles_culture", "articles_societe", "articles_technologie"]
+        },
+        {
+          title: "Filtres & Statuts",
+          collections: ["contenus_visibles", "contenus_masques"]
+        },
+        {
+          title: "Configuration",
+          collections: ["settings"]
+        }
+      ];
+
+      function organizeSidebar() {
+        // 1. Cible spécifiquement la sidebar de Decap CMS pour éviter les liens d'en-tête d'édition
+        // Decap entoure sa sidebar dans un élément <aside> ou un conteneur principal de navigation
+        const sidebarContainer = document.querySelector('aside') || document.querySelector('[class*="Sidebar"]') || document.querySelector('[class*="sidebar"]');
+        
+        if (!sidebarContainer) return;
+
+        // Si nos en-têtes existent déjà dans la sidebar, inutile de les réinjecter
+        if (sidebarContainer.querySelector('.cms-sidebar-header')) return;
+
+        // On ne récupère que les liens <a> situés À L'INTÉRIEUR de la sidebar
+        const sidebarLinks = Array.from(sidebarContainer.querySelectorAll('a'));
+        if (sidebarLinks.length === 0) return;
+
+        SIDEBAR_GROUPS.forEach(group => {
+          const itemsToGroup = [];
+
+          group.collections.forEach(colName => {
+            const link = sidebarLinks.find(a => {
+              const href = a.getAttribute('href') || '';
+              return href.includes(`/collections/${colName}`);
+            });
+
+            if (link) {
+              const parentEl = link.closest('li') || link;
+              itemsToGroup.push(parentEl);
+            }
+          });
+
+          if (itemsToGroup.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'cms-sidebar-header';
+            header.style.cssText = `
+              cursor: pointer;
+              font-weight: bold;
+              font-size: 0.85rem;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              background: #01002b;
+              color: #ffffff;
+              padding: 10px 14px;
+              margin-top: 8px;
+              border-radius: 6px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              user-select: none;
+            `;
+            header.innerHTML = `<span>${group.title}</span><span class="arrow" style="font-size: 0.7rem;">▼</span>`;
+
+            let isCollapsed = false;
+
+            itemsToGroup[0].parentNode.insertBefore(header, itemsToGroup[0]);
+
+            header.addEventListener('click', () => {
+              isCollapsed = !isCollapsed;
+              header.querySelector('.arrow').innerText = isCollapsed ? '►' : '▼';
+
+              itemsToGroup.forEach(el => {
+                el.style.display = isCollapsed ? 'none' : '';
+                el.style.paddingLeft = isCollapsed ? '0px' : '10px';
+              });
+            });
+          }
+        });
+      }
+
+      // Observer les changements dans le DOM sans cibler l'en-tête de page
+      const observer = new MutationObserver(() => {
+        organizeSidebar();
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+
+      organizeSidebar();
+    });
   </script>
 </body>
 </html>
