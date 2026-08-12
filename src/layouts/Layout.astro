@@ -2,7 +2,7 @@
 // 1. On récupère "isHome" en plus de "title" (par défaut false s'il n'est pas fourni)
 const { title, isHome = false } = Astro.props;
 import logoSonar from '../components/LogoSonarVdef.png';
-import backgroundImage from '../assets/background.png';
+import backgroundImage from '../assets/background.jpg';
 import substackIcon from '../components/substack.png';
 ---
 
@@ -53,17 +53,23 @@ import substackIcon from '../components/substack.png';
         <title>Sonar | {title}</title>
         <style is:global>
             html {
-                /* Le fond est posé sur <html> et fixé (cover), plutôt que sur <body>
-                   avec background-size:100% 100% : il ne dépend donc plus de la
-                   hauteur du contenu, qui varie quand des cartes se masquent en
-                   changeant de langue. */
+                /* Vos variables d'offset */
+                --bg-offset-x: -3px;
+                --bg-offset-y: -3px;
+
                 background-color: #121f2f;
-                background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('../assets/fond_sonar.png');
+                background-image: url('../assets/background.jpg');
                 background-repeat: no-repeat;
-                background-position: center top;
+                
+                /* Utilisation explicite des variables d'offset avec fallback */
+                background-position: calc(50% + var(--bg-offset-x, 0px)) calc(0px + var(--bg-offset-y, 0px));
+                
                 background-size: cover;
                 background-attachment: fixed;
                 min-height: 100%;
+
+                /* Empêche le défilement horizontal causé par les marges négatives */
+                overflow-x: hidden; 
             }
 
             body { 
@@ -72,6 +78,8 @@ import substackIcon from '../components/substack.png';
                 padding: 20px 20px 0 20px;
                 background: transparent;
                 color: #eee; 
+                /* S'assure que le body ne déborde pas */
+                box-sizing: border-box;
             }
 
             /* --- STYLE DE L'EN-TÊTE DE L'ACCUEIL --- */

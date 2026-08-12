@@ -23,7 +23,7 @@ body_en: |-
 
   blah blah
 image_caption_en: This is a completely uninteresting image.
-isVisible: false
+isVisible: true
 author: Paul Delachaux
 description_en: Description of the first short item. Basically, I need a fairly
   long text to verify that the display is working correctly and that I am
