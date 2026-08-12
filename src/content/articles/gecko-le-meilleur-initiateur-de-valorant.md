@@ -2,7 +2,7 @@
 reading_time: 5
 thumbnail_title: Gecko
 title_size: 30
-isVisible: true
+isVisible: false
 author: Paul Delachaux
 date: 2026-05-27T14:41:00.000+02:00
 thumbnail_descs:

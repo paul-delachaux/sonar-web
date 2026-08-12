@@ -12,7 +12,7 @@
   "bottomArticlesStyles": [
     {
       "titleSize": "1.2rem",
-      "titleWeight": "900",
+      "titleWeight": "400",
       "titleFont": "sans-serif"
     },
     {
@@ -39,7 +39,7 @@
     },
     {
       "titleSize": "1.1rem",
-      "titleWeight": "700",
+      "titleWeight": "400",
       "titleFont": "sans-serif"
     },
     {

@@ -67,15 +67,58 @@
             handler: ({ entry }) => console.log('Entry:', entry.toJS()),
           });
 
-          // 🔁 Événement déclenché après l'enregistrement/publication
-          window.CMS.registerEventListener({
-            name: 'postSave',
-            handler: ({ entry }) => {
-              console.log('Post sauvegardé avec succès:', entry.toJS());
-              setTimeout(() => {
-                window.location.reload();
-              }, 500);
-            },
+          // 🔁 Après une sauvegarde/publication, Decap CMS reste parfois "bloqué" et ne détecte
+          // plus les modifications suivantes (bug connu de Decap CMS). Un rechargement complet
+          // (location.reload()) corrige le problème mais est très lent.
+          // Astuce plus légère : on simule une navigation vers la liste de la collection puis un
+          // retour immédiat sur la même entrée (comme un clic "retour" suivi d'un clic pour
+          // rouvrir l'entrée) : Decap recharge alors les données fraîches depuis GitHub, sans
+          // recharger toute la page/l'application.
+          // Sert à ignorer les hashchange générés par softRefreshCurrentEntry elle-même
+          // (sinon le détecteur "retour en arrière" plus bas déclencherait un rechargement
+          // complet à chaque fois, ce qui annulerait l'astuce légère).
+          let isSoftRefreshing = false;
+
+          function softRefreshCurrentEntry() {
+            const hash = window.location.hash; // ex: #/collections/articles/entries/mon-article
+            const match = hash.match(/^#\/collections\/([^/]+)\/entries\//);
+            if (!match) return; // on n'est plus sur une page d'édition d'entrée, on ne touche à rien
+
+            isSoftRefreshing = true;
+            const listHash = '#/collections/' + match[1];
+            window.location.hash = listHash;
+            setTimeout(() => {
+              window.location.hash = hash;
+              setTimeout(() => { isSoftRefreshing = false; }, 50);
+            }, 100);
+          }
+
+          ['postSave', 'postPublish'].forEach((eventName) => {
+            window.CMS.registerEventListener({
+              name: eventName,
+              handler: ({ entry }) => {
+                console.log('CMS ' + eventName + ' :', entry.toJS());
+                setTimeout(softRefreshCurrentEntry, 100);
+              },
+            });
+          });
+
+          // 🔙 Quand on quitte l'édition d'une entrée (bouton "retour" prévu par Decap, bouton
+          // "retour" du navigateur, clic sur le nom de la collection dans la sidebar...), on force
+          // un vrai rechargement complet. On n'est plus en train de taper à ce moment-là, donc ça
+          // ne coupe jamais la frappe, et ça garantit un état 100% frais au prochain passage sur
+          // une entrée. On détecte ce changement via l'URL plutôt que via un bouton précis, pour
+          // que ça marche quel que soit le moyen utilisé pour "revenir en arrière".
+          let previousHash = window.location.hash;
+          window.addEventListener('hashchange', () => {
+            const newHash = window.location.hash;
+            const wasEditingEntry = /^#\/collections\/[^/]+\/entries\//.test(previousHash);
+            const isStillEditingEntry = /^#\/collections\/[^/]+\/entries\//.test(newHash);
+            previousHash = newHash;
+
+            if (wasEditingEntry && !isStillEditingEntry && !isSoftRefreshing) {
+              window.location.reload();
+            }
           });
         }
       }, 500);
@@ -332,57 +375,77 @@
       );
     }
 
-    // 0 = image au-dessus de tout le texte, N = après le N-ème paragraphe (même logique que [slug].astro)
-    function getImagePosition(entry) {
-      const raw = entry.getIn(['data', 'image_position']);
+    // 0 = au-dessus de tout le texte, N = après le N-ème paragraphe (même logique que [slug].astro)
+    function getParagraphPosition(entry, fieldName) {
+      const raw = entry.getIn(['data', fieldName]);
       const parsed = Number(raw);
       return raw === undefined || raw === null || raw === '' || isNaN(parsed) ? 0 : parsed;
     }
+    function getImagePosition(entry) { return getParagraphPosition(entry, 'image_position'); }
+    function getTweetPosition(entry) { return getParagraphPosition(entry, 'tweet_position'); }
 
-    // Reproduit l'injection cliente de [slug].astro : insère la figure dans le conteneur de texte
-    // au-dessus de tout (position 0), après le N-ème paragraphe, ou en bas si aucun paragraphe.
-    function makeHeroInjectionRef(options) {
-      const heroImage = options.heroImage;
-      const title = options.title;
-      const imageCaption = options.imageCaption;
-      const imagePos = options.imagePos;
-      const figureClass = options.figureClass;
-      const imgClass = options.imgClass;
-      const captionClass = options.captionClass;
+    // Place un élément dans un conteneur de texte : 0 = au-dessus de tout, N = après le N-ème paragraphe,
+    // ou en bas si aucun paragraphe n'est détecté (même logique que insertAtParagraphPosition dans [slug].astro)
+    function insertAtParagraphPosition(container, element, targetPos) {
+      const paragraphs = Array.from(container.querySelectorAll(':scope > p')).filter(
+        function(p) { return p.textContent.trim().length > 0; }
+      );
 
-      return function(container) {
-        if (!container) return;
-        const existing = container.querySelector('.injected-hero-figure');
-        if (existing) existing.remove();
-        if (!heroImage) return;
+      if (paragraphs.length === 0) {
+        container.appendChild(element);
+      } else if (targetPos <= 0) {
+        container.insertBefore(element, paragraphs[0]);
+      } else {
+        const targetIndex = Math.min(targetPos, paragraphs.length) - 1;
+        paragraphs[targetIndex].insertAdjacentElement('afterend', element);
+      }
+    }
 
-        const figure = document.createElement('figure');
-        figure.className = figureClass + ' injected-hero-figure';
-        const img = document.createElement('img');
-        img.src = heroImage;
-        img.alt = title;
-        img.className = imgClass;
-        figure.appendChild(img);
-        if (imageCaption) {
-          const figcaption = document.createElement('figcaption');
-          figcaption.className = captionClass;
-          figcaption.textContent = imageCaption;
-          figure.appendChild(figcaption);
-        }
+    // Retire l'ancienne instance (si présente) puis insère l'élément fraîchement construit à la bonne position.
+    // Appelé depuis componentDidMount/componentDidUpdate (et non depuis `ref`) pour garantir un ré-affichage
+    // fiable à chaque changement de champ dans l'éditeur (le `ref` React n'est pas ré-invoqué de façon fiable
+    // à chaque frappe dans le panneau de preview de Decap CMS).
+    function applyParagraphInjection(container, injectedClass, position, buildElement) {
+      if (!container) return;
+      const existing = container.querySelector('.' + injectedClass);
+      if (existing) existing.remove();
 
-        const paragraphs = Array.from(container.querySelectorAll(':scope > p')).filter(
-          function(p) { return p.textContent.trim().length > 0; }
-        );
+      const element = buildElement();
+      if (!element) return;
+      element.classList.add(injectedClass);
+      insertAtParagraphPosition(container, element, position);
+    }
 
-        if (paragraphs.length === 0) {
-          container.appendChild(figure);
-        } else if (imagePos <= 0) {
-          container.insertBefore(figure, paragraphs[0]);
-        } else {
-          const targetIndex = Math.min(imagePos, paragraphs.length) - 1;
-          paragraphs[targetIndex].insertAdjacentElement('afterend', figure);
-        }
-      };
+    function buildHeroFigure(options) {
+      if (!options.heroImage) return null;
+      const figure = document.createElement('figure');
+      figure.className = options.figureClass;
+      const img = document.createElement('img');
+      img.src = options.heroImage;
+      img.alt = options.title;
+      img.className = options.imgClass;
+      figure.appendChild(img);
+      if (options.imageCaption) {
+        const figcaption = document.createElement('figcaption');
+        figcaption.className = options.captionClass;
+        figcaption.textContent = options.imageCaption;
+        figure.appendChild(figcaption);
+      }
+      return figure;
+    }
+
+    function buildTweetBlock(tweetUrl) {
+      if (!tweetUrl) return null;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'tweet-embed-wrapper';
+      const link = document.createElement('a');
+      link.href = tweetUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.className = 'tweet-placeholder-card';
+      link.textContent = '🐦 Tweet intégré (aperçu non disponible en édition) : ' + tweetUrl;
+      wrapper.appendChild(link);
+      return wrapper;
     }
 
     // Feuille de style partagée, reprise à l'identique de [slug].astro
@@ -449,7 +512,7 @@
       .breve-source-link:hover { text-decoration: underline; }
 
       /* --- Commun --- */
-      .tweet-embed-wrapper { display: flex; justify-content: center; }
+      .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; }
       .tweet-placeholder-card { display: inline-block; padding: 10px 16px; border: 1px dashed #1D9E75; border-radius: 8px; color: #1D9E75; text-decoration: none; font-size: 0.85rem; }
 
       @media (max-width: 768px) {
@@ -461,6 +524,39 @@
 
     // 👁️ Preview Articles (layout classique)
     const ArticlePreview = createClass({
+      // componentDidMount/componentDidUpdate sont garantis d'être rappelés à chaque
+      // modification de l'entrée (contrairement au `ref`), ce qui permet de repositionner
+      // l'image et le tweet dans la preview chaque fois que leurs champs "position" changent.
+      componentDidMount: function() { this.syncPositionedElements(); },
+      componentDidUpdate: function() { this.syncPositionedElements(); },
+      syncPositionedElements: function() {
+        if (!this._proseNode) return;
+        const entry = this.props.entry;
+
+        const title = entry.getIn(['data', 'title']) || "Titre de l'article";
+        const image = entry.getIn(['data', 'image']);
+        const articleImage = entry.getIn(['data', 'article_image']);
+        const heroImage = articleImage || image || "/assets/uploads/default-placeholder.jpg";
+        const imageCaption = getImageCaption(entry);
+        const imagePos = getImagePosition(entry);
+        const tweetUrl = entry.getIn(['data', 'tweet_url']);
+        const tweetPos = getTweetPosition(entry);
+
+        applyParagraphInjection(this._proseNode, 'injected-hero-figure', imagePos, function() {
+          return buildHeroFigure({
+            heroImage: heroImage,
+            title: title,
+            imageCaption: imageCaption,
+            figureClass: 'hero-image-wrapper',
+            imgClass: 'hero-img',
+            captionClass: 'image-caption'
+          });
+        });
+
+        applyParagraphInjection(this._proseNode, 'injected-tweet-block', tweetPos, function() {
+          return buildTweetBlock(tweetUrl);
+        });
+      },
       render: function() {
         const entry = this.props.entry;
 
@@ -468,23 +564,8 @@
         const description = entry.getIn(['data', 'description']) || "";
         const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
         const readingTime = entry.getIn(['data', 'reading_time']) || 5;
-        const image = entry.getIn(['data', 'image']);
-        const articleImage = entry.getIn(['data', 'article_image']);
-        const articleHeroImage = articleImage || image || "/assets/uploads/default-placeholder.jpg";
-        const imageCaption = getImageCaption(entry);
-        const imagePos = getImagePosition(entry);
-        const tweetUrl = entry.getIn(['data', 'tweet_url']);
         const body = this.props.widgetFor('body');
-
-        const proseRef = makeHeroInjectionRef({
-          heroImage: articleHeroImage,
-          title: title,
-          imageCaption: imageCaption,
-          imagePos: imagePos,
-          figureClass: 'hero-image-wrapper',
-          imgClass: 'hero-img',
-          captionClass: 'image-caption'
-        });
+        const self = this;
 
         const authorInfo = getAuthorAboutInterests(entry);
         const authorAbout = authorInfo.about;
@@ -532,8 +613,7 @@
 
               h('div', { className: 'article-grid' },
                 h('main', { className: 'article-main-content' },
-                  renderTweetPlaceholder(tweetUrl),
-                  h('div', { className: 'prose-content', ref: proseRef }, body)
+                  h('div', { className: 'prose-content', ref: function(el) { self._proseNode = el; } }, body)
                 ),
 
                 h('aside', { className: 'article-sidebar' },
@@ -614,17 +694,37 @@
 
     // 👁️ Preview Brèves (layout court, deux colonnes avec auteur en aside)
     const BrevePreview = createClass({
+      componentDidMount: function() { this.syncPositionedElements(); },
+      componentDidUpdate: function() { this.syncPositionedElements(); },
+      syncPositionedElements: function() {
+        if (!this._proseNode) return;
+        const entry = this.props.entry;
+
+        const title = entry.getIn(['data', 'title']) || "Titre de la brève";
+        const image = entry.getIn(['data', 'image']);
+        const heroImage = image || "/assets/uploads/default-placeholder.jpg";
+        const imageCaption = getImageCaption(entry);
+        const imagePos = getImagePosition(entry);
+
+        applyParagraphInjection(this._proseNode, 'injected-hero-figure', imagePos, function() {
+          return buildHeroFigure({
+            heroImage: heroImage,
+            title: title,
+            imageCaption: imageCaption,
+            figureClass: 'breve-figure',
+            imgClass: 'breve-image',
+            captionClass: 'breve-caption'
+          });
+        });
+      },
       render: function() {
         const entry = this.props.entry;
+        const self = this;
 
         const title = entry.getIn(['data', 'title']) || "Titre de la brève";
         const description = entry.getIn(['data', 'description']) || "";
         const category = entry.getIn(['data', 'category']) || "";
         const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
-        const image = entry.getIn(['data', 'image']);
-        const heroImage = image || "/assets/uploads/default-placeholder.jpg";
-        const imageCaption = getImageCaption(entry);
-        const imagePos = getImagePosition(entry);
         const tweetUrl = entry.getIn(['data', 'tweet_url']);
         const body = this.props.widgetFor('body');
 
@@ -635,17 +735,6 @@
         const avatarUrl = getAuthorAvatar(author);
         const categoryLabel = getCategoryLabelFR(category);
         const sourcesList = renderBreveSourcesList(entry);
-
-        // Injecte l'image au-dessus de tout (position 0) ou après le N-ème paragraphe, comme [slug].astro
-        const proseRef = makeHeroInjectionRef({
-          heroImage: heroImage,
-          title: title,
-          imageCaption: imageCaption,
-          imagePos: imagePos,
-          figureClass: 'breve-figure',
-          imgClass: 'breve-image',
-          captionClass: 'breve-caption'
-        });
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
 
@@ -666,7 +755,7 @@
 
               h('div', { className: 'breve-body-grid' },
                 h('main', { className: 'breve-main-content' },
-                  h('div', { className: 'prose-content breve-prose', ref: proseRef }, body),
+                  h('div', { className: 'prose-content breve-prose', ref: function(el) { self._proseNode = el; } }, body),
                   renderTweetPlaceholder(tweetUrl)
                 ),
 
