@@ -4,6 +4,7 @@ const { title, isHome = false } = Astro.props;
 import logoSonar from '../components/LogoSonarVdef.png';
 import backgroundImage from '../assets/background.jpg';
 import substackIcon from '../components/substack.png';
+import Analytics from '@vercel/analytics/astro';
 ---
 
 <html lang="fr">
@@ -901,5 +902,6 @@ import substackIcon from '../components/substack.png';
                 });
             }
         </script>
+    <Analytics />
     </body>
 </html>
