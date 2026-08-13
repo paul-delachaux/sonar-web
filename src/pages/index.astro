@@ -580,7 +580,11 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
 
         // Sur mobile, on unifie toutes les animations d'apparition en "bas → haut"
         // (le slide horizontal gauche→droite ne rend pas bien une fois les cartes empilées).
-        const mobileQuery = window.matchMedia('(max-width: 860px)');
+        // Seuil aligné sur celui du CSS (968px) : un décalage entre les deux faisait que
+        // certaines cartes recevaient encore un translateX (glissement horizontal) alors
+        // qu'elles étaient déjà empilées en pleine largeur, ce qui créait un léger
+        // débordement/glissement horizontal de la page en mobile.
+        const mobileQuery = window.matchMedia('(max-width: 968px)');
 
         function animateOnScroll() {
             const isMobile = mobileQuery.matches;
@@ -695,7 +699,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     /* ==========================================
        RESPONSIVE — même disposition, blocs réduits
        ========================================== */
-    @media (max-width: 860px) {
+    @media (max-width: 968px) {
         .container-accueil { gap: 45px; padding-bottom: 50px; }
 
         /* Bloc principal : à la une + sidebar en colonne */
@@ -721,6 +725,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
             position: relative;
             overflow: hidden;
             background-color: #02001d;
+            border: none;
             justify-content: flex-end;
             min-height: 190px;
         }
@@ -732,6 +737,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
             border-radius: 0;
             background-color: transparent;
             z-index: 1;
+            border: 0px solid transparent;
         }
         .sub-grid .article-sidebar .card-dynamic-spacer::after {
             content: "";
@@ -764,7 +770,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
         /* Rangée asymétrique : empilée, même ordre visuel */
         .asym-container { grid-template-columns: 1fr; gap: 14px; }
         .asym-left-stack { gap: 12px; }
-        .asym-left-stack .article-bottom-card { min-height: 110px; padding: 14px; }
+        .asym-left-stack .article-bottom-card { min-height: 110px; padding: 14px; box-sizing: border-box; }
         .asym-right-giant { min-height: 240px; }
 
         /* Animations d'apparition unifiées en "bas → haut" (voir script) */
@@ -778,7 +784,12 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
         .thumbnail-canvas {
             aspect-ratio: auto;
             min-height: 220px;
-            overflow: visible;
+            /* "visible" seulement en hauteur : le texte (positionné par l'admin en
+               desktop) doit pouvoir dépasser la hauteur de l'image une fois repassé
+               en flux normal, mais on garde une coupe stricte en largeur pour ne
+               jamais créer de défilement horizontal sur la page. */
+            overflow-x: hidden;
+            overflow-y: visible;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;

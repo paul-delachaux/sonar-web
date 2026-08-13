@@ -6,7 +6,7 @@
     "test-pour-la-catégorie-technologie"
   ],
   "sidebarSmallArticles": [
-    "",
+    "test-admin",
     ""
   ],
   "bottomArticlesStyles": [
@@ -54,5 +54,5 @@
     "titleFont": "sans-serif"
   },
   "heroArticle": "article",
-  "sidebarLongArticle": ""
+  "sidebarLongArticle": "jadore-le-caca"
 }

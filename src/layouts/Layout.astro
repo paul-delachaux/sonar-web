@@ -75,8 +75,8 @@ import substackIcon from '../components/substack.png';
             /* `background-attachment: fixed` est mal géré par les navigateurs mobiles
                (Chrome Android / Safari iOS) : l'image ne se repeint qu'une fois le
                scroll totalement arrêté, ce qui donne l'impression que le fond ne se
-               met à jour qu'en bas de page. On repasse en "scroll" sous 860px. */
-            @media (max-width: 860px) {
+               met à jour qu'en bas de page. On repasse en "scroll" sous 968px. */
+            @media (max-width: 968px) {
                 html {
                     background-attachment: scroll;
                 }
@@ -447,7 +447,7 @@ import substackIcon from '../components/substack.png';
                 visibility: hidden;
                 pointer-events: none;
             }
-            @media (max-width: 860px) {
+            @media (max-width: 968px) {
                 body {
                     --page-pad: 14px;
                 }
@@ -570,7 +570,7 @@ import substackIcon from '../components/substack.png';
                 }
             }
 
-            @media (max-width: 480px) {
+            @media (max-width: 968px) {
                 header h1 {
                     font-size: 1.5rem !important;
                 }
