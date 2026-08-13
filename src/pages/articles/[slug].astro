@@ -327,51 +327,55 @@ const descEN = hasEn && article.data.description_en
           <aside class="article-sidebar">
             <div class="sidebar-sticky-box">
               {sidebarSlots.length > 0 && (
-                <div class="sidebar-similaires">
+                <>
+                  <!-- Le titre est maintenant EN DEHORS de la div scrollable -->
                   <p class="sidebar-label" data-i18n="sidebar_read_also">{t('sidebar_read_also', 'FR')}</p>
-                  {sidebarSlots.map(({ artFR, artEN, hasEn: slotHasEn }) => {
-                    const imgFR = artFR.data.image || artFR.data.article_image || "";
-                    const imgEN = slotHasEn && artEN
-                      ? (artEN.data.image || artEN.data.article_image || "")
-                      : "";
-                    const imgShow = imgFR || imgEN;
-                    return (
-                      <a
-                        href={`/articles/${artFR.id}`}
-                        class="sidebar-card article-card-item"
-                        data-has-en={slotHasEn ? "true" : "false"}
-                        data-href-fr={`/articles/${artFR.id}`}
-                        data-href-en={slotHasEn && artEN ? `/articles/${artEN.id}` : ""}
-                      >
-                        {imgShow && (
-                          <img
-                            src={imgFR || imgEN}
-                            alt={artFR.data.title}
-                            class="sidebar-card-img"
-                            data-img-fr={imgFR || imgEN}
-                            data-img-en={imgEN || imgFR}
-                          />
-                        )}
-                        <div class="sidebar-card-body">
-                          <p
-                            class="sidebar-card-tag"
-                            data-fr={categoryLabel(artFR.data.category, 'FR')}
-                            data-en={slotHasEn && artEN ? categoryLabel(artEN.data.category, 'EN') : ""}
-                          >
-                            {categoryLabel(artFR.data.category, 'FR')}
-                          </p>
-                          <p
-                            class="sidebar-card-title"
-                            data-fr={artFR.data.title}
-                            data-en={slotHasEn && artEN ? String(artEN.data.title_en) : ""}
-                          >
-                            {artFR.data.title}
-                          </p>
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
+                  
+                  <div class="sidebar-similaires">
+                    {sidebarSlots.map(({ artFR, artEN, hasEn: slotHasEn }) => {
+                      const imgFR = artFR.data.image || artFR.data.article_image || "";
+                      const imgEN = slotHasEn && artEN
+                        ? (artEN.data.image || artEN.data.article_image || "")
+                        : "";
+                      const imgShow = imgFR || imgEN;
+                      return (
+                        <a
+                          href={`/articles/${artFR.id}`}
+                          class="sidebar-card article-card-item"
+                          data-has-en={slotHasEn ? "true" : "false"}
+                          data-href-fr={`/articles/${artFR.id}`}
+                          data-href-en={slotHasEn && artEN ? `/articles/${artEN.id}` : ""}
+                        >
+                          {imgShow && (
+                            <img
+                              src={imgFR || imgEN}
+                              alt={artFR.data.title}
+                              class="sidebar-card-img"
+                              data-img-fr={imgFR || imgEN}
+                              data-img-en={imgEN || imgFR}
+                            />
+                          )}
+                          <div class="sidebar-card-body">
+                            <p
+                              class="sidebar-card-tag"
+                              data-fr={categoryLabel(artFR.data.category, 'FR')}
+                              data-en={slotHasEn && artEN ? categoryLabel(artEN.data.category, 'EN') : ""}
+                            >
+                              {categoryLabel(artFR.data.category, 'FR')}
+                            </p>
+                            <p
+                              class="sidebar-card-title"
+                              data-fr={artFR.data.title}
+                              data-en={slotHasEn && artEN ? String(artEN.data.title_en) : ""}
+                            >
+                              {artFR.data.title}
+                            </p>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </aside>
@@ -433,6 +437,9 @@ const descEN = hasEn && article.data.description_en
             )}
           </div>
         </footer>
+
+        <!-- Ancre : point d'insertion du bloc "à lire aussi" en version mobile (voir script) -->
+        <div id="read-also-anchor"></div>
 
         <!-- Template HTML caché pour l'image (positionnée dans le texte via script) -->
         {articleHeroImage && (
@@ -550,6 +557,31 @@ const descEN = hasEn && article.data.description_en
     window.addEventListener('storage', (e) => {
       if (e.key === 'site_lang') updateLanguageUI(e.newValue);
     });
+
+    // Sur mobile : le bloc "à lire aussi" quitte la colonne latérale pour
+    // devenir le tout dernier bloc de la page, juste avant le footer.
+    // Sur desktop : il retrouve sa place dans la sidebar sticky.
+    const readAlsoAside = document.querySelector('.article-sidebar');
+    const readAlsoGrid = document.querySelector('.article-grid');
+    const readAlsoAnchor = document.getElementById('read-also-anchor');
+
+    if (readAlsoAside && readAlsoGrid && readAlsoAnchor) {
+      const mobileQuery = window.matchMedia('(max-width: 860px)');
+
+      const positionReadAlso = () => {
+        if (mobileQuery.matches) {
+          if (readAlsoAnchor.nextElementSibling !== readAlsoAside) {
+            readAlsoAnchor.insertAdjacentElement('afterend', readAlsoAside);
+          }
+        } else if (readAlsoAside.parentElement !== readAlsoGrid) {
+          readAlsoGrid.appendChild(readAlsoAside);
+        }
+      };
+
+      positionReadAlso();
+      if (mobileQuery.addEventListener) mobileQuery.addEventListener('change', positionReadAlso);
+      else if (mobileQuery.addListener) mobileQuery.addListener(positionReadAlso);
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -661,9 +693,9 @@ const descEN = hasEn && article.data.description_en
 
   .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
-  .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; }
+  .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; max-width: 100%; overflow-x: hidden; }
 
-  .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word; }
 
   .prose-content p { margin-bottom: 24px; }
 
@@ -718,11 +750,150 @@ const descEN = hasEn && article.data.description_en
     .article-footer-transparency { flex-direction: column; align-items: center; gap: 20px; }
   }
 
-  @media (max-width: 768px) {
-    .breve-body-grid { grid-template-columns: 1fr; gap: 20px; }
+  @media (max-width: 860px) {
     .breve-wrapper, .article-wrapper { margin: 0; border-radius: 0; }
-    .breve-layout-container, .article-container { padding: 30px 20px; }
+    .breve-layout-container, .article-container { padding: 30px 20px; box-sizing: border-box; }
     .article-grid { grid-template-columns: 1fr; }
-    .article-sidebar { order: -1; }
-  }
+    /* Même piège que pour la grille des brèves : sans ça, un tweet intégré
+       ou une image un peu large peut pousser toute la grille hors écran. */
+    .article-main-content, .article-sidebar {
+      min-width: 0;
+    }
+
+    /* Brève : largeur adaptée + bloc auteur qui repasse en flux normal
+       (plus de sticky) sous le texte, avant les sources. */
+    .breve-theme, .breve-title {
+      margin-left: 0;
+    }
+    .breve-title {
+      font-size: 1.6rem;
+    }
+
+    .breve-body-grid {
+      grid-template-columns: 1fr;
+      gap: 25px;
+    }
+    /* Les colonnes d'une grille ont par défaut min-width:auto : elles refusent
+       de rétrécir sous la largeur de leur contenu (tweet intégré, image...).
+       C'est ce qui poussait le bloc — et donc l'image, le texte — hors écran. */
+    .breve-main-content, .breve-sidebar {
+      min-width: 0;
+    }
+    .breve-sidebar {
+      position: static;
+      top: auto;
+      border-top: 1px solid #1f2937;
+      padding-top: 20px;
+    }
+    .breve-author-block {
+      align-items: flex-start;
+      flex-direction: row;
+      gap: 16px;
+      text-align: left;
+    }
+    .breve-avatar-wrapper {
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+    .breve-avatar-pointer {
+      display: none;
+    }
+    .breve-author-bio {
+      width: auto;
+      flex: 1;
+      min-width: 0;
+      border-top: none;
+      padding-top: 0;
+    }
+
+    /* "À propos de l'auteur" et "Déclaration d'intérêt" sur une même ligne,
+       "Sources" (contenu de longueur variable) reste seule sur sa ligne.
+       Grid plutôt que flex-wrap : comportement plus prévisible sur mobile. */
+    .article-footer-transparency {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 20px;
+      margin-top: 40px;
+    }
+    .transparency-card {
+      width: 75%;
+      height: auto;
+      min-height: 140px;
+    }
+    .transparency-card:has([data-i18n="transparency_sources"]) {
+      width: 88%;
+    }
+    .transparency-card:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+
+    /* "À lire aussi" : déplacé en bas de page par le script (dernier bloc
+       avant le footer du site) et transformé en carrousel horizontal, avec
+       le même habillage (encart bordé + barre de défilement) que le bloc
+       "Autres actualités" de CategoryLayout. */
+    /* "À lire aussi" en mobile : carrousel horizontal propre */
+    .article-sidebar {
+      height: auto;
+      margin-top: 40px;
+      border: 0px solid #1f2937;
+    }
+
+    .sidebar-sticky-box {
+      position: static;
+      top: auto;
+      border: 1px solid #ffffff;
+      border-radius: 4px;
+      padding: 15px;
+      box-sizing: border-box;
+      background-color: #02001d;
+      display: flex;
+      flex-direction: column; /* Garantit que le titre reste au-dessus */
+    }
+
+    .sidebar-label {
+      margin-bottom: 12px;
+      display: block;
+      width: 100%;
+    }
+
+    .sidebar-similaires {
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: visible;
+      width: 100%;
+      gap: 14px;
+      padding-bottom: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: #002761 rgba(255, 255, 255, 0.05);
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sidebar-similaires::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .sidebar-similaires::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    .sidebar-similaires::-webkit-scrollbar-thumb {
+      background: #002761;
+      border-radius: 10px;
+    }
+
+    .sidebar-card {
+      flex: 0 0 150px;
+      width: 150px;
+      border-bottom: none;
+      padding-bottom: 0;
+      scroll-snap-align: start;
+    }
+
+    .sidebar-card-img {
+      height: 90px;
+    }
 </style>

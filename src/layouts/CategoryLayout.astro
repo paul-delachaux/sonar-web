@@ -295,7 +295,49 @@ const enHref = (artEN: any, hasEn: boolean) => {
   .no-articles, .no-more-articles { color: #9ca3af; font-size: 0.85rem; font-style: italic; }
   @media (max-width: 858px) {
     .category-grid { grid-template-columns: 1fr; }
-    .right-sidebar { height: 400px; }
     .card-text-container { max-width: 100%; }
+
+    /* Les colonnes de la grille (items grid) ont par défaut min-width:auto :
+       elles refusent de rétrécir sous la largeur de leur contenu. Comme le
+       carrousel ci-dessous contient des cartes à largeur fixe, ça poussait
+       toute la page à déborder horizontalement. min-width:0 corrige ça. */
+    .left-stack, .right-sidebar {
+      min-width: 0;
+    }
+
+    /* "À lire aussi" : au lieu d'une liste verticale dans un encart à hauteur
+       fixe (scroll interne peu pratique au doigt), on passe à un carrousel
+       horizontal qu'on fait glisser de gauche à droite. */
+    .right-sidebar {
+      height: auto;
+      position: static;
+    }
+    .sidebar-scroll-box {
+      height: auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .sidebar-feed {
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: visible;
+      width: 100%;
+      min-width: 0;
+      gap: 12px;
+      padding-right: 0;
+      padding-bottom: 6px;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+    }
+    .sidebar-card {
+      flex: 0 0 150px;
+      width: 150px;
+      border-bottom: none;
+      padding-bottom: 0;
+      scroll-snap-align: start;
+    }
+    .sidebar-card-img {
+      height: 90px;
+    }
   }
 </style>

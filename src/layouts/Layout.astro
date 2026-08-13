@@ -12,7 +12,7 @@ import substackIcon from '../components/substack.png';
         <script async src="https://platform.twitter.com/widgets.js"></script>
 
         <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <!-- sizes=48x48 : empêche Chrome de préférer l'ICO au PNG adaptatif -->
         <link rel="icon" type="image/png" href="/favicon.png" media="(prefers-color-scheme: light)" />
         <link rel="icon" type="image/png" href="/favicon_dark.png" media="(prefers-color-scheme: dark)" />
@@ -72,10 +72,25 @@ import substackIcon from '../components/substack.png';
                 overflow-x: hidden; 
             }
 
+            /* `background-attachment: fixed` est mal géré par les navigateurs mobiles
+               (Chrome Android / Safari iOS) : l'image ne se repeint qu'une fois le
+               scroll totalement arrêté, ce qui donne l'impression que le fond ne se
+               met à jour qu'en bas de page. On repasse en "scroll" sous 860px. */
+            @media (max-width: 860px) {
+                html {
+                    background-attachment: scroll;
+                }
+            }
+
             body { 
+                /* Marge latérale du site : utilisée aussi par les marges négatives
+                   du header/nav/footer pour qu'ils s'étendent bord à bord.
+                   On la réduit en media query pour les petits écrans. */
+                --page-pad: 20px;
+
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
                 margin: 0; 
-                padding: 20px 20px 0 20px;
+                padding: var(--page-pad) var(--page-pad) 0 var(--page-pad);
                 background: transparent;
                 color: #eee; 
                 /* S'assure que le body ne déborde pas */
@@ -91,9 +106,9 @@ import substackIcon from '../components/substack.png';
                 border-bottom: 2px solid #000; 
                 padding-bottom: 20px; 
                 backdrop-filter: blur(8px);
-                margin-left: -20px;
-                margin-right: -20px;
-                margin-top: -20px;
+                margin-left: calc(-1 * var(--page-pad));
+                margin-right: calc(-1 * var(--page-pad));
+                margin-top: calc(-1 * var(--page-pad));
             }
 
             /* --- BOUTON DE LANGUE POUR LA PAGE D'ACCUEIL --- */
@@ -106,6 +121,7 @@ import substackIcon from '../components/substack.png';
 
             /* --- STYLE DE LA BARRE DE NAVIGATION DE L'ACCUEIL --- */
             .nav-bar { 
+                position: relative;
                 display: flex; 
                 justify-content: center; 
                 gap: 15px; 
@@ -114,8 +130,8 @@ import substackIcon from '../components/substack.png';
                 padding: 10px 0; 
                 margin-bottom: 20px; 
                 backdrop-filter: blur(8px);
-                margin-left: -20px;
-                margin-right: -20px;
+                margin-left: calc(-1 * var(--page-pad));
+                margin-right: calc(-1 * var(--page-pad));
             }
 
             .nav-bar a {
@@ -130,14 +146,21 @@ import substackIcon from '../components/substack.png';
             }
 
             .fixed-logo-wrapper {
-                position: absolute;
-                top: -5px; 
-                left: 0px;
-                z-index: 9999;
+                    position: absolute; /* S'assure qu'il est bien positionné par rapport au header */
+                    top: -10px;          /* Ajuste la distance depuis le haut (ex: 10px, 15px...) */
+                    left: -10px;         /* Ajuste la distance depuis la gauche (pour être aligné avec ton --page-pad) */
+                    z-index: 10000;     /* Reste toujours au-dessus du reste */
+            }
+
+                .fixed-logo-wrapper img {
+                    width: 100px;       /* Ajuste la largeur (140px est parfois un peu grand sur petit écran) */
+                    height: auto;       /* Conserve les proportions */
+                    display: block;
             }
 
             /* --- STYLE DE LA BARRE COMPACTE DE NAVIGATION (HORS ACCUEIL) --- */
             .header-inner {
+                position: relative;
                 display: flex;
                 align-items: center;
                 justify-content: space-between; 
@@ -145,9 +168,9 @@ import substackIcon from '../components/substack.png';
                 background-color: #02001d; 
                 border-bottom: 1px solid #102136;
                 backdrop-filter: blur(8px);
-                margin-left: -20px;
-                margin-right: -20px;
-                margin-top: -20px;
+                margin-left: calc(-1 * var(--page-pad));
+                margin-right: calc(-1 * var(--page-pad));
+                margin-top: calc(-1 * var(--page-pad));
                 margin-bottom: 30px;
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
@@ -238,8 +261,8 @@ import substackIcon from '../components/substack.png';
                 padding: 60px 20px 30px 20px;
                 margin-top: 80px;
                 border-top: 2px solid #000;
-                margin-left: -20px;
-                margin-right: -20px;
+                margin-left: calc(-1 * var(--page-pad));
+                margin-right: calc(-1 * var(--page-pad));
             }
             .footer-container {
                 max-width: 1200px;
@@ -391,37 +414,181 @@ import substackIcon from '../components/substack.png';
                 color: #eee;
             }
 
+            /* --- MENU MOBILE (BOUTON BURGER) --- */
+            .mobile-nav-toggle {
+                display: none;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 5px;
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+            .mobile-nav-toggle span {
+                display: block;
+                width: 22px;
+                height: 2px;
+                background-color: #ffffff;
+                border-radius: 2px;
+                transition: transform 0.25s ease, opacity 0.25s ease;
+            }
+            nav.is-open .mobile-nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+            nav.is-open .mobile-nav-toggle span:nth-child(2) { opacity: 0; }
+            nav.is-open .mobile-nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
             /* Responsive */
             /* EN : masquer sans retirer du flux → même grille / emplacements que FR */
             .article-card-item.is-lang-hidden {
                 visibility: hidden;
                 pointer-events: none;
             }
-            @media (max-width: 768px) {
-                .header-inner {
+            @media (max-width: 860px) {
+                body {
+                    --page-pad: 14px;
+                }
+
+                /* --- En-tête page d'accueil --- */
+                .fixed-logo-wrapper img {
+                    width: 90px;
+                }
+                header h1 {
+                    font-size: 1.8rem !important;
+                }
+                header {
+                    line-height: 40px;
+                    padding-top: 15px;
+                    padding-bottom: 15px;
+                }
+                .lang-selector-home-wrapper {
+                    top: 14px;
+                    right: 14px;
+                }
+                .lang-selector-btn {
+                    padding: 6px 14px;
+                    font-size: 0.8rem;
+                }
+
+                /* --- Nav accueil : dropdown --- */
+                .mobile-nav-toggle {
+                    display: flex;
+                }
+                .nav-bar {
                     flex-direction: column;
-                    gap: 15px;
-                    padding: 15px;
+                    align-items: stretch;
+                    gap: 0;
+                    padding: 6px 0;
+                }
+                .nav-bar .mobile-nav-toggle {
+                    align-self: center;
+                    margin: 6px 0;
+                }
+                .nav-bar a {
+                    display: none;
+                    width: 100%;
+                    text-align: center;
+                    padding: 12px 0;
+                    box-sizing: border-box;
+                    border-top: 1px solid rgba(255, 255, 255, 0.08);
+                }
+                .nav-bar.is-open a {
+                    display: block;
+                }
+                .nav-bar.is-open {
+                    padding-bottom: 10px;
+                }
+
+                /* --- En-tête interne (hors accueil) --- */
+                .header-inner {
+                    flex-direction: row;
+                    flex-wrap: wrap;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 12px 15px;
+                }
+                .header-inner-logo {
+                    width: 105px;
                 }
                 .header-right-group {
-                    flex-direction: column;
-                    gap: 15px;
+                    flex-direction: row;
+                    flex-wrap: wrap;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    width: 100%;
                 }
                 .nav-bar-inner {
                     flex-wrap: wrap;
-                    justify-content: center;
-                    gap: 15px;
+                    gap: 0;
+                }
+                .nav-bar-inner .mobile-nav-toggle {
+                    margin-right: 4px;
+                }
+                .nav-bar-inner a {
+                    display: none;
+                    width: 100%;
+                    text-align: center;
+                    padding: 10px 0;
+                    box-sizing: border-box;
+                    border-top: 1px solid rgba(255, 255, 255, 0.08);
+                }
+                .nav-bar-inner.is-open {
+                    width: 100%;
+                    order: -1;
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .nav-bar-inner.is-open a {
+                    display: block;
+                }
+
+                /* --- Footer --- */
+                .site-footer {
+                    padding: 40px 16px 20px 16px;
                 }
                 .footer-container {
                     grid-template-columns: 1fr;
                     gap: 30px;
+                    text-align: center;
+                }
+                .footer-contact {
+                    align-items: center;
+                }
+                .instagram-wrapper {
+                    text-align: center;
                 }
                 .legal-links {
-                    gap: 15px 20px;
+                    gap: 12px 18px;
                 }
-                .lang-selector-home-wrapper {
-                    top: 15px;
-                    right: 15px;
+                .footer-legal-section {
+                    padding: 20px 15px;
+                }
+            }
+
+            @media (max-width: 480px) {
+                header h1 {
+                    font-size: 1.5rem !important;
+                }
+                .fixed-logo-wrapper img {
+                    width: 72px;
+                }
+                .header-inner-logo {
+                    width: 85px;
+                }
+                .footer-brand h3 {
+                    font-size: 1.2rem;
+                }
+                .legal-links {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .footer-legal-section {
+                    padding: 18px 12px;
                 }
             }
             .substack-link {
@@ -488,6 +655,9 @@ import substackIcon from '../components/substack.png';
                 </header>
 
                 <nav class="nav-bar">
+                    <button type="button" class="mobile-nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false">
+                        <span></span><span></span><span></span>
+                    </button>
                     <a href="/" data-i18n="nav_home">Accueil</a>
                     <a href="/politique" data-i18n="nav_politique">Politique</a>
                     <a href="/culture" data-i18n="nav_culture">Culture</a>
@@ -508,6 +678,9 @@ import substackIcon from '../components/substack.png';
 
                 <div class="header-right-group">
                     <nav class="nav-bar-inner">
+                        <button type="button" class="mobile-nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false">
+                            <span></span><span></span><span></span>
+                        </button>
                         <a href="/" data-i18n="nav_home">Accueil</a>
                         <a href="/politique" data-i18n="nav_politique">Politique</a>
                         <a href="/culture" data-i18n="nav_culture">Culture</a>
@@ -682,6 +855,38 @@ import substackIcon from '../components/substack.png';
                         const newLang = currentLang === 'FR' ? 'EN' : 'FR';
                         applyLanguage(newLang);
                     });
+                });
+
+                // --- MENU MOBILE (BOUTON BURGER) ---
+                document.querySelectorAll('.mobile-nav-toggle').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const nav = btn.closest('nav');
+                        if (!nav) return;
+                        const isOpen = nav.classList.toggle('is-open');
+                        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    });
+                });
+
+                // Ferme le menu déroulant quand on choisit un lien
+                document.querySelectorAll('.nav-bar a, .nav-bar-inner a').forEach((link) => {
+                    link.addEventListener('click', () => {
+                        const nav = link.closest('nav');
+                        if (!nav) return;
+                        nav.classList.remove('is-open');
+                        const btn = nav.querySelector('.mobile-nav-toggle');
+                        if (btn) btn.setAttribute('aria-expanded', 'false');
+                    });
+                });
+
+                // Ferme le menu si on repasse en affichage bureau
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 860) {
+                        document.querySelectorAll('nav.is-open').forEach((nav) => {
+                            nav.classList.remove('is-open');
+                            const btn = nav.querySelector('.mobile-nav-toggle');
+                            if (btn) btn.setAttribute('aria-expanded', 'false');
+                        });
+                    }
                 });
             });
 

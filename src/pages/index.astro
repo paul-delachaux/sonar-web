@@ -390,7 +390,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                             return (
                                 <a 
                                   href={`/articles/${artFR.id}`} 
-                                  class="article-sidebar article-card-item" 
+                                  class="article-sidebar article-card-item scroll-fade-up" 
                                   set:key={artFR.id}
                                   data-href-fr={`/articles/${artFR.id}`}
                                   data-href-en={enHref(artEN, hasEn)}
@@ -576,8 +576,14 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
         const bottomRow = document.querySelector('.scroll-interactive') as HTMLElement;
         const leftCards = document.querySelectorAll('.scroll-left-to-right');
         const rightGiant = document.querySelector('.scroll-bottom-to-top') as HTMLElement;
+        const fadeUpCards = document.querySelectorAll('.scroll-fade-up');
+
+        // Sur mobile, on unifie toutes les animations d'apparition en "bas → haut"
+        // (le slide horizontal gauche→droite ne rend pas bien une fois les cartes empilées).
+        const mobileQuery = window.matchMedia('(max-width: 860px)');
 
         function animateOnScroll() {
+            const isMobile = mobileQuery.matches;
             const viewHeight = window.innerHeight;
             const startAnimation = viewHeight;
             const endAnimation = viewHeight - 200; 
@@ -598,9 +604,14 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                 let progress = (startAnimation - (rect.top + (index * 40))) / (startAnimation - endAnimation);
                 progress = Math.max(0, Math.min(1, progress));
 
-                const translateX = -60 + (progress * 60);
                 el.style.opacity = progress.toString();
-                el.style.transform = `translateX(${translateX}px)`;
+                if (isMobile) {
+                    const translateY = 40 - (progress * 40);
+                    el.style.transform = `translateY(${translateY}px)`;
+                } else {
+                    const translateX = -60 + (progress * 60);
+                    el.style.transform = `translateX(${translateX}px)`;
+                }
             });
 
             if (rightGiant) {
@@ -612,9 +623,26 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                 rightGiant.style.opacity = progress.toString();
                 rightGiant.style.transform = `translateY(${translateY}px)`;
             }
+
+            // Sur mobile uniquement : les petites cartes de la sidebar (3e/4e article)
+            // apparaissent aussi en fondu "bas → haut". Sur PC, elles restent statiques.
+            fadeUpCards.forEach((card) => {
+                const el = card as HTMLElement;
+                if (!isMobile) {
+                    el.style.opacity = '';
+                    el.style.transform = '';
+                    return;
+                }
+                const rect = el.getBoundingClientRect();
+                let progress = (startAnimation - rect.top) / (startAnimation - endAnimation);
+                progress = Math.max(0, Math.min(1, progress));
+                el.style.opacity = progress.toString();
+                el.style.transform = `translateY(${40 - (progress * 40)}px)`;
+            });
         }
 
         window.addEventListener('scroll', animateOnScroll);
+        window.addEventListener('resize', animateOnScroll);
         animateOnScroll(); 
     });
 </script>
@@ -663,4 +691,122 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     .thumbnail-canvas { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; }
     .thumbnail-shadow { position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 0; }
     .thumbnail-text { position: absolute; z-index: 1; margin: 0; padding: 0; width: 60%; max-width: 400px; line-height: 1.2; word-wrap: break-word; overflow-wrap: break-word; text-shadow: 2px 2px 5px rgba(0,0,0,0.9); }
+
+    /* ==========================================
+       RESPONSIVE — même disposition, blocs réduits
+       ========================================== */
+    @media (max-width: 860px) {
+        .container-accueil { gap: 45px; padding-bottom: 50px; }
+
+        /* Bloc principal : à la une + sidebar en colonne */
+        .main-grid { grid-template-columns: 1fr; min-height: unset; gap: 18px; }
+        .article-une { padding: 16px; }
+        .article-une h2 { font-size: 1.3rem; }
+        .image-wrapper { min-height: 200px; }
+        .sidebar-articles { gap: 12px; }
+        /* Les 2 petites cartes passent elles aussi en colonne : à 2 colonnes
+           elles deviennent trop étroites et le texte se met à "casser" ligne par ligne. */
+        .sub-grid { grid-template-columns: 1fr; gap: 10px; }
+        .article-sidebar { min-height: unset; padding: 12px; }
+        .article-sidebar h3 { font-size: 1rem; }
+
+        /* Sur mobile, ces 2 petites cartes passent en "fond image" comme le
+           reste des articles (contrairement au PC où les 4 premières cartes
+           restent sur fond blanc), et apparaissent en fondu au scroll. */
+        .scroll-fade-up {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+        .sub-grid .article-sidebar {
+            position: relative;
+            overflow: hidden;
+            background-color: #02001d;
+            justify-content: flex-end;
+            min-height: 190px;
+        }
+        .sub-grid .article-sidebar .card-dynamic-spacer {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            height: auto;
+            border-radius: 0;
+            background-color: transparent;
+            z-index: 1;
+        }
+        .sub-grid .article-sidebar .card-dynamic-spacer::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.8) 100%);
+        }
+        .sub-grid .article-sidebar .spacer-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .sub-grid .article-sidebar .card-content-top {
+            position: relative;
+            z-index: 2;
+        }
+        .sub-grid .article-sidebar h3,
+        .sub-grid .article-sidebar .sidebar-desc {
+            color: #ffffff !important;
+        }
+        .sub-grid .article-sidebar .sidebar-desc {
+            color: #e0e0e0 !important;
+        }
+
+        /* Rangée du bas : une colonne */
+        .bottom-row-grid { grid-template-columns: 1fr; gap: 14px; }
+        .article-bottom-card { min-height: 200px; padding: 16px; }
+        .article-bottom-card h3 { font-size: 1.05rem; }
+
+        /* Rangée asymétrique : empilée, même ordre visuel */
+        .asym-container { grid-template-columns: 1fr; gap: 14px; }
+        .asym-left-stack { gap: 12px; }
+        .asym-left-stack .article-bottom-card { min-height: 110px; padding: 14px; }
+        .asym-right-giant { min-height: 240px; }
+
+        /* Animations d'apparition unifiées en "bas → haut" (voir script) */
+        .scroll-left-to-right {
+            transform: translateY(40px);
+        }
+
+        /* Hero à vignette (texte positionné par l'admin) :
+           on repasse en flux normal pour éviter tout chevauchement
+           et garder le texte lisible, quelle que soit la config d'origine. */
+        .thumbnail-canvas {
+            aspect-ratio: auto;
+            min-height: 220px;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 4px;
+            padding: 14px;
+            box-sizing: border-box;
+        }
+        .thumbnail-shadow {
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.75) 100%);
+        }
+        .thumbnail-text {
+            position: static !important;
+            left: auto !important;
+            top: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        h2.thumbnail-text {
+            font-size: clamp(1.05rem, 5vw, 1.4rem) !important;
+        }
+        p.thumbnail-text {
+            font-size: clamp(0.8rem, 3.5vw, 0.95rem) !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .article-une h2 { font-size: 1.15rem; }
+        .image-wrapper { min-height: 170px; }
+        .article-bottom-card, .article-sidebar { padding: 12px; }
+    }
 </style>
