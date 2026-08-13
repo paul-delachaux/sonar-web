@@ -3,6 +3,7 @@ import MainLayout from '../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import homeSettings from '../data/settings.json';
 import { categoryLabel } from '../utils/i18n.js';
+import Analytics from '@vercel/analytics/astro';
 
 // Nettoyage flexible pour la comparaison des slugs/IDs
 const nettoyer = (s: any) => 
