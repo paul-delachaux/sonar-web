@@ -5,6 +5,13 @@ import homeSettings from '../data/settings.json';
 import { categoryLabel } from '../utils/i18n.js';
 import Analytics from '@vercel/analytics/astro';
 
+import { supabase } from '../utils/supabase';
+
+// On récupère les données de Supabase
+const { data: testComments, error } = await supabase
+  .from('comments') 
+  .select('*');
+
 // Nettoyage flexible pour la comparaison des slugs/IDs
 const nettoyer = (s: any) => 
     String(s || '')

@@ -1,0 +1,107 @@
+---
+import { supabase } from '../utils/supabase';
+
+interface Props {
+  articleSlug: string;
+}
+
+const { articleSlug } = Astro.props;
+
+// Récupération des commentaires spécifiques à CET article
+const { data: comments } = await supabase
+  .from('comments')
+  .select('*')
+  .eq('article_slug', articleSlug)
+  .order('created_at', { ascending: false });
+---
+
+<section class="comments-section">
+  <h2>Commentaires ({comments?.length || 0})</h2>
+
+  <!-- Formulaire d'envoi -->
+  <form id="comment-form" data-slug={articleSlug} class="comment-form">
+    <div class="form-group">
+      <label for="author_name">Votre nom / pseudo :</label>
+      <input type="text" id="author_name" name="author_name" required />
+    </div>
+
+    <div class="form-group">
+      <label for="content">Votre commentaire :</label>
+      <textarea id="content" name="content" rows="4" required></textarea>
+    </div>
+
+    <button type="submit" id="submit-btn">Publier le commentaire</button>
+    <p id="form-message"></p>
+  </form>
+
+  <hr />
+
+  <!-- Liste des commentaires -->
+  <div class="comments-list">
+    {comments && comments.length > 0 ? (
+      comments.map((comment) => (
+        <div class="comment-card">
+          <div class="comment-header">
+            <strong>{comment.author_name}</strong>
+            <small>{new Date(comment.created_at).toLocaleDateString('fr-FR')}</small>
+          </div>
+          <p>{comment.content}</p>
+        </div>
+      ))
+    ) : (
+      <p>Soyez le premier à laisser un commentaire !</p>
+    )}
+  </div>
+</section>
+
+<!-- Script interactif côté client -->
+<script>
+  const form = document.getElementById('comment-form') as HTMLFormElement;
+  const messageEl = document.getElementById('form-message');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!messageEl) return;
+
+    messageEl.textContent = "Envoi en cours...";
+    messageEl.style.color = "gray";
+
+    const formData = new FormData(form);
+    const payload = {
+      article_slug: form.dataset.slug,
+      author_name: formData.get('author_name'),
+      content: formData.get('content'),
+    };
+
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        messageEl.textContent = "Commentaire publié avec succès !";
+        messageEl.style.color = "green";
+        form.reset();
+        // Recharge la page pour afficher le nouveau commentaire
+        window.location.reload();
+      } else {
+        messageEl.textContent = result.message || "Une erreur est survenue.";
+        messageEl.style.color = "red";
+      }
+    } catch (err) {
+      messageEl.textContent = "Erreur de connexion au serveur.";
+      messageEl.style.color = "red";
+    }
+  });
+</script>
+
+<style>
+  .comments-section { margin-top: 2rem; }
+  .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .comment-card { background: #f4f4f4; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; color: #333; }
+  .comment-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+</style>

@@ -384,17 +384,48 @@
     function getImagePosition(entry) { return getParagraphPosition(entry, 'image_position'); }
     function getTweetPosition(entry) { return getParagraphPosition(entry, 'tweet_position'); }
 
+    const DEFAULT_OVERLAY_OPACITY = 75;
+
+    function getOverlayOpacity(entry) {
+      const raw = entry.getIn(['data', 'overlay_opacity']);
+      const n = Number(raw);
+      if (raw === undefined || raw === null || raw === '' || isNaN(n)) return DEFAULT_OVERLAY_OPACITY;
+      return Math.max(0, Math.min(100, n));
+    }
+
+    function getOverlayGradient(opacity) {
+      const n = Number(opacity);
+      const safe = (opacity === undefined || opacity === null || opacity === '' || isNaN(n))
+        ? DEFAULT_OVERLAY_OPACITY
+        : Math.max(0, Math.min(100, n));
+      const l = safe / 100;
+      const mid = l * (0.4 / 0.75);
+      const right = l * (0.1 / 0.75);
+      return 'linear-gradient(to right, rgba(0, 0, 0, ' + l + ') 0%, rgba(0, 0, 0, ' + mid + ') 60%, rgba(0, 0, 0, ' + right + ') 100%)';
+    }
+
+    // Decap CMS enveloppe le markdown dans des divs internes : `:scope > p` sur .prose-content
+    // ne trouve alors aucun paragraphe et l'image tombait toujours en bas. On prend tous les
+    // <p> "de contenu" (hors légendes, citations, listes) dans l'ordre du document.
+    function getContentParagraphs(container) {
+      if (!container) return [];
+      return Array.from(container.querySelectorAll('p')).filter(function(p) {
+        if (!p.textContent || p.textContent.trim().length === 0) return false;
+        if (p.closest('figure, figcaption, blockquote, li')) return false;
+        if (p.closest('.injected-hero-figure, .injected-tweet-block')) return false;
+        return true;
+      });
+    }
+
     // Place un élément dans un conteneur de texte : 0 = au-dessus de tout, N = après le N-ème paragraphe,
     // ou en bas si aucun paragraphe n'est détecté (même logique que insertAtParagraphPosition dans [slug].astro)
     function insertAtParagraphPosition(container, element, targetPos) {
-      const paragraphs = Array.from(container.querySelectorAll(':scope > p')).filter(
-        function(p) { return p.textContent.trim().length > 0; }
-      );
+      const paragraphs = getContentParagraphs(container);
 
       if (paragraphs.length === 0) {
         container.appendChild(element);
       } else if (targetPos <= 0) {
-        container.insertBefore(element, paragraphs[0]);
+        paragraphs[0].parentNode.insertBefore(element, paragraphs[0]);
       } else {
         const targetIndex = Math.min(targetPos, paragraphs.length) - 1;
         paragraphs[targetIndex].insertAdjacentElement('afterend', element);
@@ -414,6 +445,99 @@
       if (!element) return;
       element.classList.add(injectedClass);
       insertAtParagraphPosition(container, element, position);
+    }
+
+    // Le markdown Decap se rend parfois après le 1er cycle React : on observe le DOM
+    // et on réessaie un court instant pour placer image/tweet au bon paragraphe.
+    function bindPreviewInjection(component) {
+      if (component._binding) return;
+      component._binding = true;
+      if (component._observer) component._observer.disconnect();
+      try {
+        component.syncPositionedElements();
+      } finally {
+        component._binding = false;
+        if (!component._proseNode) return;
+        if (!component._observer || component._observedNode !== component._proseNode) {
+          component._observer = new MutationObserver(function() {
+            bindPreviewInjection(component);
+          });
+          component._observedNode = component._proseNode;
+        }
+        component._observer.observe(component._proseNode, { childList: true, subtree: true });
+      }
+    }
+
+    function startPreviewInjection(component) {
+      bindPreviewInjection(component);
+      component._retryTimers = component._retryTimers || [];
+      [50, 200, 500].forEach(function(ms) {
+        component._retryTimers.push(setTimeout(function() {
+          bindPreviewInjection(component);
+        }, ms));
+      });
+    }
+
+    function stopPreviewInjection(component) {
+      (component._retryTimers || []).forEach(clearTimeout);
+      component._retryTimers = [];
+      if (component._observer) component._observer.disconnect();
+    }
+
+    function renderCategoryCardPreview(options) {
+      const title = options.title || "Titre de l'article";
+      const description = options.description || "";
+      const image = options.image || "/assets/uploads/default-placeholder.jpg";
+      const overlayOpacity = options.overlayOpacity;
+      const overlayGradient = getOverlayGradient(overlayOpacity);
+
+      return h('div', {
+        className: 'category-preview-box',
+        style: {
+          border: '2px dashed #1D9E75',
+          padding: '15px',
+          backgroundColor: '#0a131d',
+          borderRadius: '4px',
+          maxWidth: '1200px',
+          margin: '0 auto 30px auto'
+        }
+      },
+        h('div', {
+          style: {
+            color: '#1D9E75',
+            fontFamily: 'Helvetica, sans-serif',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            marginBottom: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }
+        },
+          h('span', {}, 'Aperçu page catégorie (carte hero)'),
+          h('span', { style: { color: '#9ca3af', fontWeight: '600' } }, 'Filtre sombre : ' + overlayOpacity + ' %')
+        ),
+        h('a', {
+          className: 'hero-card-bg',
+          href: '#',
+          onClick: function(e) { e.preventDefault(); }
+        },
+          h('div', {
+            className: 'bg-image',
+            style: { backgroundImage: 'url(' + image + ')' }
+          }),
+          h('div', {
+            className: 'card-overlay',
+            style: { background: overlayGradient }
+          }),
+          h('div', { className: 'card-text-container' },
+            h('h2', { className: 'card-title' }, title),
+            description ? h('p', { className: 'card-desc' }, description) : null
+          )
+        )
+      );
     }
 
     function buildHeroFigure(options) {
@@ -515,6 +639,14 @@
       .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; }
       .tweet-placeholder-card { display: inline-block; padding: 10px 16px; border: 1px dashed #1D9E75; border-radius: 8px; color: #1D9E75; text-decoration: none; font-size: 0.85rem; }
 
+      /* --- Carte hero page catégorie (CategoryLayout) --- */
+      .hero-card-bg { position: relative; width: 100%; height: 200px; border-radius: 4px; overflow: hidden; text-decoration: none; display: block; }
+      .bg-image { position: absolute; inset: 0; background-size: cover; background-position: center; background-color: #121f2f; pointer-events: none; }
+      .card-overlay { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+      .card-text-container { position: relative; z-index: 2; padding: 20px; max-width: 80%; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; }
+      .card-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: 700; color: #ffffff; margin: 0 0 10px 0; line-height: 1.3; }
+      .card-desc { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 0.8rem; font-weight: 400; color: #ffffff; margin: 0; line-height: 1.4; }
+
       @media (max-width: 768px) {
         .article-grid, .breve-body-grid { grid-template-columns: 1fr; }
         .breve-header-main { flex-direction: column; }
@@ -524,11 +656,9 @@
 
     // 👁️ Preview Articles (layout classique)
     const ArticlePreview = createClass({
-      // componentDidMount/componentDidUpdate sont garantis d'être rappelés à chaque
-      // modification de l'entrée (contrairement au `ref`), ce qui permet de repositionner
-      // l'image et le tweet dans la preview chaque fois que leurs champs "position" changent.
-      componentDidMount: function() { this.syncPositionedElements(); },
-      componentDidUpdate: function() { this.syncPositionedElements(); },
+      componentDidMount: function() { startPreviewInjection(this); },
+      componentDidUpdate: function() { bindPreviewInjection(this); },
+      componentWillUnmount: function() { stopPreviewInjection(this); },
       syncPositionedElements: function() {
         if (!this._proseNode) return;
         const entry = this.props.entry;
@@ -578,6 +708,11 @@
 
         const avatarUrl = getAuthorAvatar(author);
 
+        const image = entry.getIn(['data', 'image']);
+        const articleImage = entry.getIn(['data', 'article_image']);
+        const categoryImage = image || articleImage || "/assets/uploads/default-placeholder.jpg";
+        const overlayOpacity = getOverlayOpacity(entry);
+
         const bg = entry.getIn(['data', 'thumbnail_bg']);
         const bgPosition = entry.getIn(['data', 'thumbnail_bg_position']) || 'center';
         const bgZoom = Number(entry.getIn(['data', 'thumbnail_bg_zoom']));
@@ -595,6 +730,13 @@
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
 
           h('style', {}, PREVIEW_STYLES),
+
+          renderCategoryCardPreview({
+            title: title,
+            description: description,
+            image: categoryImage,
+            overlayOpacity: overlayOpacity
+          }),
 
           h('div', { className: 'article-wrapper' },
             h('div', { className: 'article-container' },
@@ -694,8 +836,9 @@
 
     // 👁️ Preview Brèves (layout court, deux colonnes avec auteur en aside)
     const BrevePreview = createClass({
-      componentDidMount: function() { this.syncPositionedElements(); },
-      componentDidUpdate: function() { this.syncPositionedElements(); },
+      componentDidMount: function() { startPreviewInjection(this); },
+      componentDidUpdate: function() { bindPreviewInjection(this); },
+      componentWillUnmount: function() { stopPreviewInjection(this); },
       syncPositionedElements: function() {
         if (!this._proseNode) return;
         const entry = this.props.entry;
@@ -735,10 +878,19 @@
         const avatarUrl = getAuthorAvatar(author);
         const categoryLabel = getCategoryLabelFR(category);
         const sourcesList = renderBreveSourcesList(entry);
+        const overlayOpacity = getOverlayOpacity(entry);
+        const categoryImage = entry.getIn(['data', 'image']) || "/assets/uploads/default-placeholder.jpg";
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
 
           h('style', {}, PREVIEW_STYLES),
+
+          renderCategoryCardPreview({
+            title: title,
+            description: description,
+            image: categoryImage,
+            overlayOpacity: overlayOpacity
+          }),
 
           h('div', { className: 'breve-wrapper' },
             h('article', { className: 'breve-layout-container' },

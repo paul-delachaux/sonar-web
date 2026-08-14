@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import MainLayout from '../../layouts/Layout.astro';
 import { Tweet } from 'astro-embed';
 import { t, categoryLabel } from '../../utils/i18n.js';
+import CommentsSection from '../../components/CommentsSection.astro';
 
 export async function getStaticPaths() {
   const articles = await getCollection('articles');
@@ -145,6 +146,9 @@ const descFR = article.data.description || "";
 const descEN = hasEn && article.data.description_en
   ? String(article.data.description_en)
   : descFR;
+
+//Pour les commentaires, on récupère le slug de l'article pour l'envoyer au composant CommentsSection
+const { slug } = Astro.params;
 ---
 
 <MainLayout title={article.data.title}>
@@ -466,6 +470,8 @@ const descEN = hasEn && article.data.description_en
       </div>
     </div>
   )}
+  <!-- Section commentaire à la fin de l'article -->
+  <CommentsSection articleSlug={slug} />
 </MainLayout>
 
 <!-- Script JS : injection de l'image positionnée dans le texte + sync langue (site_lang, comme le Layout) -->

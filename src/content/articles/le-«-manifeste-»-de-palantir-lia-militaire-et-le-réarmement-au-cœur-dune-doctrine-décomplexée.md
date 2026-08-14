@@ -1,15 +1,16 @@
 ---
-layout_type: breve
-title: "Le « Manifeste » de Palantir : L'IA militaire et le réarmement au cœur
-  d'une doctrine décomplexée"
-description: Description relativement longue qui sera présent e dans des
-  articles plus travaillée que ce truc fait à l'arrache, j'écris afin de voir le
-  rendu final sur la
-title_en: "Palantir’s “Manifesto”: Military AI and Rearmament at the Heart of an
-  Unabashed Doctrine"
-description_en: "description IN ENGLISH PLEASE Description relativement longue
-  qui sera présent e dans des articles plus travaillée que ce truc fait à
-  l'arrache, j'écris afin de voir le rendu final sur la "
+author_info:
+  - author_about: Aucune information fournie pour le moment.
+    author_about_en: No information provided at this time.
+    author_interests: "moi toucher money "
+    author_interests_en: me not touching money, me poor
+consulted_sources:
+  - source_title: "Article du Monde "
+    source_title_en: "Article of the Monde "
+    source_url: "Analyse le Grand continent "
+  - source_title: "Site internet officiel de  Palantir "
+    source_title_en: "Official Palantir WebSite "
+    source_url: https://www.palantir.com
 body_en: >-
   In a striking manifesto dispatched as a series of messages on the social
   network X, Alex Karp, Chief Executive of Palantir Technologies, unveiled the
@@ -46,27 +47,27 @@ body_en: >-
 
 
   Apprehensive over the safeguard of personal data—vulnerable to the extraterritorial reach of American statutes like the CLOUD Act and the Patriot Act France has resolved to gradually supplant Palantir with the domestic firm ChapsVision, founded by Polytechnique alumnus Olivier Dellenbach, for use by its domestic intelligence agency (DGSI). According to the German newspaper *Süddeutsche Zeitung*, a parallel pursuit of technological autonomy has likewise been set in motion by Germany’s domestic intelligence services.
-date: 2026-08-14T15:03:00.000+02:00
+isVisible: true
 author: Victor Zhâ
-author_info:
-  - author_about: Aucune information fournie pour le moment.
-    author_about_en: No information provided at this time.
-    author_interests: "moi toucher money "
-    author_interests_en: me not touching money, me poor
-category: politique
-image: /assets/uploads/palantir-technologies.png.webp
+description_en: "description IN ENGLISH PLEASE Description relativement longue
+  qui sera présent e dans des articles plus travaillée que ce truc fait à
+  l'arrache, j'écris afin de voir le rendu final sur la "
+image_position: 0
+date: 2026-08-14T15:03:00.000+02:00
+layout_type: breve
+title_en: "Palantir’s “Manifesto”: Military AI and Rearmament at the Heart of an
+  Unabashed Doctrine"
 image_info:
   - image_caption: "photo pompée sur internet pour illustrer le logo de cette entreprise "
     image_caption_en: "ce que j'ai mis sur e truc en fr mais écrit in english "
-image_position: 0
-isVisible: true
-consulted_sources:
-  - source_title: "Article du Monde "
-    source_title_en: "Article of the Monde "
-    source_url: "Analyse le Grand continent "
-  - source_title: "Site internet officiel de  Palantir "
-    source_title_en: "Official Palantir WebSite "
-    source_url: https://www.palantir.com
+title: "Le « Manifeste » de Palantir : L'IA militaire et le réarmement au cœur
+  d'une doctrine décomplexée"
+image: /assets/uploads/palantir-technologies.png.webp
+overlay_opacity: 0
+description: Description relativement longue qui sera présent e dans des
+  articles plus travaillée que ce truc fait à l'arrache, j'écris afin de voir le
+  rendu final sur la
+category: politique
 ---
 Dans un manifeste choc publié sous la forme d'un fil de messages sur le réseau social X par son PDG Alex Karp, la firme américaine Palantir Technologies déploie sa vision géopolitique et idéologique en affirmant que le logiciel est désormais le premier pilier du « hard power » moderne. 
 

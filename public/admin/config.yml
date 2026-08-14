@@ -56,7 +56,8 @@ collections:
           - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
       - { label: "Image interne de l'article (Optionnelle)", name: "article_image", widget: "image", required: false, hint: "Si laissée vide, l'image de miniature sera utilisée" }
       - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
-      
+      - { label: "Intensité du filtre sombre (page catégorie)", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero des pages Politique / Culture / Société / Technologie. 0 = image brute, 75 = défaut du site, 100 = très sombre. L'aperçu à droite se met à jour en direct." }
+
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
       # --- INFOS AUTEUR & LECTURE ---
@@ -230,6 +231,7 @@ collections:
           - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
 
       - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
+      - { label: "Intensité du filtre sombre (page catégorie)", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero des pages Politique / Culture / Société / Technologie. 0 = image brute, 75 = défaut du site, 100 = très sombre. L'aperçu à droite se met à jour en direct." }
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
       - label: "Sources consultables"

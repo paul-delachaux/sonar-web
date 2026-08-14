@@ -63,6 +63,11 @@ const articles = defineCollection({
       const n = typeof v === 'string' ? parseInt(v, 10) : v;
       return typeof n === 'number' && !isNaN(n) ? n : undefined;
     }),
+    overlay_opacity: z.union([z.number(), z.string()]).nullish().optional()
+      .transform(v => {
+      const n = typeof v === 'string' ? parseInt(v, 10) : v;
+      return typeof n === 'number' && !isNaN(n) ? n : undefined;
+    }),
     consulted_sources: z.array(
       z.object({
         source_title: z.string(),
