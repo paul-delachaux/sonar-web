@@ -1,4 +1,4 @@
-local_backend: true
+#local_backend: true
 backend:
   name: github
   repo: paul-delachaux/sonar-web 
@@ -8,7 +8,7 @@ backend:
   allowed_users:
     - paul-delachaux
     - souslesonar-hash
-
+publish_mode: editorial_workflow  
 media_folder: "public/assets/uploads"
 public_folder: "/assets/uploads"
 
