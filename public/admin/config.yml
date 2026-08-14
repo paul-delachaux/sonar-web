@@ -9,7 +9,7 @@ backend:
     - paul-delachaux
     - souslesonar-hash
 
-media_folder: "public/assets/uploads"
+media_folder: "../../../public/assets/uploads"
 public_folder: "/assets/uploads"
 
 collections:
@@ -19,6 +19,8 @@ collections:
   - name: "articles"
     label: "Articles"
     folder: "src/content/articles"
+    media_folder: "../../../public/assets/uploads"
+    public_folder: "/assets/uploads"
     create: true
     slug: "{{slug}}"
     filter: { field: "layout_type", pattern: "^(?!breve$).*" }
@@ -176,6 +178,8 @@ collections:
     label: "Brèves"
     label_singular: "Brève"
     folder: "src/content/articles"
+    media_folder: "../../../public/assets/uploads"
+    public_folder: "/assets/uploads"
     create: true
     slug: "{{slug}}"
     filter: { field: "layout_type", value: "breve" }
