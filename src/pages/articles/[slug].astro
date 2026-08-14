@@ -4,19 +4,21 @@ import MainLayout from '../../layouts/Layout.astro';
 import { Tweet } from 'astro-embed';
 import { t, categoryLabel } from '../../utils/i18n.js';
 import CommentsSection from '../../components/CommentsSection.astro';
-export const prerender = false; // 👈 Force le rendu dynamique à chaque requête !
-
 import { supabase } from '../../utils/supabase';
-export async function getStaticPaths() {
-  const articles = await getCollection('articles');
-  
-  // On ne garde QUE les articles visibles pour générer des pages
-  const visibleArticles = articles.filter(article => article.data.isVisible !== false);
 
-  return visibleArticles.map(article => ({
-    params: { slug: article.id },
-    props: { article },
-  }));
+// 1. Force le rendu dynamique (SSR)
+export const prerender = false;
+
+// 2. Récupération du slug depuis l'URL
+const { slug } = Astro.params;
+
+// 3. Recherche de l'article correspondant dans la collection
+const articles = await getCollection('articles');
+const article = articles.find((a) => a.id === slug);
+
+// 4. Si l'article n'existe pas ou qu'il est masqué, redirection vers la page 404
+if (!article || article.data.isVisible === false) {
+  return Astro.redirect('/404');
 }
 
 const AUTHORS_DATA: Record<string, { avatarUrl: string }> = {
@@ -41,11 +43,6 @@ const markdownToHtml = (md: string) => {
     .join('');
 };
 
-const { article } = Astro.props;
-// 🔒 Sécurité : Si l'article est masqué, on redirige vers la page 404 (ou l'accueil)
-if (article.data.isVisible === false) {
-  return Astro.redirect('/404'); // ou Astro.redirect('/') selon ta préférence
-}
 const { Content } = await render(article);
 
 const isBreve = article.data.layout_type === 'breve';
@@ -53,11 +50,10 @@ const isBreve = article.data.layout_type === 'breve';
 const hasEn = Boolean(article.data.title_en && String(article.data.title_en).trim() !== "");
 const bodyEnHtml = article.data.body_en ? markdownToHtml(String(article.data.body_en)) : "";
 
-const tousLesArticles = await getCollection('articles');
 const checkHasEnArt = (art: any) =>
   Boolean(art?.data?.title_en && String(art.data.title_en).trim() !== "");
 
-const similaires = tousLesArticles
+const similaires = articles
   .filter(art =>
     art.data.isVisible !== false &&
     art.data.category.toLowerCase() === article.data.category.toLowerCase() &&
@@ -65,7 +61,7 @@ const similaires = tousLesArticles
   )
   .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
 
-const autresRecents = tousLesArticles
+const autresRecents = articles
   .filter(art =>
     art.data.isVisible !== false &&
     art.id !== article.id &&
@@ -148,9 +144,6 @@ const descFR = article.data.description || "";
 const descEN = hasEn && article.data.description_en
   ? String(article.data.description_en)
   : descFR;
-
-//Pour les commentaires, on récupère le slug de l'article pour l'envoyer au composant CommentsSection
-const { slug } = Astro.params;
 ---
 
 <MainLayout title={article.data.title}>
