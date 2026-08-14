@@ -758,6 +758,18 @@ const descEN = hasEn && article.data.description_en
      sticky étroite, cartes figées) alors que la fenêtre n'était pas encore
      assez large pour ça — d'où le rendu cassé "à droite" entre 860 et 968px. */
   @media (max-width: 968px) {
+
+    /* Réduire le corps de texte sur mobile */
+    .prose-content {
+      font-size: 1.1rem; /* Adaptez la valeur souhaitée (ex: 1.05rem, 1.1rem, etc.) */
+      line-height: 1.6;  /* Optionnel : vous pouvez aussi réajuster l'interligne si besoin */
+    }
+
+    /* Optionnel : Ajuster aussi les titres H2 du texte sur mobile si nécessaire */
+    .prose-content h2 {
+      font-size: 1.4rem;
+    }
+
     .breve-header-main { flex-direction: column; gap: 15px; }
     .breve-description { width: 100%; }
 
