@@ -28,7 +28,7 @@
   ],
   "asymLeftArticles": [
     "test-pour-victor",
-    "",
+    "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
     null
   ],
   "asymLeftStyles": [
@@ -53,6 +53,6 @@
     "titleWeight": "700",
     "titleFont": "sans-serif"
   },
-  "heroArticle": "test-admin",
-  "sidebarLongArticle": "jadore-le-caca"
+  "heroArticle": "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
+  "sidebarLongArticle": "enfin-le-nouveau-menu-admin"
 }

@@ -5,6 +5,10 @@ import logoSonar from '../components/LogoSonarVdef.png';
 import backgroundImage from '../assets/background.jpg';
 import substackIcon from '../components/substack.png';
 import Analytics from '@vercel/analytics/astro';
+import AuthNav from '../components/AuthNav.astro';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
 ---
 
 <html lang="fr">
@@ -112,17 +116,63 @@ import Analytics from '@vercel/analytics/astro';
                 margin-top: calc(-1 * var(--page-pad));
             }
 
-            /* --- BOUTON DE LANGUE POUR LA PAGE D'ACCUEIL --- */
-            .lang-selector-home-wrapper {
+            /* Le header accueil doit passer AU-DESSUS de la nav, sinon le menu
+               Déconnexion (qui dépasse sous le header) se retrouve derrière. */
+            header:not(.header-inner) {
+                z-index: 40;
+                overflow: visible;
+            }
+
+            /* --- ACTIONS ACCUEIL (CONNEXION + LANGUE) --- */
+            .header-home-actions {
                 position: absolute;
                 top: 20px;
                 right: 30px;
                 z-index: 9999;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                line-height: normal;
+            }
+
+            .lang-selector-home-wrapper {
+                position: static;
+            }
+
+            .sonar-avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                color: #ffffff;
+                overflow: hidden;
+                flex-shrink: 0;
+                text-transform: uppercase;
+                font-size: 0.95rem;
+                background-color: #ea580c;
+                line-height: 1;
+            }
+
+            .sonar-avatar-sm {
+                width: 28px;
+                height: 28px;
+                font-size: 0.8rem;
+            }
+
+            .sonar-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
             }
 
             /* --- STYLE DE LA BARRE DE NAVIGATION DE L'ACCUEIL --- */
             .nav-bar { 
                 position: relative;
+                z-index: 10;
                 display: flex; 
                 justify-content: center; 
                 gap: 15px; 
@@ -162,6 +212,7 @@ import Analytics from '@vercel/analytics/astro';
             /* --- STYLE DE LA BARRE COMPACTE DE NAVIGATION (HORS ACCUEIL) --- */
             .header-inner {
                 position: relative;
+                z-index: 40;
                 display: flex;
                 align-items: center;
                 justify-content: space-between; 
@@ -192,6 +243,12 @@ import Analytics from '@vercel/analytics/astro';
                 display: flex;
                 align-items: center;
                 gap: 40px; 
+            }
+
+            .header-toolbar {
+                display: flex;
+                align-items: center;
+                gap: 12px;
             }
 
             .nav-bar-inner {
@@ -465,9 +522,10 @@ import Analytics from '@vercel/analytics/astro';
                     padding-top: 15px;
                     padding-bottom: 15px;
                 }
-                .lang-selector-home-wrapper {
+                .header-home-actions {
                     top: 14px;
                     right: 14px;
+                    gap: 8px;
                 }
                 .lang-selector-btn {
                     padding: 6px 14px;
@@ -522,6 +580,9 @@ import Analytics from '@vercel/analytics/astro';
                     align-items: center;
                     gap: 12px;
                     width: 100%;
+                }
+                .header-toolbar {
+                    margin-left: auto;
                 }
                 .nav-bar-inner {
                     flex-wrap: wrap;
@@ -630,6 +691,10 @@ import Analytics from '@vercel/analytics/astro';
         </style>
     </head>
     <body>
+        <script is:inline define:vars={{ supabaseUrl, supabaseAnonKey }}>
+            window.__SONAR_SUPABASE_URL__ = supabaseUrl;
+            window.__SONAR_SUPABASE_ANON_KEY__ = supabaseAnonKey;
+        </script>
         
         {isHome ? (
             /* ==========================================
@@ -647,11 +712,13 @@ import Analytics from '@vercel/analytics/astro';
                         <a href="/" style="text-decoration: none; color: inherit;">SONAR</a>
                     </h1>
 
-                    <!-- Bouton Sélecteur de Langue -->
-                    <div class="lang-selector-home-wrapper">
-                        <button class="lang-selector-btn">
-                            FR | ENG
-                        </button>
+                    <div class="header-home-actions">
+                        <AuthNav variant="home" />
+                        <div class="lang-selector-home-wrapper">
+                            <button class="lang-selector-btn">
+                                FR | ENG
+                            </button>
+                        </div>
                     </div>
                 </header>
 
@@ -689,10 +756,13 @@ import Analytics from '@vercel/analytics/astro';
                         <a href="/technologie" data-i18n="nav_tech">Technologie</a>
                         </nav>
 
-                    <div class="lang-selector-wrapper">
-                        <button class="lang-selector-btn">
-                            FR | ENG
-                        </button>
+                    <div class="header-toolbar">
+                        <AuthNav variant="inner" />
+                        <div class="lang-selector-wrapper">
+                            <button class="lang-selector-btn">
+                                FR | ENG
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>

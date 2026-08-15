@@ -1,0 +1,208 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+---
+
+<MainLayout title="Connexion">
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1 data-i18n="auth_login_title">Connexion</h1>
+      <p class="auth-subtitle" data-i18n="auth_login_subtitle">
+        Connectez-vous pour commenter les articles.
+      </p>
+
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label for="email" data-i18n="auth_email">Adresse e-mail</label>
+          <input type="email" id="email" name="email" required autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+          <label for="password" data-i18n="auth_password">Mot de passe</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" />
+        </div>
+
+        <p id="form-message" class="form-message"></p>
+        <button type="submit" id="submit-btn" data-i18n="auth_login">Connexion</button>
+      </form>
+
+      <p class="auth-switch">
+        <span data-i18n="auth_no_account">Pas encore de compte ?</span>
+        {' '}
+        <a id="signup-link" href="/inscription" data-i18n="auth_create_account">Créer un compte</a>
+      </p>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { getBrowserSupabase, getCurrentAccount, safeRedirectPath } from '../utils/supabase-browser';
+  import { flushPendingAvatar } from '../utils/avatar';
+
+  const params = new URLSearchParams(window.location.search);
+  const redirect = safeRedirectPath(params.get('redirect'));
+
+  try {
+    const existing = await getCurrentAccount();
+    if (existing) {
+      window.location.replace(redirect);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const signupLink = document.getElementById('signup-link') as HTMLAnchorElement | null;
+  if (signupLink && params.get('redirect')) {
+    signupLink.href = `/inscription?redirect=${encodeURIComponent(redirect)}`;
+  }
+
+  const form = document.getElementById('login-form') as HTMLFormElement | null;
+  const messageEl = document.getElementById('form-message');
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!messageEl || !form) return;
+
+    messageEl.textContent = 'Connexion en cours...';
+    messageEl.style.color = '#9ca3af';
+    if (submitBtn) submitBtn.disabled = true;
+
+    const formData = new FormData(form);
+    const email = String(formData.get('email') || '').trim();
+    const password = String(formData.get('password') || '');
+
+    try {
+      const supabase = getBrowserSupabase();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        messageEl.textContent = 'E-mail ou mot de passe incorrect.';
+        messageEl.style.color = '#ef4444';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      try {
+        await flushPendingAvatar(supabase);
+      } catch {
+        /* la photo pourra être retentée au prochain chargement */
+      }
+
+      window.location.href = redirect;
+    } catch {
+      messageEl.textContent = 'Erreur de connexion au serveur.';
+      messageEl.style.color = '#ef4444';
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .auth-page {
+    max-width: 480px;
+    margin: 40px auto 80px auto;
+  }
+
+  .auth-card {
+    background-color: #02001d;
+    border-radius: 8px;
+    padding: 40px 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .auth-card h1 {
+    margin: 0 0 8px 0;
+    font-size: 1.8rem;
+    color: #ffffff;
+  }
+
+  .auth-subtitle {
+    margin: 0 0 28px 0;
+    color: #9ca3af;
+    font-size: 0.95rem;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    color: #d1d5db;
+  }
+
+  .form-group input {
+    background-color: #0b092b;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #ea580c;
+  }
+
+  .form-message {
+    min-height: 1.2em;
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  #submit-btn {
+    background-color: #ea580c;
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  #submit-btn:hover:not(:disabled) {
+    background-color: #d4510b;
+  }
+
+  #submit-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  .auth-switch {
+    margin-top: 24px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+  }
+
+  .auth-switch a {
+    color: #ea580c;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .auth-switch a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 968px) {
+    .auth-page {
+      margin: 20px auto 40px auto;
+    }
+    .auth-card {
+      padding: 28px 20px;
+    }
+  }
+</style>

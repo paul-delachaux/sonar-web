@@ -1,0 +1,410 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+---
+
+<MainLayout title="Créer un compte">
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1 data-i18n="auth_signup_title">Créer un compte</h1>
+      <p class="auth-subtitle" data-i18n="auth_signup_subtitle">
+        Un compte est nécessaire pour publier un commentaire.
+      </p>
+
+      <form id="signup-form" class="auth-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="last_name" data-i18n="auth_last_name">Nom</label>
+            <input type="text" id="last_name" name="last_name" required autocomplete="family-name" />
+          </div>
+          <div class="form-group">
+            <label for="first_name" data-i18n="auth_first_name">Prénom</label>
+            <input type="text" id="first_name" name="first_name" required autocomplete="given-name" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="username" data-i18n="auth_username">Pseudo</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            minlength="3"
+            maxlength="20"
+            pattern="[A-Za-z0-9_]+"
+            autocomplete="username"
+          />
+          <small data-i18n="auth_username_hint">3 à 20 caractères : lettres, chiffres et underscore.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="email" data-i18n="auth_email">Adresse e-mail</label>
+          <input type="email" id="email" name="email" required autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+          <label for="password" data-i18n="auth_password">Mot de passe</label>
+          <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" />
+          <small data-i18n="auth_password_hint">8 caractères minimum.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="phone" data-i18n="auth_phone">Téléphone <span class="optional">(optionnel)</span></label>
+          <input type="tel" id="phone" name="phone" autocomplete="tel" />
+        </div>
+
+        <div class="form-group">
+          <label for="avatar" data-i18n="auth_avatar">Photo de profil <span class="optional">(optionnel)</span></label>
+          <div class="avatar-picker">
+            <span id="avatar-preview" class="sonar-avatar" aria-hidden="true">?</span>
+            <input type="file" id="avatar" name="avatar" accept="image/png,image/jpeg,image/webp" />
+          </div>
+        </div>
+
+        <p id="form-message" class="form-message"></p>
+        <button type="submit" id="submit-btn" data-i18n="auth_create_account">Créer un compte</button>
+      </form>
+
+      <p class="auth-switch">
+        <span data-i18n="auth_has_account">Déjà un compte ?</span>
+        {' '}
+        <a id="login-link" href="/connexion" data-i18n="auth_login">Connexion</a>
+      </p>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { getBrowserSupabase, getCurrentAccount, safeRedirectPath } from '../utils/supabase-browser';
+  import { pickAvatarColor, avatarInitial, stashPendingAvatar, uploadAccountAvatar, clearPendingAvatar } from '../utils/avatar';
+
+  const params = new URLSearchParams(window.location.search);
+  const redirect = safeRedirectPath(params.get('redirect'));
+
+  try {
+    const existing = await getCurrentAccount();
+    if (existing) {
+      window.location.replace(redirect);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const loginLink = document.getElementById('login-link') as HTMLAnchorElement | null;
+  if (loginLink && params.get('redirect')) {
+    loginLink.href = `/connexion?redirect=${encodeURIComponent(redirect)}`;
+  }
+
+  const form = document.getElementById('signup-form') as HTMLFormElement | null;
+  const messageEl = document.getElementById('form-message');
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+  const usernameInput = document.getElementById('username') as HTMLInputElement | null;
+  const avatarInput = document.getElementById('avatar') as HTMLInputElement | null;
+  const previewEl = document.getElementById('avatar-preview') as HTMLElement | null;
+
+  const avatarColor = pickAvatarColor();
+  let previewObjectUrl: string | null = null;
+
+  function updateLetterPreview() {
+    if (!previewEl || avatarInput?.files?.[0]) return;
+    previewEl.style.backgroundColor = avatarColor;
+    previewEl.innerHTML = '';
+    previewEl.textContent = avatarInitial(usernameInput?.value || '?');
+  }
+
+  usernameInput?.addEventListener('input', updateLetterPreview);
+  updateLetterPreview();
+
+  avatarInput?.addEventListener('change', () => {
+    if (!previewEl || !avatarInput.files?.[0]) {
+      updateLetterPreview();
+      return;
+    }
+    const file = avatarInput.files[0];
+    if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+    previewObjectUrl = URL.createObjectURL(file);
+    previewEl.style.backgroundColor = 'transparent';
+    previewEl.innerHTML = `<img src="${previewObjectUrl}" alt="" />`;
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!messageEl || !form) return;
+
+    const formData = new FormData(form);
+    const firstName = String(formData.get('first_name') || '').trim();
+    const lastName = String(formData.get('last_name') || '').trim();
+    const username = String(formData.get('username') || '').trim();
+    const email = String(formData.get('email') || '').trim();
+    const password = String(formData.get('password') || '');
+    const phone = String(formData.get('phone') || '').trim();
+    const avatarFile = avatarInput?.files?.[0] || null;
+
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) {
+      messageEl.textContent = 'Le pseudo doit contenir 3 à 20 lettres, chiffres ou underscore.';
+      messageEl.style.color = '#ef4444';
+      return;
+    }
+
+    if (avatarFile && avatarFile.size > 2 * 1024 * 1024) {
+      messageEl.textContent = 'La photo de profil doit faire moins de 2 Mo.';
+      messageEl.style.color = '#ef4444';
+      return;
+    }
+
+    messageEl.textContent = 'Création du compte...';
+    messageEl.style.color = '#9ca3af';
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const supabase = getBrowserSupabase();
+
+      const { data: existingUsername } = await supabase
+        .from('accounts')
+        .select('id')
+        .ilike('username', username)
+        .maybeSingle();
+
+      if (existingUsername) {
+        messageEl.textContent = 'Ce pseudo est déjà pris.';
+        messageEl.style.color = '#ef4444';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      const { data: existingEmail } = await supabase
+        .from('accounts')
+        .select('id')
+        .ilike('email', email)
+        .maybeSingle();
+
+      if (existingEmail) {
+        messageEl.textContent = 'Un compte existe déjà avec cette adresse e-mail. Connectez-vous, ou utilisez « mot de passe oublié » si besoin.';
+        messageEl.style.color = '#ef4444';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            username,
+            phone: phone || null,
+            avatar_color: avatarColor,
+          },
+        },
+      });
+
+      if (error) {
+        const raw = (error.message || '').toLowerCase();
+        if (raw.includes('already registered') || raw.includes('already exists')) {
+          messageEl.textContent = 'Un compte existe déjà avec cette adresse e-mail.';
+        } else if (raw.includes('rate limit')) {
+          messageEl.textContent = 'Trop d’e-mails de confirmation envoyés. Attendez environ une heure avant de réessayer (limite de Supabase).';
+        } else {
+          messageEl.textContent = error.message;
+        }
+        messageEl.style.color = '#ef4444';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      /* Supabase ne renvoie pas d'erreur si l'e-mail existe déjà (anti-énumération) :
+         le user revient sans "identities". */
+      const alreadyRegistered = Boolean(
+        data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0
+      );
+      if (alreadyRegistered) {
+        messageEl.textContent = 'Un compte existe déjà avec cette adresse e-mail.';
+        messageEl.style.color = '#ef4444';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      if (avatarFile) {
+        try {
+          await stashPendingAvatar(email, avatarFile);
+        } catch {
+          /* localStorage trop petit : on tentera l'upload si une session existe déjà */
+        }
+      }
+
+      if (data.session && data.user && avatarFile) {
+        try {
+          await uploadAccountAvatar(supabase, data.user.id, avatarFile);
+          clearPendingAvatar();
+        } catch (uploadErr) {
+          const detail = uploadErr instanceof Error ? uploadErr.message : '';
+          messageEl.textContent = detail
+            ? `Compte créé, mais la photo n’a pas pu être envoyée (${detail}). Elle sera retentée à la prochaine connexion.`
+            : 'Compte créé, mais la photo n’a pas pu être envoyée. Elle sera retentée à la prochaine connexion.';
+          messageEl.style.color = '#f59e0b';
+          window.setTimeout(() => {
+            window.location.href = redirect;
+          }, 1800);
+          return;
+        }
+      }
+
+      if (!data.session) {
+        messageEl.textContent = 'Compte créé. Vérifiez votre e-mail pour confirmer l’inscription, puis connectez-vous. Votre photo de profil sera ajoutée après connexion.';
+        messageEl.style.color = '#22c55e';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      window.location.href = redirect;
+    } catch {
+      messageEl.textContent = 'Erreur de connexion au serveur.';
+      messageEl.style.color = '#ef4444';
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .auth-page {
+    max-width: 560px;
+    margin: 40px auto 80px auto;
+  }
+
+  .auth-card {
+    background-color: #02001d;
+    border-radius: 8px;
+    padding: 40px 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .auth-card h1 {
+    margin: 0 0 8px 0;
+    font-size: 1.8rem;
+    color: #ffffff;
+  }
+
+  .auth-subtitle {
+    margin: 0 0 28px 0;
+    color: #9ca3af;
+    font-size: 0.95rem;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    color: #d1d5db;
+  }
+
+  .optional {
+    color: #6b7280;
+    font-weight: 400;
+  }
+
+  .form-group small {
+    color: #6b7280;
+    font-size: 0.8rem;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="password"],
+  .form-group input[type="tel"] {
+    background-color: #0b092b;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #ea580c;
+  }
+
+  .form-group input[type="file"] {
+    color: #d1d5db;
+    font-size: 0.85rem;
+  }
+
+  .avatar-picker {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .form-message {
+    min-height: 1.2em;
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  #submit-btn {
+    background-color: #ea580c;
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  #submit-btn:hover:not(:disabled) {
+    background-color: #d4510b;
+  }
+
+  #submit-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  .auth-switch {
+    margin-top: 24px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+  }
+
+  .auth-switch a {
+    color: #ea580c;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .auth-switch a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 968px) {
+    .auth-page {
+      margin: 20px auto 40px auto;
+    }
+    .auth-card {
+      padding: 28px 20px;
+    }
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

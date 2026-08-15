@@ -1,0 +1,240 @@
+---
+interface Props {
+  variant?: 'home' | 'inner';
+}
+
+const { variant = 'inner' } = Astro.props;
+const currentPath = Astro.url.pathname;
+const redirectPath = (currentPath === '/connexion' || currentPath === '/inscription')
+  ? '/'
+  : currentPath + Astro.url.search;
+const loginHref = `/connexion?redirect=${encodeURIComponent(redirectPath)}`;
+---
+
+<div class:list={['auth-nav', `auth-nav--${variant}`]} data-auth-nav data-state="loading">
+  <a href={loginHref} class="auth-nav-login" data-guest data-i18n="auth_login">Connexion</a>
+
+  <div class="auth-nav-user" data-user hidden>
+    <button type="button" class="auth-nav-user-btn" aria-haspopup="true" aria-expanded="false">
+      <span class="sonar-avatar sonar-avatar-sm" data-auth-avatar aria-hidden="true"></span>
+      <span class="auth-nav-username" data-auth-username></span>
+    </button>
+    <div class="auth-nav-dropdown" hidden>
+      <a href="/compte" class="auth-nav-dropdown-link" data-i18n="account_title">Mon compte</a>
+      <button type="button" class="auth-nav-logout" data-auth-logout data-i18n="auth_logout">
+        Déconnexion
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { getBrowserSupabase, getCurrentAccount, type Account } from '../utils/supabase-browser';
+  import { avatarInitial, flushPendingAvatar } from '../utils/avatar';
+
+  function fillAvatar(el: HTMLElement, account: Account) {
+    el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
+    if (account.avatar_url) {
+      el.innerHTML = `<img src="${account.avatar_url.replace(/"/g, '&quot;')}" alt="" />`;
+    } else {
+      el.textContent = avatarInitial(account.username);
+    }
+  }
+
+  async function applyAuthState(nav: HTMLElement) {
+    const guestEl = nav.querySelector('[data-guest]') as HTMLElement | null;
+    const userEl = nav.querySelector('[data-user]') as HTMLElement | null;
+    const usernameEl = nav.querySelector('[data-auth-username]') as HTMLElement | null;
+    const avatarEl = nav.querySelector('[data-auth-avatar]') as HTMLElement | null;
+
+    try {
+      const supabase = getBrowserSupabase();
+      try {
+        await flushPendingAvatar(supabase);
+      } catch {
+        /* l'upload pourra être retenté au prochain chargement */
+      }
+
+      const account = await getCurrentAccount();
+      if (!account) {
+        nav.dataset.state = 'guest';
+        guestEl?.removeAttribute('hidden');
+        userEl?.setAttribute('hidden', '');
+        return;
+      }
+
+      nav.dataset.state = 'user';
+      guestEl?.setAttribute('hidden', '');
+      userEl?.removeAttribute('hidden');
+      if (usernameEl) usernameEl.textContent = account.username;
+      if (avatarEl) fillAvatar(avatarEl, account);
+    } catch {
+      nav.dataset.state = 'guest';
+      guestEl?.removeAttribute('hidden');
+      userEl?.setAttribute('hidden', '');
+    }
+  }
+
+  function setupNav(nav: HTMLElement) {
+    const userBtn = nav.querySelector('.auth-nav-user-btn') as HTMLButtonElement | null;
+    const dropdown = nav.querySelector('.auth-nav-dropdown') as HTMLElement | null;
+    const logoutBtn = nav.querySelector('[data-auth-logout]') as HTMLButtonElement | null;
+
+    userBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!dropdown) return;
+      const open = dropdown.hasAttribute('hidden');
+      if (open) dropdown.removeAttribute('hidden');
+      else dropdown.setAttribute('hidden', '');
+      userBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', () => {
+      dropdown?.setAttribute('hidden', '');
+      userBtn?.setAttribute('aria-expanded', 'false');
+    });
+
+    logoutBtn?.addEventListener('click', async () => {
+      const supabase = getBrowserSupabase();
+      await supabase.auth.signOut();
+      window.location.reload();
+    });
+
+    applyAuthState(nav);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-auth-nav]').forEach(setupNav);
+</script>
+
+<style>
+  .auth-nav {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    line-height: 1;
+  }
+
+  .auth-nav[data-state="loading"] {
+    visibility: hidden;
+  }
+
+  /* display: inline-flex plus bas écrase l'attribut HTML hidden :
+     on pilote la visibilité via data-state. */
+  .auth-nav[data-state="user"] .auth-nav-login,
+  .auth-nav[data-state="guest"] .auth-nav-user,
+  .auth-nav-user[hidden],
+  .auth-nav-dropdown[hidden] {
+    display: none !important;
+  }
+
+  .auth-nav-login {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ea580c;
+    color: #ffffff;
+    border-radius: 50px;
+    font-weight: bold;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    text-decoration: none;
+    white-space: nowrap;
+    box-sizing: border-box;
+    line-height: 1.2;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .auth-nav-login:hover {
+    background-color: #d4510b;
+    transform: scale(1.03);
+  }
+
+  /* Accueil : calé sur le bouton FR | ENG de l'accueil */
+  .auth-nav--home .auth-nav-login {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+  }
+
+  /* Pages internes : calé sur le bouton FR | ENG du header compact */
+  .auth-nav--inner .auth-nav-login {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+  }
+
+  .auth-nav-user-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #ffffff;
+    color: #03031a;
+    border: none;
+    border-radius: 50px;
+    padding: 4px 12px 4px 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85rem;
+    font-family: inherit;
+    line-height: 1.2;
+    max-width: 180px;
+  }
+
+  .auth-nav-username {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .auth-nav-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #02001d;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    min-width: 160px;
+    z-index: 10001;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .auth-nav-dropdown-link,
+  .auth-nav-logout {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    text-align: left;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: inherit;
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+
+  .auth-nav-dropdown-link:hover,
+  .auth-nav-logout:hover {
+    color: #ea580c;
+  }
+
+  @media (max-width: 968px) {
+    .auth-nav--home .auth-nav-login {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+    }
+
+    .auth-nav--inner .auth-nav-login {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+    }
+
+    .auth-nav-username {
+      display: none;
+    }
+
+    .auth-nav-user-btn {
+      padding: 4px;
+      max-width: none;
+    }
+  }
+</style>

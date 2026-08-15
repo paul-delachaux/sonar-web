@@ -1,0 +1,31 @@
+---
+import { avatarInitial } from '../utils/avatar';
+
+interface Props {
+  username: string;
+  avatarUrl?: string | null;
+  avatarColor?: string | null;
+  size?: 'sm' | 'md';
+}
+
+const {
+  username,
+  avatarUrl = null,
+  avatarColor = '#ea580c',
+  size = 'md',
+} = Astro.props;
+
+const initial = avatarInitial(username);
+---
+
+<span
+  class:list={['sonar-avatar', size === 'sm' && 'sonar-avatar-sm']}
+  style={!avatarUrl ? `background-color: ${avatarColor || '#ea580c'}` : undefined}
+  aria-hidden="true"
+>
+  {avatarUrl ? (
+    <img src={avatarUrl} alt="" />
+  ) : (
+    initial
+  )}
+</span>

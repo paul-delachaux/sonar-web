@@ -1,5 +1,6 @@
 ---
 import { supabase } from '../utils/supabase';
+import UserAvatar from './UserAvatar.astro';
 
 interface Props {
   articleSlug: string;
@@ -7,22 +8,63 @@ interface Props {
 
 const { articleSlug } = Astro.props;
 
-// Récupération des commentaires depuis Supabase au chargement
+const redirectTo = `/articles/${articleSlug}`;
+
 const { data: comments } = await supabase
   .from('comments')
   .select('*')
   .eq('article_slug', articleSlug)
   .order('created_at', { ascending: false });
+
+const accountIds = [...new Set((comments || []).map((c: any) => c.account_id).filter(Boolean))];
+
+let accountsById: Record<string, { username: string; avatar_url: string | null; avatar_color: string }> = {};
+
+if (accountIds.length > 0) {
+  const { data: accounts } = await supabase
+    .from('accounts')
+    .select('id, username, avatar_url, avatar_color')
+    .in('id', accountIds);
+
+  accountsById = Object.fromEntries(
+    (accounts || []).map((account: any) => [account.id, account])
+  );
+}
+
+function commentAuthor(comment: any) {
+  const account = comment.account_id ? accountsById[comment.account_id] : null;
+  const username = account?.username || comment.author_name || 'Anonyme';
+  return {
+    username,
+    avatarUrl: account?.avatar_url || null,
+    avatarColor: account?.avatar_color || '#ea580c',
+  };
+}
 ---
 
 <section class="comments-section">
   <h2>Commentaires ({comments?.length || 0})</h2>
 
-  <!-- Formulaire d'envoi -->
-  <form id="comment-form" data-slug={articleSlug} class="comment-form">
-    <div class="form-group">
-      <label for="author_name">Votre nom / pseudo :</label>
-      <input type="text" id="author_name" name="author_name" required placeholder="Ex: Alex" />
+  <div id="comment-login-prompt" class="comment-login-prompt">
+    <p data-i18n="comments_login_prompt">Connectez-vous pour publier un commentaire.</p>
+    <div class="comment-login-actions">
+      <a href={`/connexion?redirect=${encodeURIComponent(redirectTo)}`} class="comment-login-btn" data-i18n="auth_login">
+        Connexion
+      </a>
+      <a href={`/inscription?redirect=${encodeURIComponent(redirectTo)}`} class="comment-signup-link" data-i18n="auth_create_account">
+        Créer un compte
+      </a>
+    </div>
+  </div>
+
+  <form id="comment-form" data-slug={articleSlug} class="comment-form" hidden>
+    <div class="comment-as">
+      <span id="comment-form-avatar" class="sonar-avatar" aria-hidden="true"></span>
+      <p>
+        <span data-i18n="comments_as">Vous commentez en tant que</span>
+        {' '}
+        <strong id="comment-form-username"></strong>
+      </p>
     </div>
 
     <div class="form-group">
@@ -36,10 +78,10 @@ const { data: comments } = await supabase
 
   <hr class="comments-divider" />
 
-  <!-- Liste des commentaires -->
   <div class="comments-list">
     {comments && comments.length > 0 ? (
-      comments.map((comment) => {
+      comments.map((comment: any) => {
+        const author = commentAuthor(comment);
         const commentDate = new Date(comment.created_at);
         const dateFR = commentDate.toLocaleDateString('fr-FR');
         const dateEN = commentDate.toLocaleDateString('en-US');
@@ -47,7 +89,14 @@ const { data: comments } = await supabase
         return (
           <div class="comment-card">
             <div class="comment-header">
-              <strong class="author">{comment.author_name}</strong>
+              <div class="comment-author-block">
+                <UserAvatar
+                  username={author.username}
+                  avatarUrl={author.avatarUrl}
+                  avatarColor={author.avatarColor}
+                />
+                <strong class="author">{author.username}</strong>
+              </div>
               <small class="date" data-fr={dateFR} data-en={dateEN}>{dateFR}</small>
             </div>
             <p class="comment-body">{comment.content}</p>
@@ -61,98 +110,160 @@ const { data: comments } = await supabase
 </section>
 
 <script>
-  const form = document.getElementById('comment-form') as HTMLFormElement;
+  import { getBrowserSupabase, getCurrentAccount, type Account } from '../utils/supabase-browser';
+  import { avatarInitial } from '../utils/avatar';
+
+  const form = document.getElementById('comment-form') as HTMLFormElement | null;
+  const loginPrompt = document.getElementById('comment-login-prompt');
   const messageEl = document.getElementById('form-message');
+  const usernameEl = document.getElementById('comment-form-username');
+  const avatarEl = document.getElementById('comment-form-avatar');
+
+  function fillAvatar(el: HTMLElement, account: Account) {
+    el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
+    if (account.avatar_url) {
+      el.innerHTML = `<img src="${account.avatar_url.replace(/"/g, '&quot;')}" alt="" />`;
+    } else {
+      el.textContent = avatarInitial(account.username);
+    }
+  }
+
+  function escapeHtml(value: string) {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function avatarMarkup(username: string, avatarUrl: string | null, avatarColor: string) {
+    if (avatarUrl) {
+      return `<span class="sonar-avatar"><img src="${escapeHtml(avatarUrl)}" alt="" /></span>`;
+    }
+    return `<span class="sonar-avatar" style="background-color:${escapeHtml(avatarColor)}">${escapeHtml(avatarInitial(username))}</span>`;
+  }
+
+  async function setupCommentsAuth() {
+    const account = await getCurrentAccount();
+    if (!account) {
+      loginPrompt?.removeAttribute('hidden');
+      form?.setAttribute('hidden', '');
+      return null;
+    }
+
+    loginPrompt?.setAttribute('hidden', '');
+    form?.removeAttribute('hidden');
+    if (usernameEl) usernameEl.textContent = account.username;
+    if (avatarEl) fillAvatar(avatarEl, account);
+    return account;
+  }
+
+  const currentAccountPromise = setupCommentsAuth();
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!messageEl) return;
+    if (!messageEl || !form) return;
 
-    messageEl.textContent = "Publication en cours...";
-    messageEl.style.color = "#9ca3af";
+    const account = await currentAccountPromise;
+    if (!account) {
+      messageEl.textContent = 'Vous devez être connecté pour commenter.';
+      messageEl.style.color = '#ef4444';
+      return;
+    }
+
+    messageEl.textContent = 'Publication en cours...';
+    messageEl.style.color = '#9ca3af';
 
     const formData = new FormData(form);
-    const authorName = formData.get('author_name') as string;
     const content = formData.get('content') as string;
 
     const payload = {
       article_slug: form.dataset.slug,
-      author_name: authorName,
       content: content,
     };
 
     try {
+      const supabase = getBrowserSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        messageEl.textContent = 'Session expirée. Reconnectez-vous.';
+        messageEl.style.color = '#ef4444';
+        return;
+      }
+
       const res = await fetch('/api/comments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify(payload),
       });
 
       const result = await res.json();
 
       if (res.ok) {
-        messageEl.textContent = "Commentaire publié avec succès !";
-        messageEl.style.color = "#22c55e";
+        messageEl.textContent = 'Commentaire publié avec succès !';
+        messageEl.style.color = '#22c55e';
 
         const listEl = document.querySelector('.comments-list');
         if (listEl) {
-          // Supprimer le message s'il n'y avait aucun commentaire
           const noCommentsEl = listEl.querySelector('.no-comments');
-          if (noCommentsEl) {
-            noCommentsEl.remove();
-          }
+          if (noCommentsEl) noCommentsEl.remove();
 
-          /* AMÉLIORATION A : On utilise la date renvoyée par Supabase via l'API,
-             sinon on fait un fallback sur la date locale de l'utilisateur. */
-          const insertedComment = result.data || result.comment; 
-          const rawDate = insertedComment && insertedComment.created_at 
-            ? insertedComment.created_at 
+          const insertedComment = result.data || result.comment;
+          const rawDate = insertedComment && insertedComment.created_at
+            ? insertedComment.created_at
             : new Date().toISOString();
 
           const commentDate = new Date(rawDate);
           const dateFR = commentDate.toLocaleDateString('fr-FR');
           const dateEN = commentDate.toLocaleDateString('en-US');
-          
+
           const currentLang = (localStorage.getItem('site_lang') || 'FR').toUpperCase();
           const dateToDisplay = currentLang === 'EN' ? dateEN : dateFR;
 
-          // Création de la carte
+          const username = insertedComment?.username || account.username;
+          const avatarUrl = insertedComment?.avatar_url ?? account.avatar_url;
+          const avatarColor = insertedComment?.avatar_color || account.avatar_color;
+
           const newCommentCard = document.createElement('div');
           newCommentCard.className = 'comment-card';
-          
-          // Echappement XSS
-          const safeAuthor = authorName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-          const safeContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-          // Grâce au is:global dans le style plus bas, cette structure adoptera le bon CSS Flexbox
           newCommentCard.innerHTML = `
             <div class="comment-header">
-              <strong class="author">${safeAuthor}</strong>
+              <div class="comment-author-block">
+                ${avatarMarkup(username, avatarUrl, avatarColor)}
+                <strong class="author">${escapeHtml(username)}</strong>
+              </div>
               <small class="date" data-fr="${dateFR}" data-en="${dateEN}">${dateToDisplay}</small>
             </div>
-            <p class="comment-body">${safeContent}</p>
+            <p class="comment-body">${escapeHtml(content)}</p>
           `;
 
-          // Injection instantanée
           listEl.prepend(newCommentCard);
+        }
+
+        const countTitle = document.querySelector('.comments-section h2');
+        if (countTitle) {
+          const current = document.querySelectorAll('.comment-card').length;
+          countTitle.textContent = `Commentaires (${current})`;
         }
 
         form.reset();
       } else {
-        messageEl.textContent = result.message || "Une erreur est survenue.";
-        messageEl.style.color = "#ef4444";
+        messageEl.textContent = result.message || 'Une erreur est survenue.';
+        messageEl.style.color = '#ef4444';
       }
     } catch (err) {
-      messageEl.textContent = "Erreur de connexion au serveur.";
-      messageEl.style.color = "#ef4444";
+      messageEl.textContent = 'Erreur de connexion au serveur.';
+      messageEl.style.color = '#ef4444';
     }
   });
 </script>
 
-<!-- is:global EST LA CLÉ ! Cela permet au HTML injecté en JS de recevoir ce CSS -->
 <style is:global>
   .comments-section {
-    margin-top: 3rem;
+    max-width: 1200px;
+    margin: 3rem auto 0 auto;
+    padding: 0 40px 40px 40px;
+    box-sizing: border-box;
     color: #ffffff;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   }
@@ -163,11 +274,66 @@ const { data: comments } = await supabase
     color: #ffffff;
   }
 
+  .comment-login-prompt {
+    background-color: #0b092b;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    max-width: 600px;
+  }
+
+  .comment-login-prompt p {
+    margin: 0 0 1rem 0;
+    color: #d1d5db;
+  }
+
+  .comment-login-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .comment-login-btn {
+    background-color: #ea580c;
+    color: #ffffff;
+    text-decoration: none;
+    padding: 0.65rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .comment-login-btn:hover {
+    background-color: #d4510b;
+  }
+
+  .comment-signup-link {
+    color: #ea580c;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .comment-signup-link:hover {
+    text-decoration: underline;
+  }
+
   .comment-form {
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
     max-width: 600px;
+  }
+
+  .comment-as {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .comment-as p {
+    margin: 0;
+    color: #d1d5db;
+    font-size: 0.95rem;
   }
 
   .form-group {
@@ -238,13 +404,21 @@ const { data: comments } = await supabase
     align-items: center;
     width: 100%;
     margin-bottom: 0.5rem;
+    gap: 12px;
   }
 
-  /* Flexbox + margin-left: auto garantit l'alignement à droite */
+  .comment-author-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
   .comment-header .date {
     font-size: 0.8rem;
     color: #9ca3af;
-    margin-left: auto; 
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .author {
@@ -258,10 +432,21 @@ const { data: comments } = await supabase
     font-size: 0.95rem;
     color: #e5e7eb;
     line-height: 1.5;
+    padding-left: 46px;
   }
 
   .no-comments {
     color: #9ca3af;
     font-style: italic;
+  }
+
+  @media (max-width: 968px) {
+    .comments-section {
+      padding: 0 0 24px 0;
+    }
+
+    .comment-body {
+      padding-left: 0;
+    }
   }
 </style>
