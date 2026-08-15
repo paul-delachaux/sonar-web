@@ -7,7 +7,7 @@ interface Props {
 
 const { articleSlug } = Astro.props;
 
-// Récupération des commentaires spécifiques à CET article
+// Récupération des commentaires depuis Supabase au chargement
 const { data: comments } = await supabase
   .from('comments')
   .select('*')
@@ -22,39 +22,44 @@ const { data: comments } = await supabase
   <form id="comment-form" data-slug={articleSlug} class="comment-form">
     <div class="form-group">
       <label for="author_name">Votre nom / pseudo :</label>
-      <input type="text" id="author_name" name="author_name" required />
+      <input type="text" id="author_name" name="author_name" required placeholder="Ex: Alex" />
     </div>
 
     <div class="form-group">
       <label for="content">Votre commentaire :</label>
-      <textarea id="content" name="content" rows="4" required></textarea>
+      <textarea id="content" name="content" rows="4" required placeholder="Votre message..."></textarea>
     </div>
 
     <button type="submit" id="submit-btn">Publier le commentaire</button>
     <p id="form-message"></p>
   </form>
 
-  <hr />
+  <hr class="comments-divider" />
 
   <!-- Liste des commentaires -->
   <div class="comments-list">
     {comments && comments.length > 0 ? (
-      comments.map((comment) => (
-        <div class="comment-card">
-          <div class="comment-header">
-            <strong>{comment.author_name}</strong>
-            <small>{new Date(comment.created_at).toLocaleDateString('fr-FR')}</small>
+      comments.map((comment) => {
+        const commentDate = new Date(comment.created_at);
+        const dateFR = commentDate.toLocaleDateString('fr-FR');
+        const dateEN = commentDate.toLocaleDateString('en-US');
+
+        return (
+          <div class="comment-card">
+            <div class="comment-header">
+              <strong class="author">{comment.author_name}</strong>
+              <small class="date" data-fr={dateFR} data-en={dateEN}>{dateFR}</small>
+            </div>
+            <p class="comment-body">{comment.content}</p>
           </div>
-          <p>{comment.content}</p>
-        </div>
-      ))
+        );
+      })
     ) : (
       <p class="no-comments">Soyez le premier à laisser un commentaire !</p>
     )}
   </div>
 </section>
 
-<!-- Script interactif côté client -->
 <script>
   const form = document.getElementById('comment-form') as HTMLFormElement;
   const messageEl = document.getElementById('form-message');
@@ -63,8 +68,8 @@ const { data: comments } = await supabase
     e.preventDefault();
     if (!messageEl) return;
 
-    messageEl.textContent = "Envoi en cours...";
-    messageEl.style.color = "gray";
+    messageEl.textContent = "Publication en cours...";
+    messageEl.style.color = "#9ca3af";
 
     const formData = new FormData(form);
     const authorName = formData.get('author_name') as string;
@@ -87,48 +92,176 @@ const { data: comments } = await supabase
 
       if (res.ok) {
         messageEl.textContent = "Commentaire publié avec succès !";
-        messageEl.style.color = "green";
+        messageEl.style.color = "#22c55e";
 
-        // 1. Injection dynamique dans le DOM
         const listEl = document.querySelector('.comments-list');
         if (listEl) {
-          // Supprime le texte "Soyez le premier..." si présent
+          // Supprimer le message s'il n'y avait aucun commentaire
           const noCommentsEl = listEl.querySelector('.no-comments');
           if (noCommentsEl) {
             noCommentsEl.remove();
           }
 
-          // Crée l'élément du nouveau commentaire
-          const newComment = document.createElement('div');
-          newComment.className = 'comment-card';
-          newComment.innerHTML = `
+          /* AMÉLIORATION A : On utilise la date renvoyée par Supabase via l'API,
+             sinon on fait un fallback sur la date locale de l'utilisateur. */
+          const insertedComment = result.data || result.comment; 
+          const rawDate = insertedComment && insertedComment.created_at 
+            ? insertedComment.created_at 
+            : new Date().toISOString();
+
+          const commentDate = new Date(rawDate);
+          const dateFR = commentDate.toLocaleDateString('fr-FR');
+          const dateEN = commentDate.toLocaleDateString('en-US');
+          
+          const currentLang = (localStorage.getItem('site_lang') || 'FR').toUpperCase();
+          const dateToDisplay = currentLang === 'EN' ? dateEN : dateFR;
+
+          // Création de la carte
+          const newCommentCard = document.createElement('div');
+          newCommentCard.className = 'comment-card';
+          
+          // Echappement XSS
+          const safeAuthor = authorName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const safeContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+          // Grâce au is:global dans le style plus bas, cette structure adoptera le bon CSS Flexbox
+          newCommentCard.innerHTML = `
             <div class="comment-header">
-              <strong>${authorName}</strong>
-              <small>${new Date().toLocaleDateString('fr-FR')}</small>
+              <strong class="author">${safeAuthor}</strong>
+              <small class="date" data-fr="${dateFR}" data-en="${dateEN}">${dateToDisplay}</small>
             </div>
-            <p>${content}</p>
+            <p class="comment-body">${safeContent}</p>
           `;
 
-          // Ajoute en haut de la liste
-          listEl.prepend(newComment);
+          // Injection instantanée
+          listEl.prepend(newCommentCard);
         }
 
-        // 2. Réinitialisation du formulaire
         form.reset();
       } else {
         messageEl.textContent = result.message || "Une erreur est survenue.";
-        messageEl.style.color = "red";
+        messageEl.style.color = "#ef4444";
       }
     } catch (err) {
       messageEl.textContent = "Erreur de connexion au serveur.";
-      messageEl.style.color = "red";
+      messageEl.style.color = "#ef4444";
     }
   });
 </script>
 
-<style>
-  .comments-section { margin-top: 2rem; }
-  .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-  .comment-card { background: #f4f4f4; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; color: #333; }
-  .comment-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+<!-- is:global EST LA CLÉ ! Cela permet au HTML injecté en JS de recevoir ce CSS -->
+<style is:global>
+  .comments-section {
+    margin-top: 3rem;
+    color: #ffffff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  .comments-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #ffffff;
+  }
+
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    max-width: 600px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    color: #d1d5db;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    background-color: #0b092b;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #ea580c;
+  }
+
+  #submit-btn {
+    align-self: flex-start;
+    background-color: #ea580c;
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  #submit-btn:hover {
+    background-color: #d4510b;
+  }
+
+  .comments-divider {
+    border: none;
+    border-top: 1px solid #1f2937;
+    margin: 2.5rem 0;
+  }
+
+  .comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .comment-card {
+    background-color: transparent;
+    border-bottom: 1px solid #1f2937;
+    padding-bottom: 1rem;
+  }
+
+  .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Flexbox + margin-left: auto garantit l'alignement à droite */
+  .comment-header .date {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-left: auto; 
+  }
+
+  .author {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .comment-body {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #e5e7eb;
+    line-height: 1.5;
+  }
+
+  .no-comments {
+    color: #9ca3af;
+    font-style: italic;
+  }
 </style>
