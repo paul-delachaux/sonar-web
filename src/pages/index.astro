@@ -38,6 +38,22 @@ const trouverArticleParSlug = (slugCible: string | null | undefined) => {
 const checkHasEn = (art: any) => Boolean(art && art.data && art.data.title_en && String(art.data.title_en).trim() !== "");
 
 const IMG_PLACEHOLDER = "/assets/uploads/default-placeholder.jpg";
+const DEFAULT_OVERLAY_OPACITY = 75;
+
+// Voile sombre (haut → bas) des cartes à fond image de l'accueil. Calé sur le
+// rendu fixe précédent (0.4 / 0.7) à l'intensité par défaut (75), réglable
+// désormais depuis la Configuration Accueil au lieu de chaque article.
+const overlayGradientVertical = (raw: unknown) => {
+    const n = Number(raw);
+    const intensity =
+        raw === undefined || raw === null || raw === "" || Number.isNaN(n)
+            ? DEFAULT_OVERLAY_OPACITY
+            : Math.max(0, Math.min(100, n));
+    const ratio = intensity / DEFAULT_OVERLAY_OPACITY;
+    const top = 0.4 * ratio;
+    const bottom = 0.7 * ratio;
+    return `linear-gradient(to bottom, rgba(0, 0, 0, ${top}), rgba(0, 0, 0, ${bottom}))`;
+};
 
 // --- PLACEMENT FR : 2 PASSES ---
 // Passe 1 = uniquement les choix admin (emplacement le plus haut gagne si doublon)
@@ -59,12 +75,17 @@ const prochainRecent = () => {
 
 const avecStyles = (art: any, styleDecap: any, defaults: { fontSize: string; fontWeight: string; fontFamily: string }) => {
     if (!art) return null;
+    const overlayRaw = styleDecap?.overlay_opacity;
+    const overlayParsed = Number(overlayRaw);
     return {
         ...art,
         customStyles: {
             fontSize: styleDecap?.titleSize || defaults.fontSize,
             fontWeight: styleDecap?.titleWeight || defaults.fontWeight,
             fontFamily: styleDecap?.titleFont || defaults.fontFamily,
+            overlayOpacity: (overlayRaw === undefined || overlayRaw === null || overlayRaw === '' || isNaN(overlayParsed))
+                ? DEFAULT_OVERLAY_OPACITY
+                : overlayParsed,
         },
     };
 };
@@ -132,10 +153,15 @@ articlesRangeeInferieureFR = articlesRangeeInferieureFR.filter(Boolean);
 articlesAsymGaucheFR = articlesAsymGaucheFR.filter(Boolean);
 
 const styleDroiteDecap = homeSettings.asymRightStyle || {};
+const overlayDroiteRaw = (styleDroiteDecap as any).overlay_opacity;
+const overlayDroiteParsed = Number(overlayDroiteRaw);
 const styleGrandArticle = {
     fontSize: styleDroiteDecap.titleSize || "1.8rem",
     fontWeight: styleDroiteDecap.titleWeight || "700",
     fontFamily: styleDroiteDecap.titleFont || "sans-serif",
+    overlayOpacity: (overlayDroiteRaw === undefined || overlayDroiteRaw === null || overlayDroiteRaw === '' || isNaN(overlayDroiteParsed))
+        ? DEFAULT_OVERLAY_OPACITY
+        : overlayDroiteParsed,
 };
 
 // --- PLACEMENT EN (FR inchangé) ---
@@ -462,7 +488,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                           data-href-en={enHref(artEN, hasEn)}
                           data-has-en={hasEn ? "true" : "false"}
                         >
-                            <div class="overlay"></div>
+                            <div class="overlay" style={`background: ${overlayGradientVertical(artFR.customStyles.overlayOpacity)};`}></div>
                             <div class="card-content-top">
                                 <p 
                                   class="card-tag"
@@ -510,7 +536,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                               data-href-fr={`/articles/${artFR.id}`}
                               data-href-en={enHref(artEN, hasEn)}
                             >
-                                <div class="overlay"></div>
+                                <div class="overlay" style={`background: ${overlayGradientVertical(artFR.customStyles.overlayOpacity)};`}></div>
                                 <div class="card-content-top">
                                     <p 
                                       class="card-tag"
@@ -546,7 +572,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                           data-href-fr={`/articles/${articleAsymDroiteFR.id}`}
                           data-href-en={enHref(articleAsymDroiteEN, hasEnAsymDroite)}
                         >
-                            <div class="overlay"></div>
+                            <div class="overlay" style={`background: ${overlayGradientVertical(styleGrandArticle.overlayOpacity)};`}></div>
                             <div class="card-content-top">
                                 <p 
                                   class="card-tag"

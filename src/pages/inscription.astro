@@ -195,7 +195,13 @@ import MainLayout from '../layouts/Layout.astro';
             username,
             phone: phone || null,
             avatar_color: avatarColor,
+            signup_date: new Date().toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            }),
           },
+          emailRedirectTo: `${window.location.origin}/`,
         },
       });
 

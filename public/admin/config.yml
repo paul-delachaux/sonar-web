@@ -56,7 +56,6 @@ collections:
           - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
       - { label: "Image interne de l'article (Optionnelle)", name: "article_image", widget: "image", required: false, hint: "Si laissée vide, l'image de miniature sera utilisée" }
       - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
-      - { label: "Intensité du filtre sombre (page catégorie)", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero des pages Politique / Culture / Société / Technologie. 0 = image brute, 75 = défaut du site, 100 = très sombre. L'aperçu à droite se met à jour en direct." }
 
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
@@ -231,7 +230,6 @@ collections:
           - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
 
       - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
-      - { label: "Intensité du filtre sombre (page catégorie)", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero des pages Politique / Culture / Société / Technologie. 0 = image brute, 75 = défaut du site, 100 = très sombre. L'aperçu à droite se met à jour en direct." }
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
       - label: "Sources consultables"
@@ -310,16 +308,16 @@ collections:
   - name: "settings"
     label: "Paramètres"
     delete: false
-    editor:
-      preview: false
     files:
       - name: "homepage"
         label: "Configuration Accueil"
         file: "src/data/settings.json"
+        editor:
+          preview: true
         fields:
           # --- ARTICLE A LA UNE ---
           - { label: "Article à la une", name: "sep_article_une", widget: "separator", required: false }
-          - label: "Article à la une"
+          - label: "Choisir l'article"
             name: "heroArticle"
             widget: "relation-filtered"
             collection: "contenus_visibles"
@@ -329,7 +327,7 @@ collections:
 
           # --- SECTION DROITE (HAUT - LONG) ---
           - { label: "Première sidebar", name: "sep_sidebar_long", widget: "separator", required: false }
-          - label: "Sidebar : Premier article (Format Long)"
+          - label: "Premier article (format long)"
             name: "sidebarLongArticle"
             widget: "relation-filtered"
             collection: "contenus_visibles"
@@ -339,9 +337,10 @@ collections:
             required: false
 
           # --- SECTION DROITE (BAS - DEUX PETITS) ---
-          - label: "Sidebar : Deux articles du bas"
+          - label: "Deux articles du bas"
             name: "sidebarSmallArticles"
             widget: "list"
+            label_singular: "Article"
             summary: "Article : {{article}}"
             min: 0
             max: 2
@@ -359,9 +358,10 @@ collections:
 
           # --- SECTION DU BAS (TROIS ARTICLES) ---
           - { label: "Deuxième sidebar", name: "sep_sidebar_mid", widget: "separator", required: false }
-          - label: "Rangée du bas (Maximum 3 articles)"
+          - label: "Rangée du bas (max. 3)"
             name: "bottomArticles"
             widget: "list"
+            label_singular: "Article"
             summary: "Article : {{article}}"
             min: 0
             max: 3
@@ -377,10 +377,11 @@ collections:
               display_fields: ["title"]
               required: false
 
-          - label: "Styles de la rangée du bas"
+          - label: "Styles des 3 articles"
             name: "bottomArticlesStyles"
             widget: "list"
-            summary: "Configuration du style — Taille : {{titleSize}}, Police : {{titleFont}}"
+            label_singular: "Style"
+            summary: "__STYLE_SUMMARY__"
             min: 0
             max: 3
             required: false
@@ -416,11 +417,14 @@ collections:
                   - { label: "Journal / Classique (Serif)", value: "serif" }
                   - { label: "Code (Monospace)", value: "monospace" }
 
+              - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la photo de cette carte. 0 = image brute, 75 = défaut du site, 100 = très sombre." }
+
           # --- NOUVELLE SECTION : LES 3 ARTICLES SUPERPOSÉS (GAUCHE) ---
           - { label: "Troisième sidebar", name: "sep_sidebar_left", widget: "separator", required: false }
-          - label: "Asymétrique : 3 Articles Superposés (Gauche)"
+          - label: "3 articles superposés (gauche)"
             name: "asymLeftArticles"
             widget: "list"
+            label_singular: "Article"
             summary: "Article : {{article}}"
             min: 0
             max: 3
@@ -436,10 +440,11 @@ collections:
               display_fields: ["title"]
               required: false
 
-          - label: "Asymétrique : Styles des 3 articles superposés"
+          - label: "Styles des 3 articles"
             name: "asymLeftStyles"
             widget: "list"
-            summary: "Style — Taille : {{titleSize}}, Police : {{titleFont}}"
+            label_singular: "Style"
+            summary: "__STYLE_SUMMARY__"
             min: 0
             max: 3
             required: false
@@ -472,9 +477,11 @@ collections:
                   - { label: "Journal (Serif)", value: "serif" }
                   - { label: "Code (Monospace)", value: "monospace" }
 
+              - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la photo de cette carte. 0 = image brute, 75 = défaut du site, 100 = très sombre." }
+
           # --- NOUVELLE SECTION : LE GRAND ARTICLE UNIQUE (DROITE) ---
           - { label: "Article géant", name: "sep_giant_article", widget: "separator", required: false }
-          - label: "Asymétrique : Grand Article Principal (Droite)"
+          - label: "Choisir l'article"
             name: "asymRightArticle"
             widget: "relation-filtered"
             collection: "contenus_visibles"
@@ -483,7 +490,7 @@ collections:
             display_fields: ["title"]
             required: false
 
-          - label: "Asymétrique : Style du Grand Article"
+          - label: "Style de l'article"
             name: "asymRightStyle"
             widget: "object"
             required: false
@@ -515,19 +522,24 @@ collections:
                   - { label: "Journal (Serif)", value: "serif" }
                   - { label: "Code (Monospace)", value: "monospace" }
 
+              - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la photo de cette carte. 0 = image brute, 75 = défaut du site, 100 = très sombre." }
+
       # ==========================================
       # CONFIGURATION DES PAGES DE CATÉGORIES
       # ==========================================
       - name: "categories"
         label: "Configuration Catégories"
         file: "src/data/categories.json"
+        editor:
+          preview: true
         fields:
 
           # --- POLITIQUE ---
           - { label: "POLITIQUE", name: "sep_politique", widget: "separator", required: false, collapsed: true }
-          - label: "Politique : 3 articles mis en avant (Gauche)"
+          - label: "3 articles mis en avant"
             name: "politique_topArticles"
             widget: "list"
+            label_singular: "Article"
             summary: "Article : {{article}}"
             min: 0
             max: 3
@@ -544,10 +556,11 @@ collections:
               value_field: "{{slug}}"
               display_fields: ["title"]
 
-          - label: "Politique : Styles des 3 articles"
+          - label: "Styles des 3 articles"
             name: "politique_topStyles"
             widget: "list"
-            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            label_singular: "Style"
+            summary: "__STYLE_SUMMARY__"
             min: 0
             max: 3
             required: false
@@ -564,12 +577,14 @@ collections:
                   - { label: "Gras (700)", value: "700" }
                   - { label: "Ultra-Gras (900)", value: "900" }
               - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
+              - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero. 0 = image brute, 75 = défaut du site, 100 = très sombre." }
 
           # --- CULTURE ---
           - { label: "CULTURE", name: "sep_culture", widget: "separator", required: false, collapsed: true }
-          - label: "Culture : 3 articles mis en avant (Gauche)"
+          - label: "3 articles mis en avant"
             name: "culture_topArticles"
             widget: "list"
+            label_singular: "Article"
             summary: "Article : {{article}}"
             min: 0
             max: 3
@@ -586,10 +601,11 @@ collections:
               value_field: "{{slug}}"
               display_fields: ["title"]
 
-          - label: "Culture : Styles des 3 articles"
+          - label: "Styles des 3 articles"
             name: "culture_topStyles"
             widget: "list"
-            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            label_singular: "Style"
+            summary: "__STYLE_SUMMARY__"
             min: 0
             max: 3
             required: false
@@ -606,12 +622,14 @@ collections:
                   - { label: "Gras (700)", value: "700" }
                   - { label: "Ultra-Gras (900)", value: "900" }
               - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
+              - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero. 0 = image brute, 75 = défaut du site, 100 = très sombre." }
 
           # --- SOCIÉTÉ ---
           - { label: "SOCIÉTÉ", name: "sep_societe", widget: "separator", required: false, collapsed: true }
-          - label: "Société : 3 articles mis en avant (Gauche)"
+          - label: "3 articles mis en avant"
             name: "societe_topArticles"
             widget: "list"
+            label_singular: "Article"
             summary: "Article : {{article}}"
             min: 0
             max: 3
@@ -628,10 +646,11 @@ collections:
               value_field: "{{slug}}"
               display_fields: ["title"]
 
-          - label: "Société : Styles des 3 articles"
+          - label: "Styles des 3 articles"
             name: "societe_topStyles"
             widget: "list"
-            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            label_singular: "Style"
+            summary: "__STYLE_SUMMARY__"
             min: 0
             max: 3
             required: false
@@ -648,12 +667,14 @@ collections:
                   - { label: "Gras (700)", value: "700" }
                   - { label: "Ultra-Gras (900)", value: "900" }
               - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
+              - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero. 0 = image brute, 75 = défaut du site, 100 = très sombre." }
 
           # --- TECHNOLOGIE ---
           - { label: "TECHNOLOGIE", name: "sep_technologie", widget: "separator", required: false, collapsed: true }
-          - label: "Technologie : 3 articles mis en avant (Gauche)"
+          - label: "3 articles mis en avant"
             name: "technologie_topArticles"
             widget: "list"
+            label_singular: "Article"
             summary: "Article : {{article}}"
             min: 0
             max: 3
@@ -670,10 +691,11 @@ collections:
               value_field: "{{slug}}"
               display_fields: ["title"]
 
-          - label: "Technologie : Styles des 3 articles"
+          - label: "Styles des 3 articles"
             name: "technologie_topStyles"
             widget: "list"
-            summary: "Style — Titre: {{titleSize}} / Desc: {{descSize}}"
+            label_singular: "Style"
+            summary: "__STYLE_SUMMARY__"
             min: 0
             max: 3
             required: false
@@ -690,3 +712,4 @@ collections:
                   - { label: "Gras (700)", value: "700" }
                   - { label: "Ultra-Gras (900)", value: "900" }
               - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
+              - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero. 0 = image brute, 75 = défaut du site, 100 = très sombre." }

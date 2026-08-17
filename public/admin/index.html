@@ -50,6 +50,27 @@
     .cms-sidebar-header:hover { background-color: #01002b; }
     .cms-sidebar-header .arrow { font-size: 10px; transition: transform 0.2s ease; }
     .cms-sidebar-header.collapsed .arrow { transform: rotate(-90deg); }
+
+    [data-section-header="true"][data-preview-target]:hover {
+      box-shadow: 0 0 0 3px rgba(255, 121, 0, 0.55) !important;
+    }
+    [class*="ControlContainer"][data-preview-target]:hover {
+      outline: 1px solid rgba(255, 121, 0, 0.35);
+      outline-offset: -1px;
+    }
+
+    /* 7. LISTE DÉROULANTE DES CHAMPS "RELATION" (article à choisir) : la liste
+       virtualisée de Decap a des lignes de hauteur fixe. Un titre trop long qui
+       passe à la ligne déborde alors sur l'option suivante. On tronque avec des
+       points de suspension plutôt que de laisser le texte se chevaucher. On cible
+       l'attribut ARIA standard "role=option", stable quelle que soit la version
+       de Decap (les classes internes, elles, sont générées aléatoirement). */
+    #nc-root [role="option"] {
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      display: block !important;
+    }
   </style>
 </head>
 <body>
@@ -125,15 +146,70 @@
     });
 
     // 🧱 Widget de section intelligent / Séparateur Accordéon
+    const PREVIEW_TARGETS = {
+      sep_article_une: 'preview-hero',
+      heroArticle: 'preview-hero',
+      sep_sidebar_long: 'preview-sidebar',
+      sidebarLongArticle: 'preview-sidebar-long',
+      sidebarSmallArticles: 'preview-sidebar-small',
+      sep_sidebar_mid: 'preview-bottom',
+      bottomArticles: 'preview-bottom',
+      bottomArticlesStyles: 'preview-bottom',
+      sep_sidebar_left: 'preview-asym-left',
+      asymLeftArticles: 'preview-asym-left',
+      asymLeftStyles: 'preview-asym-left',
+      sep_giant_article: 'preview-asym-right',
+      asymRightArticle: 'preview-asym-right',
+      asymRightStyle: 'preview-asym-right',
+      sep_politique: 'preview-cat-politique',
+      politique_topArticles: 'preview-cat-politique',
+      politique_topStyles: 'preview-cat-politique',
+      sep_culture: 'preview-cat-culture',
+      culture_topArticles: 'preview-cat-culture',
+      culture_topStyles: 'preview-cat-culture',
+      sep_societe: 'preview-cat-societe',
+      societe_topArticles: 'preview-cat-societe',
+      societe_topStyles: 'preview-cat-societe',
+      sep_technologie: 'preview-cat-technologie',
+      technologie_topArticles: 'preview-cat-technologie',
+      technologie_topStyles: 'preview-cat-technologie'
+    };
+
+    const PREVIEW_LABEL_RULES = [
+      { test: /article à la une/i, target: 'preview-hero' },
+      { test: /premi[eè]re sidebar|premier article/i, target: 'preview-sidebar-long' },
+      { test: /deux articles du bas/i, target: 'preview-sidebar-small' },
+      { test: /deuxi[eè]me sidebar|rangée du bas|styles de la rangée/i, target: 'preview-bottom' },
+      { test: /troisi[eè]me sidebar|superposés/i, target: 'preview-asym-left' },
+      { test: /article géant|grand article/i, target: 'preview-asym-right' },
+      { test: /^politique/i, target: 'preview-cat-politique' },
+      { test: /^culture/i, target: 'preview-cat-culture' },
+      { test: /^société|^societe/i, target: 'preview-cat-societe' },
+      { test: /^technologie/i, target: 'preview-cat-technologie' }
+    ];
+
+    function matchLabelToPreviewTarget(label) {
+      const text = String(label || '').trim();
+      if (!text) return null;
+      for (let i = 0; i < PREVIEW_LABEL_RULES.length; i++) {
+        if (PREVIEW_LABEL_RULES[i].test.test(text)) return PREVIEW_LABEL_RULES[i].target;
+      }
+      return null;
+    }
+
     CMS.registerWidget('separator', createClass({
       render: function() {
         const field = this.props.field;
         const label = field.get('label');
+        const fieldName = field.get('name');
+        const sectionTarget = PREVIEW_TARGETS[fieldName] || matchLabelToPreviewTarget(label) || '';
         const isDefaultCollapsed = field.get('collapsed') === true;
         
         return h('div', {
           'data-section-header': 'true',
           'data-collapsed': isDefaultCollapsed ? 'true' : 'false',
+          'data-preview-target': sectionTarget,
+          title: sectionTarget ? 'Survolez pour localiser cette zone dans l’aperçu' : undefined,
           onClick: function(e) {
             var headerEl = e.currentTarget;
             var isCollapsed = headerEl.getAttribute('data-collapsed') === 'true';
@@ -198,6 +274,7 @@
                 parentContainer.style.marginBottom = '0px';
                 parentContainer.style.paddingBottom = '0px';
                 parentContainer.style.marginTop = '35px';
+                if (sectionTarget) parentContainer.setAttribute('data-preview-target', sectionTarget);
                 
                 var nextSibling = parentContainer.nextElementSibling;
                 var fieldsInGroup = [];
@@ -212,6 +289,9 @@
                 }
                 
                 fieldsInGroup.forEach(function(fieldEl, index) {
+                  var fieldLabel = fieldEl.querySelector('label');
+                  var specificTarget = matchLabelToPreviewTarget(fieldLabel ? fieldLabel.textContent : '') || sectionTarget;
+                  if (specificTarget) fieldEl.setAttribute('data-preview-target', specificTarget);
                   fieldEl.style.backgroundColor = '#f8fafc';
                   fieldEl.style.borderLeft = '2px solid #1D9E75';
                   fieldEl.style.borderRight = '2px solid #1D9E75';
@@ -240,6 +320,31 @@
           }
         }, [
           h('span', null, label),
+          sectionTarget ? h('button', {
+            type: 'button',
+            key: 'goto-preview',
+            title: 'Faire défiler l’aperçu jusqu’à cette zone',
+            onClick: function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (window.__sonarGoToPreview) window.__sonarGoToPreview(sectionTarget);
+            },
+            style: {
+              marginLeft: 'auto',
+              marginRight: '10px',
+              background: 'rgba(255,255,255,0.18)',
+              border: '1px solid rgba(255,255,255,0.5)',
+              color: '#ffffff',
+              borderRadius: '999px',
+              padding: '4px 12px',
+              fontSize: '11px',
+              fontWeight: '700',
+              textTransform: 'none',
+              letterSpacing: 'normal',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }
+          }, '📍 Aller à l’aperçu') : null,
           h('span', { className: 'section-arrow', style: { fontSize: '12px', marginLeft: '10px' } }, isDefaultCollapsed ? '►' : '▼')
         ]);
       }
@@ -307,6 +412,186 @@
     function getCategoryLabelFR(cat) {
       const key = String(cat || '').trim().toLowerCase();
       return CATEGORY_LABELS_FR[key] || String(cat || '').toUpperCase();
+    }
+
+    const PREVIEW_IMG_PLACEHOLDER = "/assets/uploads/default-placeholder.jpg";
+
+    function toPlain(value) {
+      if (value == null) return value;
+      if (typeof value.toJS === 'function') return value.toJS();
+      return value;
+    }
+
+    function unwrapSlug(value) {
+      if (value == null || value === '') return null;
+      const plain = toPlain(value);
+      if (typeof plain === 'string') {
+        const s = plain.trim();
+        return (!s || s === 'null' || s === 'undefined') ? null : s;
+      }
+      if (typeof plain === 'object') {
+        if (plain.article != null && plain.article !== '') return unwrapSlug(plain.article);
+        if (plain.slug) return unwrapSlug(plain.slug);
+      }
+      return null;
+    }
+
+    function getEntryList(entry, field) {
+      const plain = toPlain(entry.getIn(['data', field]));
+      if (!plain) return [];
+      return Array.isArray(plain) ? plain : [plain];
+    }
+
+    function getSlugList(entry, field, length) {
+      const slugs = getEntryList(entry, field).map(unwrapSlug);
+      const out = slugs.slice();
+      while (out.length < length) out.push(null);
+      return out.slice(0, length);
+    }
+
+    function getStyleAt(entry, field, index) {
+      const list = getEntryList(entry, field);
+      const item = list[index];
+      return (item && typeof item === 'object') ? item : {};
+    }
+
+    function walkMetaForSlug(obj, slug, depth) {
+      if (!obj || typeof obj !== 'object' || depth > 8) return null;
+      if (obj[slug] && typeof obj[slug] === 'object') {
+        const hit = obj[slug].data || obj[slug];
+        if (hit && (hit.title || hit.image || hit.description || hit.category)) return hit;
+      }
+      const keys = Object.keys(obj);
+      for (let i = 0; i < keys.length; i++) {
+        const v = obj[keys[i]];
+        if (!v || typeof v !== 'object') continue;
+        if ((v.title || v.image || v.description) && (keys[i] === slug || v.slug === slug)) {
+          return v.data || v;
+        }
+        const found = walkMetaForSlug(v, slug, depth + 1);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function lookupFromCmsStore(slug) {
+      try {
+        const store = window.CMS && (CMS.store || (CMS.getStore && CMS.getStore()));
+        if (!store || !store.getState) return null;
+        const state = store.getState();
+        const entities = state.entries && (state.entries.get ? state.entries.get('entities') : state.entries.entities);
+        if (!entities) return null;
+        const js = toPlain(entities);
+        const collections = Object.keys(js);
+        for (let i = 0; i < collections.length; i++) {
+          const coll = js[collections[i]];
+          if (coll && coll[slug]) {
+            const e = coll[slug];
+            return e.data || e;
+          }
+        }
+      } catch (err) {}
+      return null;
+    }
+
+    function normalizeRelatedArticle(rec, slug) {
+      if (!slug) {
+        return {
+          slug: null,
+          title: 'Emplacement vide',
+          description: 'Choisissez un article dans le panneau de gauche',
+          image: PREVIEW_IMG_PLACEHOLDER,
+          category: '',
+          empty: true,
+          missing: false
+        };
+      }
+      if (!rec) {
+        return {
+          slug: slug,
+          title: slug,
+          description: 'Aperçu limité : métadonnées de l’article non chargées',
+          image: PREVIEW_IMG_PLACEHOLDER,
+          category: '',
+          empty: false,
+          missing: true
+        };
+      }
+      const data = rec.data || rec;
+      return {
+        slug: slug,
+        title: data.title || slug,
+        description: data.description || '',
+        image: data.image || data.article_image || PREVIEW_IMG_PLACEHOLDER,
+        category: data.category || '',
+        use_thumbnail: data.use_thumbnail === true || data.use_thumbnail === 'true',
+        thumbnail_bg: data.thumbnail_bg,
+        thumbnail_bg_zoom: data.thumbnail_bg_zoom,
+        thumbnail_bg_position: data.thumbnail_bg_position,
+        thumbnail_title: data.thumbnail_title,
+        title_x: data.title_x,
+        title_y: data.title_y,
+        title_size: data.title_size,
+        title_weight: data.title_weight,
+        title_font: data.title_font,
+        title_color: data.title_color,
+        thumbnail_descs: Array.isArray(data.thumbnail_descs) ? data.thumbnail_descs : [],
+        empty: false,
+        missing: false
+      };
+    }
+
+    function lookupRelatedArticle(props, slug) {
+      if (!slug) return normalizeRelatedArticle(null, null);
+      const meta = props.fieldsMetaData;
+      if (meta) {
+        const found = walkMetaForSlug(toPlain(meta), slug, 0);
+        if (found) return normalizeRelatedArticle(found, slug);
+      }
+      return normalizeRelatedArticle(lookupFromCmsStore(slug), slug);
+    }
+
+    function resolveSlot(props, slug) {
+      return lookupRelatedArticle(props, unwrapSlug(slug));
+    }
+
+    function slugKey(slug) {
+      return String(slug || '')
+        .replace(/\.mdx?$/, '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function flagDuplicates(articles) {
+      const seen = {};
+      return articles.map(function(art) {
+        if (!art || art.empty || !art.slug) return art;
+        const key = slugKey(art.slug);
+        if (!key) return art;
+        if (seen[key]) return Object.assign({}, art, { duplicate: true });
+        seen[key] = true;
+        return art;
+      });
+    }
+
+    function withDuplicateOverlay(article, node) {
+      if (!article || !article.duplicate) return node;
+      return h('div', { className: 'duplicate-slot' },
+        node,
+        h('div', { className: 'duplicate-overlay' },
+          h('span', { className: 'duplicate-overlay-label' }, 'Article déjà placé plus haut')
+        )
+      );
+    }
+
+    function rememberPreviewContext(props) {
+      const doc = (props && props.document) || document;
+      const win = (props && props.window) || (doc && doc.defaultView) || window;
+      window.__SONAR_PREVIEW_DOC = doc;
+      window.__SONAR_PREVIEW_WIN = win;
     }
 
     function formatDateFR(rawDate) {
@@ -386,13 +671,6 @@
 
     const DEFAULT_OVERLAY_OPACITY = 75;
 
-    function getOverlayOpacity(entry) {
-      const raw = entry.getIn(['data', 'overlay_opacity']);
-      const n = Number(raw);
-      if (raw === undefined || raw === null || raw === '' || isNaN(n)) return DEFAULT_OVERLAY_OPACITY;
-      return Math.max(0, Math.min(100, n));
-    }
-
     function getOverlayGradient(opacity) {
       const n = Number(opacity);
       const safe = (opacity === undefined || opacity === null || opacity === '' || isNaN(n))
@@ -402,6 +680,18 @@
       const mid = l * (0.4 / 0.75);
       const right = l * (0.1 / 0.75);
       return 'linear-gradient(to right, rgba(0, 0, 0, ' + l + ') 0%, rgba(0, 0, 0, ' + mid + ') 60%, rgba(0, 0, 0, ' + right + ') 100%)';
+    }
+
+    // Même formule que overlayGradientVertical() dans src/pages/index.astro
+    function getOverlayGradientVertical(opacity) {
+      const n = Number(opacity);
+      const safe = (opacity === undefined || opacity === null || opacity === '' || isNaN(n))
+        ? DEFAULT_OVERLAY_OPACITY
+        : Math.max(0, Math.min(100, n));
+      const ratio = safe / DEFAULT_OVERLAY_OPACITY;
+      const top = 0.4 * ratio;
+      const bottom = 0.7 * ratio;
+      return 'linear-gradient(to bottom, rgba(0, 0, 0, ' + top + '), rgba(0, 0, 0, ' + bottom + '))';
     }
 
     // Decap CMS enveloppe le markdown dans des divs internes : `:scope > p` sur .prose-content
@@ -482,62 +772,6 @@
       (component._retryTimers || []).forEach(clearTimeout);
       component._retryTimers = [];
       if (component._observer) component._observer.disconnect();
-    }
-
-    function renderCategoryCardPreview(options) {
-      const title = options.title || "Titre de l'article";
-      const description = options.description || "";
-      const image = options.image || "/assets/uploads/default-placeholder.jpg";
-      const overlayOpacity = options.overlayOpacity;
-      const overlayGradient = getOverlayGradient(overlayOpacity);
-
-      return h('div', {
-        className: 'category-preview-box',
-        style: {
-          border: '2px dashed #1D9E75',
-          padding: '15px',
-          backgroundColor: '#0a131d',
-          borderRadius: '4px',
-          maxWidth: '1200px',
-          margin: '0 auto 30px auto'
-        }
-      },
-        h('div', {
-          style: {
-            color: '#1D9E75',
-            fontFamily: 'Helvetica, sans-serif',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            marginBottom: '8px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }
-        },
-          h('span', {}, 'Aperçu page catégorie (carte hero)'),
-          h('span', { style: { color: '#9ca3af', fontWeight: '600' } }, 'Filtre sombre : ' + overlayOpacity + ' %')
-        ),
-        h('a', {
-          className: 'hero-card-bg',
-          href: '#',
-          onClick: function(e) { e.preventDefault(); }
-        },
-          h('div', {
-            className: 'bg-image',
-            style: { backgroundImage: 'url(' + image + ')' }
-          }),
-          h('div', {
-            className: 'card-overlay',
-            style: { background: overlayGradient }
-          }),
-          h('div', { className: 'card-text-container' },
-            h('h2', { className: 'card-title' }, title),
-            description ? h('p', { className: 'card-desc' }, description) : null
-          )
-        )
-      );
     }
 
     function buildHeroFigure(options) {
@@ -647,10 +881,82 @@
       .card-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: 700; color: #ffffff; margin: 0 0 10px 0; line-height: 1.3; }
       .card-desc { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 0.8rem; font-weight: 400; color: #ffffff; margin: 0; line-height: 1.4; }
 
+      /* --- Aperçu Configuration Accueil --- */
+      .home-preview { background: #02001d; padding: 16px 12px 40px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #ffffff; min-height: 100%; }
+      .home-preview-note { color: #9ca3af; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 16px; }
+      .home-preview .container-accueil { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+      .home-preview .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: stretch; min-height: 520px; }
+      .home-preview .article-une, .home-preview .article-sidebar, .home-preview .article-bottom-card { text-decoration: none; color: inherit; }
+      .home-preview .article-une { background: white; padding: 24px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 420px; }
+      .home-preview .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #111; }
+      .home-preview .image-wrapper { width: 100%; flex-grow: 1; min-height: 220px; position: relative; margin-top: 15px; }
+      .home-preview .image-wrapper img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+      .home-preview .sidebar-articles { display: flex; flex-direction: column; gap: 15px; height: auto; }
+      .home-preview .article-sidebar.long, .home-preview .sub-grid { flex: 1; }
+      .home-preview .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+      .home-preview .article-sidebar { background: white; padding: 15px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; height: auto; }
+      .home-preview .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #111; }
+      .home-preview .bottom-row-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; }
+      .home-preview .article-bottom-card { background: white; padding: 20px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 240px; border-radius: 2%; }
+      .home-preview .card-content-top { margin-bottom: 5px; }
+      .home-preview .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; }
+      .home-preview .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #f7f7f7; min-height: 60px; }
+      .home-preview .spacer-img { width: 100%; height: 100%; object-fit: cover; }
+      .home-preview .article-tag, .home-preview .sidebar-tag, .home-preview .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
+      .home-preview .article-tag { margin: 0 0 10px 0; }
+      .home-preview .sidebar-tag, .home-preview .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
+      .home-preview .article-desc, .home-preview .sidebar-desc { font-size: 0.95rem; line-height: 1.5; color: #333; margin: 0; }
+      .home-preview .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }
+      .home-preview .article-bottom-card.has-bg .overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)); z-index: -1; }
+      .home-preview .article-bottom-card.has-bg h3 { color: #ffffff !important; }
+      .home-preview .article-bottom-card.has-bg .card-desc { color: #e0e0e0; font-size: 0.95rem; line-height: 1.5; margin: 0; }
+      .home-preview .asym-container { display: grid; grid-template-columns: 3.5fr 6.5fr; gap: 20px; width: 100%; align-items: stretch; }
+      .home-preview .asym-left-stack { display: flex; flex-direction: column; gap: 15px; justify-content: space-between; }
+      .home-preview .asym-left-stack .article-bottom-card { min-height: 110px; padding: 15px; }
+      .home-preview .asym-right-giant { min-height: 360px; height: 100%; }
+      .home-preview .thumbnail-wrapper { display: block; width: 100%; height: 100%; background: transparent; border: none; padding: 0; min-height: 420px; }
+      .home-preview .thumbnail-canvas { position: relative; width: 100%; height: 100%; min-height: 420px; border-radius: 8px; overflow: hidden; }
+      .home-preview .thumbnail-shadow { position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 0; }
+      .home-preview .thumbnail-text { position: absolute; z-index: 1; margin: 0; padding: 0; width: 60%; max-width: 400px; line-height: 1.2; text-shadow: 2px 2px 5px rgba(0,0,0,0.9); }
+      .home-preview .home-empty { display: flex; align-items: center; justify-content: center; border: 2px dashed #1D9E75; background: rgba(29, 158, 117, 0.08); color: #9ca3af; font-size: 0.9rem; font-style: italic; min-height: 160px; text-align: center; padding: 16px; }
+      .home-preview .home-empty.article-une { min-height: 420px; }
+      .home-preview .home-empty p { margin: 0; color: #9ca3af; }
+      .home-preview .main-grid > [data-preview-anchor="preview-hero"] { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+      .home-preview .main-grid > [data-preview-anchor="preview-hero"] > * { flex: 1; }
+      .home-preview .sidebar-articles > [data-preview-anchor="preview-sidebar-long"] { flex: 1; display: flex; flex-direction: column; }
+      .home-preview .sidebar-articles > [data-preview-anchor="preview-sidebar-long"] > * { flex: 1; }
+      .home-preview .asym-container > [data-preview-anchor="preview-asym-right"] { height: 100%; display: flex; flex-direction: column; }
+      .home-preview .asym-container > [data-preview-anchor="preview-asym-right"] > * { flex: 1; height: 100%; }
+
+      /* --- Aperçu Configuration Catégories --- */
+      .categories-config-preview { background: #02001d; padding: 20px 16px 48px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #ffffff; min-height: 100%; }
+      .categories-config-preview .home-preview-note { color: #9ca3af; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 24px; }
+      .categories-config-preview .category-preview-section { max-width: 900px; margin: 0 auto 52px; }
+      .categories-config-preview .category-header { margin-bottom: 22px; text-align: left; padding-left: 8px; }
+      .categories-config-preview .category-title { font-size: 1.5rem; font-weight: 800; color: #ffffff; display: block; letter-spacing: 0.05em; margin: 0 0 10px 0; }
+      .categories-config-preview .title-separator { width: 75%; height: 2px; background-color: #ffffff; }
+      .categories-config-preview .left-stack { display: flex; flex-direction: column; gap: 25px; }
+      .categories-config-preview .hero-card-bg.is-empty { outline: 2px dashed #1D9E75; outline-offset: -2px; }
+      .categories-config-preview .hero-card-bg.is-empty .card-title,
+      .categories-config-preview .hero-card-bg.is-empty .card-desc { color: #d1d5db; font-style: italic; }
+      .preview-anchor { border-radius: 6px; transition: box-shadow 0.25s ease, outline 0.25s ease; }
+      .preview-anchor.preview-flash { outline: 3px solid #ff7900; outline-offset: 6px; box-shadow: 0 0 0 8px rgba(255, 121, 0, 0.22); }
+      .duplicate-slot { position: relative; height: 100%; min-height: inherit; }
+      .duplicate-overlay { position: absolute; inset: 0; background: rgba(2, 0, 29, 0.78); display: flex; align-items: center; justify-content: center; z-index: 6; border-radius: 4px; pointer-events: none; }
+      .duplicate-overlay-label { color: #ffffff; font-weight: 800; font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase; text-align: center; padding: 12px 16px; line-height: 1.35; text-shadow: 0 2px 10px rgba(0,0,0,0.55); }
+
       @media (max-width: 768px) {
         .article-grid, .breve-body-grid { grid-template-columns: 1fr; }
         .breve-header-main { flex-direction: column; }
         .breve-description { width: 100%; }
+        .home-preview .main-grid,
+        .home-preview .bottom-row-grid,
+        .home-preview .asym-container,
+        .home-preview .sub-grid { grid-template-columns: 1fr; }
+        .home-preview .article-une,
+        .home-preview .home-empty.article-une,
+        .home-preview .thumbnail-wrapper,
+        .home-preview .thumbnail-canvas { min-height: 260px; }
       }
     `;
 
@@ -708,11 +1014,6 @@
 
         const avatarUrl = getAuthorAvatar(author);
 
-        const image = entry.getIn(['data', 'image']);
-        const articleImage = entry.getIn(['data', 'article_image']);
-        const categoryImage = image || articleImage || "/assets/uploads/default-placeholder.jpg";
-        const overlayOpacity = getOverlayOpacity(entry);
-
         const bg = entry.getIn(['data', 'thumbnail_bg']);
         const bgPosition = entry.getIn(['data', 'thumbnail_bg_position']) || 'center';
         const bgZoom = Number(entry.getIn(['data', 'thumbnail_bg_zoom']));
@@ -730,13 +1031,6 @@
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
 
           h('style', {}, PREVIEW_STYLES),
-
-          renderCategoryCardPreview({
-            title: title,
-            description: description,
-            image: categoryImage,
-            overlayOpacity: overlayOpacity
-          }),
 
           h('div', { className: 'article-wrapper' },
             h('div', { className: 'article-container' },
@@ -878,19 +1172,10 @@
         const avatarUrl = getAuthorAvatar(author);
         const categoryLabel = getCategoryLabelFR(category);
         const sourcesList = renderBreveSourcesList(entry);
-        const overlayOpacity = getOverlayOpacity(entry);
-        const categoryImage = entry.getIn(['data', 'image']) || "/assets/uploads/default-placeholder.jpg";
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
 
           h('style', {}, PREVIEW_STYLES),
-
-          renderCategoryCardPreview({
-            title: title,
-            description: description,
-            image: categoryImage,
-            overlayOpacity: overlayOpacity
-          }),
 
           h('div', { className: 'breve-wrapper' },
             h('article', { className: 'breve-layout-container' },
@@ -939,8 +1224,656 @@
       }
     });
 
+    function renderHomeEmpty(className, label) {
+      return h('div', { className: (className || '') + ' home-empty' },
+        h('p', {}, label)
+      );
+    }
+
+    function renderHomeSidebarCard(article, isLong) {
+      if (!article || article.empty) {
+        return renderHomeEmpty('article-sidebar' + (isLong ? ' long' : ''), 'Emplacement vide');
+      }
+      return h('div', { className: 'article-sidebar' + (isLong ? ' long' : '') },
+        h('div', { className: 'card-content-top' },
+          article.category ? h('p', { className: 'sidebar-tag' }, getCategoryLabelFR(article.category)) : null,
+          h('h3', {}, article.title),
+          article.description ? h('p', { className: 'sidebar-desc' }, article.description) : null
+        ),
+        h('div', { className: 'card-dynamic-spacer' },
+          h('img', { src: article.image, alt: '', className: 'spacer-img' })
+        )
+      );
+    }
+
+    function renderHomeHero(article) {
+      if (!article || article.empty) {
+        return renderHomeEmpty('article-une', 'Aucun article à la une');
+      }
+      if (article.use_thumbnail && article.thumbnail_bg) {
+        const descs = article.thumbnail_descs || [];
+        return h('div', { className: 'thumbnail-wrapper article-une' },
+          h('div', {
+            className: 'thumbnail-canvas',
+            style: {
+              backgroundImage: "url('" + article.thumbnail_bg + "')",
+              backgroundSize: article.thumbnail_bg_zoom ? article.thumbnail_bg_zoom + '%' : 'cover',
+              backgroundPosition: article.thumbnail_bg_position || 'center',
+              backgroundRepeat: 'no-repeat'
+            }
+          },
+            h('div', { className: 'thumbnail-shadow' }),
+            article.thumbnail_title ? h('h2', {
+              className: 'thumbnail-text',
+              style: {
+                left: (article.title_x != null ? article.title_x : 20) + 'px',
+                top: (article.title_y != null ? article.title_y : 20) + 'px',
+                fontSize: (article.title_size != null ? article.title_size : 24) + 'px',
+                fontWeight: article.title_weight || 700,
+                fontFamily: article.title_font || 'sans-serif',
+                color: article.title_color || '#ffffff'
+              }
+            }, article.title) : null,
+            descs.map(function(bloc, i) {
+              return h('p', {
+                key: i,
+                className: 'thumbnail-text',
+                style: {
+                  left: (bloc.x != null ? bloc.x : 20) + 'px',
+                  top: (bloc.y != null ? bloc.y : 80) + 'px',
+                  fontSize: (bloc.size != null ? bloc.size : 14) + 'px',
+                  fontWeight: bloc.weight || 400,
+                  fontFamily: bloc.font || 'sans-serif',
+                  color: bloc.color || '#e1e8ed'
+                }
+              }, bloc.line);
+            })
+          )
+        );
+      }
+      return h('div', { className: 'article-une' },
+        h('div', { className: 'article-une-body' },
+          article.category ? h('p', { className: 'article-tag' }, getCategoryLabelFR(article.category)) : null,
+          h('h2', {}, article.title),
+          article.description ? h('p', { className: 'article-desc' }, article.description) : null
+        ),
+        h('div', { className: 'image-wrapper' },
+          h('img', { src: article.image, alt: '' })
+        )
+      );
+    }
+
+    function renderHomeBgCard(article, styles, extraClass, showDesc) {
+      const style = styles || {};
+      if (!article || article.empty) {
+        return renderHomeEmpty('article-bottom-card' + (extraClass ? ' ' + extraClass : ''), 'Emplacement vide');
+      }
+      return h('div', {
+        className: 'article-bottom-card has-bg' + (extraClass ? ' ' + extraClass : ''),
+        style: { backgroundImage: "url('" + article.image + "')" }
+      },
+        h('div', { className: 'overlay', style: { background: getOverlayGradientVertical(style.overlay_opacity) } }),
+        h('div', { className: 'card-content-top' },
+          article.category ? h('p', { className: 'card-tag' }, getCategoryLabelFR(article.category)) : null,
+          h('h3', {
+            style: {
+              fontSize: style.titleSize || '1.2rem',
+              fontWeight: style.titleWeight || '700',
+              fontFamily: style.titleFont || 'sans-serif'
+            }
+          }, article.title),
+          showDesc && article.description ? h('p', { className: 'card-desc' }, article.description) : null
+        )
+      );
+    }
+
+    function renderHomepagePreview(props) {
+      const entry = props.entry;
+      const smallSlugs = getSlugList(entry, 'sidebarSmallArticles', 2);
+      const bottomSlugs = getSlugList(entry, 'bottomArticles', 3);
+      const asymLeftSlugs = getSlugList(entry, 'asymLeftArticles', 3);
+
+      const flagged = flagDuplicates(
+        [resolveSlot(props, entry.getIn(['data', 'heroArticle']))]
+          .concat([resolveSlot(props, entry.getIn(['data', 'sidebarLongArticle']))])
+          .concat(smallSlugs.map(function(slug) { return resolveSlot(props, slug); }))
+          .concat(bottomSlugs.map(function(slug) { return resolveSlot(props, slug); }))
+          .concat(asymLeftSlugs.map(function(slug) { return resolveSlot(props, slug); }))
+          .concat([resolveSlot(props, entry.getIn(['data', 'asymRightArticle']))])
+      );
+
+      const hero = flagged[0];
+      const longArt = flagged[1];
+      const smallArts = flagged.slice(2, 4);
+      const bottomArts = flagged.slice(4, 7);
+      const asymLeftArts = flagged.slice(7, 10);
+      const asymRight = flagged[10];
+      const asymRightStyle = toPlain(entry.getIn(['data', 'asymRightStyle'])) || {};
+
+      return h('div', { className: 'home-preview' },
+        h('style', {}, PREVIEW_STYLES),
+        h('p', { className: 'home-preview-note' }, 'Aperçu de l’accueil — survolez un sous-menu à gauche pour localiser la zone. Les emplacements vides ne sont pas remplis automatiquement'),
+        h('div', { className: 'container-accueil' },
+          h('div', { className: 'main-grid' },
+            h('div', { className: 'preview-anchor', 'data-preview-anchor': 'preview-hero' }, withDuplicateOverlay(hero, renderHomeHero(hero))),
+            h('aside', { className: 'sidebar-articles preview-anchor', 'data-preview-anchor': 'preview-sidebar' },
+              h('div', { className: 'preview-anchor', 'data-preview-anchor': 'preview-sidebar-long' },
+                withDuplicateOverlay(longArt, renderHomeSidebarCard(longArt, true))
+              ),
+              h('div', { className: 'sub-grid preview-anchor', 'data-preview-anchor': 'preview-sidebar-small' },
+                smallArts.map(function(art, i) {
+                  return h('div', { key: 'small-' + i, className: 'preview-anchor', 'data-preview-anchor': 'preview-sidebar-small-' + i }, withDuplicateOverlay(art, renderHomeSidebarCard(art, false)));
+                })
+              )
+            )
+          ),
+          h('section', { className: 'bottom-row-grid preview-anchor', 'data-preview-anchor': 'preview-bottom' },
+            bottomArts.map(function(art, i) {
+              return h('div', { key: 'bottom-' + i, className: 'preview-anchor', 'data-preview-anchor': 'preview-bottom-' + i },
+                withDuplicateOverlay(art, renderHomeBgCard(art, getStyleAt(entry, 'bottomArticlesStyles', i), '', true))
+              );
+            })
+          ),
+          h('section', { className: 'asym-container' },
+            h('div', { className: 'asym-left-stack preview-anchor', 'data-preview-anchor': 'preview-asym-left' },
+              asymLeftArts.map(function(art, i) {
+                return h('div', { key: 'asym-' + i, className: 'preview-anchor', 'data-preview-anchor': 'preview-asym-left-' + i },
+                  withDuplicateOverlay(art, renderHomeBgCard(art, getStyleAt(entry, 'asymLeftStyles', i), '', false))
+                );
+              })
+            ),
+            h('div', { className: 'preview-anchor', 'data-preview-anchor': 'preview-asym-right' },
+              withDuplicateOverlay(asymRight, renderHomeBgCard(asymRight, asymRightStyle, 'asym-right-giant', true))
+            )
+          )
+        )
+      );
+    }
+
+    function renderCategoryHeroCard(article, styles) {
+      const style = styles || {};
+      const empty = !article || article.empty;
+      return h('div', { className: 'hero-card-bg' + (empty ? ' is-empty' : '') },
+        h('div', {
+          className: 'bg-image',
+          style: { backgroundImage: "url('" + ((article && article.image) || PREVIEW_IMG_PLACEHOLDER) + "')" }
+        }),
+        h('div', {
+          className: 'card-overlay',
+          style: { background: getOverlayGradient(style.overlay_opacity) }
+        }),
+        h('div', { className: 'card-text-container' },
+          h('h2', {
+            className: 'card-title',
+            style: {
+              fontSize: style.titleSize || '1.2rem',
+              fontWeight: style.titleWeight || '700'
+            }
+          }, empty ? 'Emplacement vide' : article.title),
+          h('p', {
+            className: 'card-desc',
+            style: { fontSize: style.descSize || '0.8rem' }
+          }, empty
+            ? 'Choisissez un article dans le panneau de gauche'
+            : (article.description || '')
+          )
+        )
+      );
+    }
+
+    function renderCategoriesPreview(props) {
+      const entry = props.entry;
+      const sections = [
+        { key: 'politique', label: 'POLITIQUE' },
+        { key: 'culture', label: 'CULTURE' },
+        { key: 'societe', label: 'SOCIÉTÉ' },
+        { key: 'technologie', label: 'TECHNOLOGIE' }
+      ];
+
+      return h('div', { className: 'categories-config-preview' },
+        h('style', {}, PREVIEW_STYLES),
+        h('p', { className: 'home-preview-note' }, 'Aperçu des pages catégories — survolez une rubrique à gauche pour y défiler. Sans remplissage automatique'),
+        sections.map(function(section) {
+          const slugs = getSlugList(entry, section.key + '_topArticles', 3);
+          const arts = flagDuplicates(slugs.map(function(slug) { return resolveSlot(props, slug); }));
+          return h('section', {
+            key: section.key,
+            className: 'category-preview-section preview-anchor',
+            'data-preview-anchor': 'preview-cat-' + section.key
+          },
+            h('header', { className: 'category-header' },
+              h('h1', { className: 'category-title' }, section.label),
+              h('div', { className: 'title-separator' })
+            ),
+            h('div', { className: 'left-stack' },
+              arts.map(function(art, i) {
+                return h('div', {
+                  key: section.key + '-' + i,
+                  className: 'preview-anchor',
+                  'data-preview-anchor': 'preview-cat-' + section.key + '-' + i
+                },
+                  withDuplicateOverlay(art, renderCategoryHeroCard(
+                    art,
+                    getStyleAt(entry, section.key + '_topStyles', i)
+                  ))
+                );
+              })
+            )
+          );
+        })
+      );
+    }
+
+    const HomepagePreview = createClass({
+      componentDidMount: function() { rememberPreviewContext(this.props); },
+      componentDidUpdate: function() { rememberPreviewContext(this.props); },
+      render: function() { return renderHomepagePreview(this.props); }
+    });
+
+    const CategoriesPreview = createClass({
+      componentDidMount: function() { rememberPreviewContext(this.props); },
+      componentDidUpdate: function() { rememberPreviewContext(this.props); },
+      render: function() { return renderCategoriesPreview(this.props); }
+    });
+
+    const SettingsPreview = createClass({
+      componentDidMount: function() { rememberPreviewContext(this.props); },
+      componentDidUpdate: function() { rememberPreviewContext(this.props); },
+      render: function() {
+        rememberPreviewContext(this.props);
+        const slug = String(this.props.entry.get('slug') || '');
+        const path = String(this.props.entry.get('path') || '');
+        if (slug === 'categories' || /categories\.json$/.test(path)) {
+          return renderCategoriesPreview(this.props);
+        }
+        return renderHomepagePreview(this.props);
+      }
+    });
+
     CMS.registerPreviewTemplate("articles", ArticlePreview);
     CMS.registerPreviewTemplate("breves", BrevePreview);
+    CMS.registerPreviewTemplate("settings", SettingsPreview);
+    CMS.registerPreviewTemplate("homepage", HomepagePreview);
+    CMS.registerPreviewTemplate("categories", CategoriesPreview);
+
+    (function setupPreviewHoverSync() {
+      var lastAnchor = null;
+      var hideTimer = null;
+      var showTimer = null;
+      var scrollTimers = [];
+
+      function isSettingsEditor() {
+        return /\/collections\/settings\//.test(window.location.hash || '');
+      }
+
+      function getPreviewDocument() {
+        if (window.__SONAR_PREVIEW_DOC && window.__SONAR_PREVIEW_DOC.querySelector) {
+          if (window.__SONAR_PREVIEW_DOC.querySelector('[data-preview-anchor], .home-preview, .categories-config-preview')) {
+            return window.__SONAR_PREVIEW_DOC;
+          }
+        }
+        var iframes = document.querySelectorAll('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+          try {
+            var doc = iframes[i].contentDocument || (iframes[i].contentWindow && iframes[i].contentWindow.document);
+            if (doc && (doc.querySelector('[data-preview-anchor]') || doc.querySelector('.home-preview') || doc.querySelector('.categories-config-preview'))) {
+              window.__SONAR_PREVIEW_DOC = doc;
+              window.__SONAR_PREVIEW_WIN = iframes[i].contentWindow;
+              return doc;
+            }
+          } catch (err) {}
+        }
+        if (document.querySelector('[data-preview-anchor]')) return document;
+        return null;
+      }
+
+      function findPreviewIframe(doc) {
+        var frames = document.querySelectorAll('iframe');
+        for (var i = 0; i < frames.length; i++) {
+          try {
+            if (frames[i].contentDocument === doc || (frames[i].contentWindow && frames[i].contentWindow.document === doc)) {
+              return frames[i];
+            }
+          } catch (err) {}
+        }
+        return null;
+      }
+
+      // Cherche, en partant de l'iframe, le premier ancêtre (dans la page d'admin)
+      // qui défile réellement. Selon la version de Decap, l'iframe d'aperçu peut soit
+      // avoir son propre scroll interne, soit grandir avec son contenu — auquel cas
+      // c'est ce conteneur parent qui porte l'ascenseur.
+      function findScrollableAncestor(node) {
+        var el = node && node.parentElement;
+        while (el && el !== document.body && el !== document.documentElement) {
+          var style = window.getComputedStyle(el);
+          if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 2) {
+            return el;
+          }
+          el = el.parentElement;
+        }
+        return null;
+      }
+
+      // Deux mécanismes de scroll coexistent selon la structure interne de Decap :
+      // 1) l'iframe a son propre scroll → scrollIntoView() suffit à l'intérieur.
+      // 2) l'iframe grandit avec son contenu (pas de scroll interne) → c'est un
+      //    conteneur parent, dans la page d'admin, qui défile réellement.
+      // On applique les deux : chacun est un no-op inoffensif si son cas ne s'applique pas.
+      function scrollToPreviewEl(el, doc) {
+        function apply() {
+          if (!el || !el.getBoundingClientRect) return;
+
+          try {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+          } catch (err) {
+            try { el.scrollIntoView(true); } catch (err2) {}
+          }
+
+          var iframe = findPreviewIframe(doc);
+          if (!iframe) return;
+          var scroller = findScrollableAncestor(iframe);
+          if (!scroller) return;
+
+          var iframeRect = iframe.getBoundingClientRect();
+          var elRect = el.getBoundingClientRect();
+          var scrollerRect = scroller.getBoundingClientRect();
+
+          var elCenterInViewport = iframeRect.top + elRect.top + (elRect.height / 2);
+          var scrollerCenterInViewport = scrollerRect.top + (scroller.clientHeight / 2);
+          var delta = elCenterInViewport - scrollerCenterInViewport;
+
+          if (Math.abs(delta) > 4) {
+            scroller.scrollTo({ top: scroller.scrollTop + delta, behavior: 'smooth' });
+          }
+        }
+
+        apply();
+        scrollTimers.forEach(clearTimeout);
+        // Le contenu de l'aperçu peut légèrement bouger après le premier scroll
+        // (chargement d'image, re-render React, animation smooth en cours) : on recale.
+        scrollTimers = [setTimeout(apply, 150), setTimeout(apply, 400), setTimeout(apply, 700)];
+      }
+
+      function getDecapListItemIndex(node) {
+        var el = node;
+        while (el && el !== document.body) {
+          var cls = String(el.className || '');
+          if (/ListItem|list-item|NestedObject/i.test(cls)) {
+            var parent = el.parentElement;
+            if (!parent) return null;
+            var items = Array.prototype.filter.call(parent.children, function(c) {
+              return /ListItem|list-item|NestedObject/i.test(String(c.className || ''));
+            });
+            var idx = items.indexOf(el);
+            return idx >= 0 ? idx : null;
+          }
+          el = el.parentElement;
+        }
+        return null;
+      }
+
+      function resolveAnchorFromEvent(e) {
+        var node = e.target;
+        if (!node || !node.closest) return null;
+        if (node.closest('iframe')) return null;
+        if (node.closest('[class*="PreviewPane"]') || node.closest('[class*="preview-pane"]')) return null;
+
+        var tagged = node.closest('[data-preview-target]');
+        var anchor = tagged ? tagged.getAttribute('data-preview-target') : null;
+
+        if (!anchor) {
+          var header = node.closest('[data-section-header="true"]');
+          if (header) anchor = header.getAttribute('data-preview-target');
+        }
+
+        if (!anchor) {
+          var control = node.closest('[class*="ControlContainer"]');
+          if (control) {
+            var labelEl = control.querySelector('label');
+            anchor = matchLabelToPreviewTarget(labelEl ? labelEl.textContent : '');
+          }
+        }
+
+        if (!anchor) return null;
+
+        var indexable = {
+          'preview-sidebar-small': true,
+          'preview-bottom': true,
+          'preview-asym-left': true,
+          'preview-cat-politique': true,
+          'preview-cat-culture': true,
+          'preview-cat-societe': true,
+          'preview-cat-technologie': true
+        };
+        if (indexable[anchor]) {
+          var idx = getDecapListItemIndex(node);
+          if (idx != null) anchor = anchor + '-' + idx;
+        }
+        return anchor;
+      }
+
+      function clearPreviewFlash(doc) {
+        if (!doc) return;
+        var flashes = doc.querySelectorAll('.preview-flash');
+        for (var i = 0; i < flashes.length; i++) flashes[i].classList.remove('preview-flash');
+      }
+
+      function flashPreview(anchor, attempt) {
+        if (!anchor || !isSettingsEditor()) return;
+        var doc = getPreviewDocument();
+        if (!doc) {
+          if ((attempt || 0) < 15) {
+            setTimeout(function() { flashPreview(anchor, (attempt || 0) + 1); }, 120);
+          }
+          return;
+        }
+        var el = doc.querySelector('[data-preview-anchor="' + anchor + '"]');
+        if (!el && /-\d+$/.test(anchor)) {
+          el = doc.querySelector('[data-preview-anchor="' + anchor.replace(/-\d+$/, '') + '"]');
+        }
+        if (!el) {
+          if ((attempt || 0) < 15) {
+            setTimeout(function() { flashPreview(anchor, (attempt || 0) + 1); }, 120);
+          }
+          return;
+        }
+        clearPreviewFlash(doc);
+        el.classList.add('preview-flash');
+        lastAnchor = anchor;
+        scrollToPreviewEl(el, doc);
+      }
+
+      function onEditorLocate(e) {
+        if (!isSettingsEditor()) return;
+        var anchor = resolveAnchorFromEvent(e);
+        if (!anchor) return;
+        clearTimeout(hideTimer);
+        clearTimeout(showTimer);
+        showTimer = setTimeout(function() { flashPreview(anchor); }, 40);
+      }
+
+      // Point d'entrée pour le bouton « 📍 Aller à l'aperçu » posé sur chaque
+      // en-tête de section (widget separator) : déclenchement direct au clic,
+      // sans dépendre de la détection de survol.
+      window.__sonarGoToPreview = flashPreview;
+
+      document.addEventListener('mouseover', onEditorLocate, true);
+      document.addEventListener('focusin', onEditorLocate, true);
+      document.addEventListener('click', function(e) {
+        if (!isSettingsEditor()) return;
+        if (!e.target || !e.target.closest) return;
+        if (!e.target.closest('[data-preview-target], [data-section-header="true"]')) return;
+        var anchor = resolveAnchorFromEvent(e);
+        if (!anchor) return;
+        clearTimeout(hideTimer);
+        flashPreview(anchor);
+      }, true);
+
+      document.addEventListener('mouseout', function(e) {
+        if (!isSettingsEditor()) return;
+        var related = e.relatedTarget;
+        if (related && related.closest && related.closest('[data-preview-target], [data-section-header="true"], [class*="ControlContainer"]')) {
+          return;
+        }
+        hideTimer = setTimeout(function() {
+          lastAnchor = null;
+          clearPreviewFlash(getPreviewDocument());
+        }, 1200);
+      }, true);
+    })();
+
+    // 🏷️ SCRIPT : RÉSUMÉS DE LISTE LISIBLES
+    // Les widgets "list" de Decap affichent, une fois l'élément replié, un résumé
+    // basé sur la valeur brute stockée pour les champs "relation" — c'est-à-dire
+    // le slug du fichier markdown (ex: "test-admin"), pas le vrai titre de
+    // l'article. On remplace ce texte par le titre réel (récupéré depuis le
+    // store interne de Decap déjà utilisé pour les aperçus), avec un repli
+    // "joli" (tirets → espaces, majuscules) si l'article n'est pas encore chargé.
+    // On en profite pour transformer le résumé des listes "Styles" (marqué
+    // "__STYLE_SUMMARY__" dans config.yml) en "Style : <nom de l'article>",
+    // en retrouvant l'article au même index dans la liste voisine (même
+    // data-preview-target), et pour masquer les boutons "Add ..." devenus
+    // inutiles une fois les emplacements configurés.
+    (function beautifyRelationSummaries() {
+      var ARTICLE_SUMMARY_PATTERN = /^(Article\s*:\s*)(.+)$/;
+      var STYLE_MARKER = '__STYLE_SUMMARY__';
+
+      function isSettingsRoute() {
+        return /\/collections\/settings\//.test(window.location.hash || '');
+      }
+
+      // Capitalise la première lettre de chaque mot sans passer par \b (qui gère
+      // mal les lettres accentuées et produisait des majuscules aléatoires,
+      // ex: "catégorie" → "catéGorie").
+      function humanizeSlug(slug) {
+        var cleaned = String(slug || '').replace(/\.mdx?$/, '').replace(/[-_]+/g, ' ').trim();
+        if (!cleaned) return slug;
+        return cleaned.split(' ').map(function(word) {
+          return word ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+        }).join(' ');
+      }
+
+      function collectTextNodes(root, filterFn) {
+        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+        var out = [];
+        var node;
+        while ((node = walker.nextNode())) {
+          if (!node.nodeValue) continue;
+          var trimmed = node.nodeValue.trim();
+          if (!trimmed) continue;
+          if (filterFn(trimmed, node)) out.push(node);
+        }
+        return out;
+      }
+
+      function beautifyArticleSummaries() {
+        var nodes = collectTextNodes(document.body, function(trimmed) {
+          return ARTICLE_SUMMARY_PATTERN.test(trimmed);
+        });
+        nodes.forEach(function(node) {
+          var m = ARTICLE_SUMMARY_PATTERN.exec(node.nodeValue.trim());
+          var rawSlug = m[2].trim();
+          if (node.__sonarResolvedSlug === rawSlug) return;
+          var data = lookupFromCmsStore(rawSlug);
+          var title = data && typeof data.title === 'string' && data.title.trim() ? data.title.trim() : null;
+          var display = title || humanizeSlug(rawSlug);
+          var nextText = m[1] + display;
+          node.__sonarResolvedSlug = rawSlug;
+          if (node.nodeValue !== nextText) node.nodeValue = nextText;
+        });
+      }
+
+      function beautifyStyleSummaries() {
+        var markerNodes = collectTextNodes(document.body, function(trimmed) {
+          return trimmed === STYLE_MARKER;
+        });
+        if (!markerNodes.length) return;
+
+        var byContainer = new Map();
+        markerNodes.forEach(function(node) {
+          var container = node.parentElement && node.parentElement.closest('[data-preview-target]');
+          if (!container) return;
+          if (!byContainer.has(container)) byContainer.set(container, []);
+          byContainer.get(container).push(node);
+        });
+
+        byContainer.forEach(function(nodes, stylesContainer) {
+          var target = stylesContainer.getAttribute('data-preview-target');
+          if (!target) return;
+          var candidates = document.querySelectorAll('[data-preview-target="' + target + '"]');
+          var articleTitles = [];
+          for (var i = 0; i < candidates.length; i++) {
+            var cand = candidates[i];
+            if (cand === stylesContainer) continue;
+            var titles = collectTextNodes(cand, function(trimmed) {
+              return ARTICLE_SUMMARY_PATTERN.test(trimmed);
+            }).map(function(n) { return ARTICLE_SUMMARY_PATTERN.exec(n.nodeValue.trim())[2].trim(); });
+            if (titles.length > 0) {
+              articleTitles = titles;
+              break;
+            }
+          }
+          nodes.forEach(function(styleNode, index) {
+            var title = articleTitles[index];
+            var nextText = title ? ('Style : ' + title) : 'Style : Emplacement vide';
+            if (styleNode.nodeValue !== nextText) styleNode.nodeValue = nextText;
+          });
+        });
+      }
+
+      function hideAddButtons() {
+        var buttons = document.querySelectorAll('#nc-root button');
+        for (var i = 0; i < buttons.length; i++) {
+          var btn = buttons[i];
+          var text = (btn.textContent || '').trim();
+          if (/^Add\s+/i.test(text) && btn.style.display !== 'none') {
+            btn.style.display = 'none';
+          }
+        }
+      }
+
+      function hideRemoveButtons() {
+        // Dans la barre d'un item de liste, l'ordre des enfants est :
+        // [bouton chevron (collapse), poignée de glisser-déposer (div, pas un bouton), bouton croix (remove)].
+        // Le bouton croix est donc toujours le dernier <button> enfant direct de la barre.
+        var bars = document.querySelectorAll('div[class*="StyledListItemTopBar"]');
+        for (var i = 0; i < bars.length; i++) {
+          var directButtons = bars[i].querySelectorAll(':scope > button');
+          if (!directButtons.length) continue;
+          var removeBtn = directButtons[directButtons.length - 1];
+          if (removeBtn.style.display !== 'none') {
+            removeBtn.style.display = 'none';
+          }
+        }
+      }
+
+      function beautify() {
+        if (!isSettingsRoute()) return;
+        beautifyArticleSummaries();
+        beautifyStyleSummaries();
+        hideRemoveButtons();
+        hideAddButtons();
+      }
+
+      var scheduled = false;
+      function scheduleBeautify() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function() {
+          scheduled = false;
+          beautify();
+        }, 60);
+      }
+
+      new MutationObserver(scheduleBeautify).observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+      window.addEventListener('load', scheduleBeautify);
+      scheduleBeautify();
+    })();
 
     // 📂 SCRIPT : ORGANISATEUR / ACCORDÉON DE SIDEBAR
     // Configure ici la hiérarchie de tes collections (nom unique du name dans config.yml)

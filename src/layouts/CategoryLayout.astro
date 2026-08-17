@@ -12,7 +12,7 @@ interface Props {
 const { categoryTitle, categorySlug, articles } = Astro.props;
 
 const IMG_PLACEHOLDER = "/assets/uploads/default-placeholder.jpg";
-const DEFAULT_STYLES = { titleSize: "1.2rem", titleWeight: "700", descSize: "0.8rem" };
+const DEFAULT_STYLES = { titleSize: "1.2rem", titleWeight: "700", descSize: "0.8rem", overlayOpacity: 75 };
 
 const nettoyer = (s: any) =>
   String(s || '')
@@ -44,12 +44,17 @@ const slotsAdmin = (Array.isArray(selectedSlugs) && selectedSlugs.length > 0)
 const avecStyles = (art: any, index: number) => {
   if (!art) return null;
   const styleConfig = selectedStyles[index] || {};
+  const overlayRaw = styleConfig.overlay_opacity;
+  const overlayParsed = Number(overlayRaw);
   return {
     ...art,
     customStyles: {
       titleSize: styleConfig.titleSize || DEFAULT_STYLES.titleSize,
       titleWeight: styleConfig.titleWeight || DEFAULT_STYLES.titleWeight,
       descSize: styleConfig.descSize || DEFAULT_STYLES.descSize,
+      overlayOpacity: (overlayRaw === undefined || overlayRaw === null || overlayRaw === '' || isNaN(overlayParsed))
+        ? DEFAULT_STYLES.overlayOpacity
+        : overlayParsed,
     },
   };
 };
@@ -200,7 +205,7 @@ const overlayGradient = (raw: unknown) => {
                   data-bg-fr={bgImageFR}
                   data-bg-en={enImage(artEN, hasEn)}
                 ></div>
-                <div class="card-overlay" style={`background: ${overlayGradient(artFR.data.overlay_opacity)};`}></div>
+                <div class="card-overlay" style={`background: ${overlayGradient(artFR.customStyles.overlayOpacity)};`}></div>
                 
                 <div class="card-text-container">
                   <h2 

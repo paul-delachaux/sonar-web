@@ -8,7 +8,8 @@
     {
       "titleSize": "1.2rem",
       "titleWeight": "700",
-      "descSize": "0.8rem"
+      "descSize": "0.8rem",
+      "overlay_opacity": 0
     },
     {
       "titleSize": "1.2rem",
