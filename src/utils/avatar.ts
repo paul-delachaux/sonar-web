@@ -23,7 +23,17 @@ export function avatarInitial(username: string): string {
 }
 
 export const PENDING_AVATAR_KEY = 'sonar_pending_avatar';
-const AVATAR_EXPORT_SIZE = 512;
+const AVATAR_MAX_SIZE = 512;
+
+function isPngFile(file: File): boolean {
+  return file.type === 'image/png' || /\.png$/i.test(file.name);
+}
+
+function sourceSize(source: HTMLImageElement | ImageBitmap): { width: number; height: number } {
+  const width = 'naturalWidth' in source ? source.naturalWidth || source.width : source.width;
+  const height = 'naturalHeight' in source ? source.naturalHeight || source.height : source.height;
+  return { width, height };
+}
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -34,10 +44,42 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function closeSource(source: HTMLImageElement | ImageBitmap) {
+  if ('close' in source && typeof source.close === 'function') {
+    source.close();
+  }
+}
+
+function drawToCanvas(
+  source: CanvasImageSource,
+  width: number,
+  height: number
+): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', { alpha: true });
+  if (!ctx) throw new Error('Canvas indisponible.');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, width, height);
+  return canvas;
+}
+
+async function canvasToPng(canvas: HTMLCanvasElement): Promise<File> {
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((next) => {
+      if (next) resolve(next);
+      else reject(new Error('Impossible de générer le PNG.'));
+    }, 'image/png');
+  });
+  return new File([blob], 'avatar.png', { type: 'image/png' });
+}
+
 async function loadImage(file: File): Promise<HTMLImageElement | ImageBitmap> {
   if (typeof createImageBitmap === 'function') {
     try {
-      return await createImageBitmap(file);
+      return await createImageBitmap(file, { imageOrientation: 'from-image' });
     } catch {
       /* fallback ci-dessous */
     }
@@ -59,36 +101,52 @@ async function loadImage(file: File): Promise<HTMLImageElement | ImageBitmap> {
 
 async function normalizeAvatarPng(file: File): Promise<File> {
   const source = await loadImage(file);
-  const srcW = 'naturalWidth' in source ? source.naturalWidth || source.width : source.width;
-  const srcH = 'naturalHeight' in source ? source.naturalHeight || source.height : source.height;
-  if (!srcW || !srcH) throw new Error('Image invalide.');
-
-  const canvas = document.createElement('canvas');
-  canvas.width = AVATAR_EXPORT_SIZE;
-  canvas.height = AVATAR_EXPORT_SIZE;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas indisponible.');
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-
-  const scale = Math.max(AVATAR_EXPORT_SIZE / srcW, AVATAR_EXPORT_SIZE / srcH);
-  const dw = srcW * scale;
-  const dh = srcH * scale;
-  ctx.drawImage(source, (AVATAR_EXPORT_SIZE - dw) / 2, (AVATAR_EXPORT_SIZE - dh) / 2, dw, dh);
-
-  if ('close' in source && typeof source.close === 'function') {
-    source.close();
+  const { width: srcW, height: srcH } = sourceSize(source);
+  if (!srcW || !srcH) {
+    closeSource(source);
+    throw new Error('Image invalide.');
   }
 
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((next) => {
-      if (next) resolve(next);
-      else reject(new Error('Impossible de générer le PNG.'));
-    }, 'image/png');
-  });
+  const almostSquare = Math.max(srcW, srcH) / Math.min(srcW, srcH) <= 1.05;
+  const minSide = Math.min(srcW, srcH);
+  const maxSide = Math.max(srcW, srcH);
 
-  return new File([blob], 'avatar.png', { type: 'image/png' });
+  /* Un PNG déjà carré et assez grand : ne pas le ré-encoder (le canvas
+     adoucit les traits, c’est moins net que le fichier d’origine). */
+  if (isPngFile(file) && almostSquare && minSide >= 128 && maxSide <= 2048) {
+    closeSource(source);
+    return new File([file], 'avatar.png', { type: 'image/png' });
+  }
+
+  const crop = minSide;
+  const sx = Math.floor((srcW - crop) / 2);
+  const sy = Math.floor((srcH - crop) / 2);
+  const outSize = Math.min(AVATAR_MAX_SIZE, crop);
+
+  const square = document.createElement('canvas');
+  square.width = crop;
+  square.height = crop;
+  const squareCtx = square.getContext('2d', { alpha: true });
+  if (!squareCtx) {
+    closeSource(source);
+    throw new Error('Canvas indisponible.');
+  }
+  squareCtx.imageSmoothingEnabled = true;
+  squareCtx.imageSmoothingQuality = 'high';
+  squareCtx.drawImage(source, sx, sy, crop, crop, 0, 0, crop, crop);
+  closeSource(source);
+
+  let current: HTMLCanvasElement = square;
+  let size = crop;
+  while (size / 2 >= outSize) {
+    size = Math.max(outSize, Math.round(size / 2));
+    current = drawToCanvas(current, size, size);
+  }
+  if (size !== outSize) {
+    current = drawToCanvas(current, outSize, outSize);
+  }
+
+  return canvasToPng(current);
 }
 
 export async function stashPendingAvatar(email: string, file: File): Promise<void> {
