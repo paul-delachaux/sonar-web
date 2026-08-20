@@ -23,7 +23,7 @@ export function avatarInitial(username: string): string {
 }
 
 export const PENDING_AVATAR_KEY = 'sonar_pending_avatar';
-const AVATAR_EXPORT_SIZE = 256;
+const AVATAR_EXPORT_SIZE = 512;
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
