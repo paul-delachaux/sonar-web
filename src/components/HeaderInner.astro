@@ -1,0 +1,43 @@
+---
+// Header compact utilisé sur toutes les pages hors accueil. Aussi réutilisé, en
+// variante "fixedClone", comme bandeau qui remplace en douceur le grand header de
+// l'accueil une fois que celui-ci a totalement défilé hors de l'écran (voir le
+// script "setupStickyHeader" dans Layout.astro).
+interface Props {
+    fixedClone?: boolean;
+}
+const { fixedClone = false } = Astro.props;
+
+import logoSonar from './LogoSonarVdef.png';
+import AuthNav from './AuthNav.astro';
+---
+
+<header class:list={['header-inner', fixedClone && 'header-fixed-clone']}>
+    <div class="header-inner-logo">
+        <a href="/" aria-label="Retour au menu principal">
+            <img src={logoSonar.src} alt="Logo Sonar" style="width: 100%; height: auto; display: block;" />
+        </a>
+    </div>
+
+    <div class="header-right-group">
+        <nav class="nav-bar-inner">
+            <button type="button" class="mobile-nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+            <a href="/" data-i18n="nav_home">Accueil</a>
+            <a href="/politique" data-i18n="nav_politique">Politique</a>
+            <a href="/culture" data-i18n="nav_culture">Culture</a>
+            <a href="/societe" data-i18n="nav_societe">Société</a>
+            <a href="/technologie" data-i18n="nav_tech">Technologie</a>
+        </nav>
+
+        <div class="header-toolbar">
+            <div class="hv2-lang-switch" role="group" aria-label="Langue">
+                <button type="button" class="hv2-lang-btn" data-lang-btn="FR" aria-pressed="true">FR</button>
+                <span class="hv2-lang-sep">/</span>
+                <button type="button" class="hv2-lang-btn" data-lang-btn="EN" aria-pressed="false">EN</button>
+            </div>
+            <AuthNav variant="inner" />
+        </div>
+    </div>
+</header>

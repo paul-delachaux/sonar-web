@@ -1,9 +1,10 @@
 ---
 interface Props {
-  variant?: 'home' | 'inner';
+  variant?: 'home' | 'inner' | 'home-v2';
 }
 
 const { variant = 'inner' } = Astro.props;
+const isIconVariant = variant === 'home-v2';
 const currentPath = Astro.url.pathname;
 const redirectPath = (currentPath === '/connexion' || currentPath === '/inscription')
   ? '/'
@@ -12,19 +13,21 @@ const loginHref = `/connexion?redirect=${encodeURIComponent(redirectPath)}`;
 ---
 
 <div class:list={['auth-nav', `auth-nav--${variant}`]} data-auth-nav data-state="loading">
+  {/* Le bouton "Connexion" reste en texte même pour la variante icône (home-v2) :
+      seul l'état "connecté" ci-dessous passe en icône seule (avatar). */}
   <a href={loginHref} class="auth-nav-login" data-guest data-i18n="auth_login">Connexion</a>
 
   <div class="auth-nav-user" data-user hidden>
-    <button type="button" class="auth-nav-user-btn" aria-haspopup="true" aria-expanded="false">
+    <button
+      type="button"
+      class:list={['auth-nav-user-btn', isIconVariant && 'auth-nav-user-btn--icon']}
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="account-drawer"
+    >
       <span class="sonar-avatar sonar-avatar-sm" data-auth-avatar aria-hidden="true"></span>
-      <span class="auth-nav-username" data-auth-username></span>
+      {!isIconVariant && <span class="auth-nav-username" data-auth-username></span>}
     </button>
-    <div class="auth-nav-dropdown" hidden>
-      <a href="/compte" class="auth-nav-dropdown-link" data-i18n="account_title">Mon compte</a>
-      <button type="button" class="auth-nav-logout" data-auth-logout data-i18n="auth_logout">
-        Déconnexion
-      </button>
-    </div>
   </div>
 </div>
 
@@ -77,27 +80,10 @@ const loginHref = `/connexion?redirect=${encodeURIComponent(redirectPath)}`;
 
   function setupNav(nav: HTMLElement) {
     const userBtn = nav.querySelector('.auth-nav-user-btn') as HTMLButtonElement | null;
-    const dropdown = nav.querySelector('.auth-nav-dropdown') as HTMLElement | null;
-    const logoutBtn = nav.querySelector('[data-auth-logout]') as HTMLButtonElement | null;
 
     userBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!dropdown) return;
-      const open = dropdown.hasAttribute('hidden');
-      if (open) dropdown.removeAttribute('hidden');
-      else dropdown.setAttribute('hidden', '');
-      userBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-
-    document.addEventListener('click', () => {
-      dropdown?.setAttribute('hidden', '');
-      userBtn?.setAttribute('aria-expanded', 'false');
-    });
-
-    logoutBtn?.addEventListener('click', async () => {
-      const supabase = getBrowserSupabase();
-      await supabase.auth.signOut();
-      window.location.reload();
+      window.dispatchEvent(new CustomEvent('sonar:account-toggle'));
     });
 
     applyAuthState(nav);
@@ -123,8 +109,7 @@ const loginHref = `/connexion?redirect=${encodeURIComponent(redirectPath)}`;
      on pilote la visibilité via data-state. */
   .auth-nav[data-state="user"] .auth-nav-login,
   .auth-nav[data-state="guest"] .auth-nav-user,
-  .auth-nav-user[hidden],
-  .auth-nav-dropdown[hidden] {
+  .auth-nav-user[hidden] {
     display: none !important;
   }
 
@@ -161,6 +146,26 @@ const loginHref = `/connexion?redirect=${encodeURIComponent(redirectPath)}`;
     font-size: 0.9rem;
   }
 
+  /* Header accueil v2 : le bouton "Connexion" garde son texte, calé sur les
+     autres boutons du header (ex. "Nos Journalistes"). */
+  .auth-nav--home-v2 .auth-nav-login {
+    padding: 7px 16px;
+    font-size: 0.85rem;
+  }
+
+  /* Variante icône seule (header accueil v2, uniquement une fois connecté) :
+     cercle avec l'avatar, sans pseudo affiché à côté. */
+  .auth-nav-user-btn--icon {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .auth-nav-user-btn--icon .sonar-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 0.95rem;
+  }
+
   .auth-nav-user-btn {
     display: flex;
     align-items: center;
@@ -168,8 +173,8 @@ const loginHref = `/connexion?redirect=${encodeURIComponent(redirectPath)}`;
     background-color: #ffffff;
     color: #03031a;
     border: none;
-    border-radius: 50px;
-    padding: 4px 12px 4px 4px;
+    border-radius: 100px;
+    padding: 4px 4px 4px 4px;
     cursor: pointer;
     font-weight: bold;
     font-size: 0.85rem;
@@ -179,42 +184,13 @@ const loginHref = `/connexion?redirect=${encodeURIComponent(redirectPath)}`;
   }
 
   .auth-nav-username {
+    /* Sans min-width:0, un enfant flex refuse de rétrécir en dessous de la largeur
+       de son texte : les "..." ci-dessous ne se déclenchaient donc jamais. */
+    min-width: 0;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .auth-nav-dropdown {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    background: #02001d;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    min-width: 160px;
-    z-index: 10001;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .auth-nav-dropdown-link,
-  .auth-nav-logout {
-    display: block;
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    text-align: left;
-    padding: 12px 16px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-family: inherit;
-    text-decoration: none;
-    box-sizing: border-box;
-  }
-
-  .auth-nav-dropdown-link:hover,
-  .auth-nav-logout:hover {
-    color: #ea580c;
   }
 
   @media (max-width: 968px) {

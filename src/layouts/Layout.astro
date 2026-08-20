@@ -2,13 +2,32 @@
 // 1. On récupère "isHome" en plus de "title" (par défaut false s'il n'est pas fourni)
 const { title, isHome = false } = Astro.props;
 import logoSonar from '../components/LogoSonarVdef.png';
+import logoEye from '../components/LogoSonar3.png';
 import backgroundImage from '../assets/background.jpg';
 import substackIcon from '../components/substack.png';
 import Analytics from '@vercel/analytics/astro';
 import AuthNav from '../components/AuthNav.astro';
+import HeaderInner from '../components/HeaderInner.astro';
+import AccountDrawer from '../components/AccountDrawer.astro';
+import { getCollection } from 'astro:content';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
+
+// Index de recherche du header de l'accueil : uniquement les articles visibles
+// (repris ici plutôt qu'importé depuis index.astro pour garder Layout.astro autonome).
+const searchIndex = isHome
+    ? (await getCollection('articles'))
+        .filter((art) => art.data.isVisible !== false)
+        .map((art) => ({
+            slug: art.id,
+            title: art.data.title,
+            titleEn: art.data.title_en || null,
+            category: art.data.category,
+        }))
+    : [];
+// Empêche une éventuelle séquence "</script>" dans un titre de casser le tag inline.
+const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
 ---
 
 <html lang="fr">
@@ -21,6 +40,12 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
         <!-- sizes=48x48 : empêche Chrome de préférer l'ICO au PNG adaptatif -->
         <link rel="icon" type="image/png" href="/favicon.png" media="(prefers-color-scheme: light)" />
         <link rel="icon" type="image/png" href="/favicon_dark.png" media="(prefers-color-scheme: dark)" />
+        <!-- "Baskerville Pro" (Adobe/Linotype) n'est pas disponible pour le web sans licence.
+             Libre Baskerville (Google Fonts) est l'équivalent libre le plus proche visuellement,
+             utilisé uniquement pour le titre "L'Echo du Sonar" du header de l'accueil. -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet" />
         <script is:inline>
             (function () {
                 var DARK = '/favicon.png';
@@ -123,22 +148,6 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 overflow: visible;
             }
 
-            /* --- ACTIONS ACCUEIL (CONNEXION + LANGUE) --- */
-            .header-home-actions {
-                position: absolute;
-                top: 20px;
-                right: 30px;
-                z-index: 9999;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                line-height: normal;
-            }
-
-            .lang-selector-home-wrapper {
-                position: static;
-            }
-
             .sonar-avatar {
                 width: 36px;
                 height: 36px;
@@ -162,6 +171,12 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 font-size: 0.8rem;
             }
 
+            .sonar-avatar-lg {
+                width: 72px;
+                height: 72px;
+                font-size: 1.6rem;
+            }
+
             .sonar-avatar img {
                 width: 100%;
                 height: 100%;
@@ -169,44 +184,367 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 display: block;
             }
 
-            /* --- STYLE DE LA BARRE DE NAVIGATION DE L'ACCUEIL --- */
-            .nav-bar { 
+            /* --- STYLE DU HEADER DE L'ACCUEIL (v2) --- */
+            .header-v2 {
+                --hv2-logo-size: 84px;
                 position: relative;
-                z-index: 10;
-                display: flex; 
-                justify-content: center; 
-                gap: 15px; 
-                background-color: #02001d; 
-                border-bottom: 1px solid #000; 
-                padding: 10px 0; 
-                margin-bottom: 20px; 
+                z-index: 40;
+                overflow: visible;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                text-align: left;
+                line-height: normal;
+                background-color: #02001d;
+                border-bottom: 2px solid #000;
+                padding: 0;
                 backdrop-filter: blur(8px);
                 margin-left: calc(-1 * var(--page-pad));
                 margin-right: calc(-1 * var(--page-pad));
+                margin-top: calc(-1 * var(--page-pad));
             }
 
-            .nav-bar a {
+            .header-v2-row {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 18px 24px 16px;
+            }
+
+            .hv2-category-bar {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 28px;
+                padding: 0 28px;
+                min-height: 52px;
+                background-color: #02001d;
+                border-top: 1px solid rgba(255, 255, 255, 0.12);
+            }
+            .hv2-category-bar a {
                 text-decoration: none;
                 color: #ffffff;
+                font-size: 1rem;
                 font-weight: bold;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 transition: color 0.3s ease;
+                white-space: nowrap;
             }
-
-            .nav-bar a:hover {
+            .hv2-category-bar a:hover {
                 color: #ff8826;
             }
 
-            .fixed-logo-wrapper {
-                    position: absolute; /* S'assure qu'il est bien positionné par rapport au header */
-                    top: -10px;          /* Ajuste la distance depuis le haut (ex: 10px, 15px...) */
-                    left: -10px;         /* Ajuste la distance depuis la gauche (pour être aligné avec ton --page-pad) */
-                    z-index: 10000;     /* Reste toujours au-dessus du reste */
+            .header-v2-left,
+            .header-v2-right {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+                /* Hauteur fixe (= taille des boutons ronds) pour que le centrage ci-dessous
+                   soit exact même si le contenu (ex. bouton FR/EN) est naturellement plus bas. */
+                height: 38px;
+                /* Recentre les contrôles sur le milieu du logo (--hv2-logo-size),
+                   pas sur le milieu du bloc logo + titre. */
+                margin-top: calc((var(--hv2-logo-size) - 38px) / 2);
+            }
+            .header-v2-right {
+                justify-content: flex-end;
             }
 
-                .fixed-logo-wrapper img {
-                    width: 100px;       /* Ajuste la largeur (140px est parfois un peu grand sur petit écran) */
-                    height: auto;       /* Conserve les proportions */
-                    display: block;
+            .header-v2-center {
+                display: flex;
+                flex-shrink: 0;
+            }
+
+            .hv2-brand {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                text-decoration: none;
+            }
+
+            .hv2-brand-logo {
+                width: var(--hv2-logo-size);
+                height: var(--hv2-logo-size);
+                object-fit: contain;
+                border-radius: 50%;
+                display: block;
+                transform: scale(2.5) translateX(5px);
+            }
+
+            .hv2-brand-title {
+                font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
+                font-weight: 700;
+                font-size: 20px;
+                color: #ffffff;
+                letter-spacing: 0.3px;
+                white-space: nowrap;
+            }
+
+            .hv2-icon-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                background: transparent;
+                border: none;
+                color: #ffffff;
+                cursor: pointer;
+                padding: 0;
+                flex-shrink: 0;
+                transition: background-color 0.2s ease;
+            }
+            .hv2-icon-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+            .hv2-icon-btn:hover,
+            .hv2-icon-btn[aria-expanded="true"] {
+                background-color: rgba(255, 255, 255, 0.12);
+            }
+
+            .hv2-journalists-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid #ffffff;
+                border-radius: 6px;
+                padding: 7px 14px;
+                color: #ffffff;
+                font-weight: bold;
+                font-size: 0.85rem;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                text-decoration: none;
+                white-space: nowrap;
+                transition: background-color 0.2s ease, color 0.2s ease;
+            }
+            .hv2-journalists-btn:hover {
+                background-color: #ffffff;
+                color: #02001d;
+            }
+
+            .hv2-lang-switch {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-weight: bold;
+                font-size: 0.85rem;
+            }
+            .hv2-lang-btn {
+                background: transparent;
+                border: none;
+                color: rgba(255, 255, 255, 0.55);
+                cursor: pointer;
+                padding: 4px 2px;
+                font: inherit;
+                transition: color 0.2s ease;
+            }
+            .hv2-lang-btn:hover {
+                color: #ffffff;
+            }
+            .hv2-lang-btn.is-active {
+                color: #ffffff;
+                text-decoration: underline;
+                text-decoration-color: #ff8826;
+                text-decoration-thickness: 2px;
+                text-underline-offset: 3px;
+            }
+            .hv2-lang-sep {
+                color: rgba(255, 255, 255, 0.35);
+            }
+
+            /* --- MENU LATÉRAL DES CATÉGORIES (BARRE LATÉRALE + VOILE SOMBRE) --- */
+            .hv2-overlay {
+                position: fixed;
+                inset: 0;
+                background-color: rgba(0, 0, 0, 0.6);
+                z-index: 999;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+            .hv2-overlay.is-open {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .hv2-menu-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                width: min(300px, 82vw);
+                display: flex;
+                flex-direction: column;
+                background-color: #02001d;
+                border-right: 1px solid #1f2937;
+                box-shadow: 12px 0 30px rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                padding: 16px 0 20px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .hv2-menu-panel.is-open {
+                transform: translateX(0);
+            }
+            .hv2-menu-top {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 0 16px 16px;
+                border-bottom: 1px solid #1f2937;
+                margin-bottom: 8px;
+            }
+            .hv2-menu-close {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                align-self: flex-start;
+                width: 38px;
+                height: 38px;
+                margin: 0 0 4px 0;
+                background: transparent;
+                border: none;
+                color: #ffffff;
+                cursor: pointer;
+                border-radius: 50%;
+                flex-shrink: 0;
+                transition: background-color 0.2s ease;
+            }
+            .hv2-menu-close:hover {
+                background-color: rgba(255, 255, 255, 0.12);
+            }
+            .hv2-menu-close svg {
+                width: 18px;
+                height: 18px;
+            }
+            .hv2-menu-brand {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+                text-decoration: none;
+                padding: 4px 8px 10px;
+            }
+            .hv2-menu-brand-logo {
+                width: 56px;
+                height: 56px;
+                object-fit: contain;
+                border-radius: 50%;
+                display: block;
+                transform: scale(2.5) translateX(5px);
+            }
+            .hv2-menu-brand-title {
+                font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
+                font-weight: 700;
+                font-size: 15px;
+                color: #ffffff;
+                letter-spacing: 0.3px;
+                text-align: center;
+                transition: color 0.2s ease;
+            }
+            .hv2-menu-brand:hover .hv2-menu-brand-title {
+                color: #ff8826;
+            }
+            .hv2-menu-lang {
+                justify-content: center;
+                padding: 4px 0 8px;
+            }
+            .hv2-menu-links {
+                display: flex;
+                flex-direction: column;
+            }
+            .hv2-menu-links a {
+                padding: 14px 26px;
+                color: #ffffff;
+                text-decoration: none;
+                font-weight: bold;
+                font-size: 1.05rem;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                transition: color 0.2s ease, background-color 0.2s ease;
+            }
+            .hv2-menu-links a:hover {
+                color: #ff8826;
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+
+            /* --- RECHERCHE INLINE (S'ÉTEND À DROITE DE LA LOUPE, POUSSE "NOS JOURNALISTES") ---
+               Le conteneur "wrap" reste en overflow visible (pour laisser dépasser la liste de
+               résultats en dessous) ; seul le conteneur interne "inline" est en overflow:hidden,
+               pour l'animation de largeur du champ texte. */
+            .hv2-search-wrap {
+                position: relative;
+                display: flex;
+                align-items: center;
+                flex-shrink: 0;
+            }
+            .hv2-search-inline {
+                display: flex;
+                align-items: center;
+                width: 0;
+                overflow: hidden;
+                transition: width 0.25s ease;
+            }
+            .hv2-search-wrap.is-open .hv2-search-inline {
+                width: clamp(160px, 32vw, 260px);
+            }
+            .hv2-search-input {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 8px 14px;
+                border-radius: 20px;
+                border: 1px solid #1f2937;
+                background-color: #0a1322;
+                color: #ffffff;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 0.85rem;
+            }
+            .hv2-search-input::placeholder {
+                color: #6b7a8f;
+            }
+            .hv2-search-input:focus {
+                outline: none;
+                border-color: #ff8826;
+            }
+            .hv2-search-results {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                margin-top: 8px;
+                min-width: 240px;
+                background-color: #02001d;
+                border: 1px solid #1f2937;
+                border-radius: 10px;
+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+                list-style: none;
+                padding: 6px 0;
+                max-height: 320px;
+                overflow-y: auto;
+                z-index: 41;
+            }
+            .hv2-search-results li a {
+                display: block;
+                padding: 9px 14px;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 0.9rem;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            }
+            .hv2-search-results li a:hover {
+                background-color: rgba(255, 255, 255, 0.08);
+                color: #ff8826;
+            }
+            .hv2-search-empty {
+                padding: 9px 14px;
+                color: #8fa0b5;
+                font-size: 0.85rem;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
 
             /* --- STYLE DE LA BARRE COMPACTE DE NAVIGATION (HORS ACCUEIL) --- */
@@ -270,26 +608,27 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 color: #ff8826;
             }
 
-            /* Bouton sélecteur de langue (Style Pilule) */
-            .lang-selector-btn {
-                background-color: #ffffff;
-                color: #03031a;
-                border: none;
-                padding: 8px 20px;
-                border-radius: 50px;
-                font-weight: bold; 
-                font-size: 0.9rem;
-                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                cursor: pointer;
-                transition: background-color 0.3s ease, transform 0.2s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+            /* --- BANDEAU DE REMPLACEMENT AU DÉFILEMENT (ACCUEIL UNIQUEMENT) ---
+               Clone du header compact ("header-inner"), gardé hors du flux et masqué
+               par défaut ; setupStickyHeader() lui ajoute "is-visible" une fois que le
+               grand header de l'accueil a totalement défilé hors de l'écran. */
+            .header-fixed-clone {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: min(50px, 92vw);
+                margin: 0 auto;
+                z-index: 900;
+                transform: translateY(-100%);
+                opacity: 0;
+                pointer-events: none;
+                transition: transform 0.35s ease, opacity 0.35s ease;
             }
-
-            .lang-selector-btn:hover {
-                background-color: #e2e8f0;
-                transform: scale(1.03);
+            .header-fixed-clone.is-visible {
+                transform: translateY(0);
+                opacity: 1;
+                pointer-events: auto;
             }
 
             .main-grid { 
@@ -330,6 +669,9 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 gap: 40px;
                 padding-bottom: 40px;
             }
+            .footer-brand {
+                width: 110%;
+            }
             .footer-brand h3 {
                 color: #ffffff;
                 margin: 0 0 15px 0;
@@ -341,6 +683,12 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 font-size: 0.95rem;
                 line-height: 1.6;
                 margin: 0;
+            }
+            .footer-brand p + p {
+                margin-top: 14px;
+            }
+            .footer-links{
+                transform: translateX(80px);
             }
             .footer-links h4, .footer-contact h4 {
                 color: #ff8826;
@@ -374,6 +722,13 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 display: inline-flex;
                 align-items: center;
                 height: 20px;
+            }
+            .footer-contact h4 {
+                /* La colonne "Navigation" n'a que sa marge de titre (15px) avant sa
+                   1ère ligne ; ici le "gap" du flex (12px) s'y ajoutait en plus,
+                   décalant "contact@..." plus bas que "Accueil". On retire l'excédent
+                   pour retrouver le même total (15px) et aligner les deux 1ères lignes. */
+                margin-bottom: 3px;
             }
             .footer-contact {
                 display: flex;
@@ -510,55 +865,48 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                     --page-pad: 14px;
                 }
 
-                /* --- En-tête page d'accueil --- */
-                .fixed-logo-wrapper img {
-                    width: 90px;
+                /* --- En-tête page d'accueil (v2) --- */
+                .header-v2-row {
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    row-gap: 10px;
+                    padding: 12px 16px;
                 }
-                header h1 {
-                    font-size: 1.8rem !important;
+                .hv2-category-bar {
+                    justify-content: flex-end;
+                    gap: 16px;
+                    padding: 8px 16px 12px;
+                    min-height: 0;
                 }
-                header {
-                    line-height: 40px;
-                    padding-top: 15px;
-                    padding-bottom: 15px;
+                .hv2-category-bar a {
+                    font-size: 0.9rem;
                 }
-                .header-home-actions {
-                    top: 14px;
-                    right: 14px;
-                    gap: 8px;
+                .header-v2-center {
+                    order: -1;
+                    flex-basis: 100%;
+                    justify-content: center;
                 }
-                .lang-selector-btn {
-                    padding: 6px 14px;
-                    font-size: 0.8rem;
+                .header-v2-left,
+                .header-v2-right {
+                    flex: 1 1 auto;
+                    gap: 6px;
+                    /* Sur mobile, le logo passe en 2e ligne (voir .header-v2-center
+                       plus haut) : plus besoin de recentrer sur son milieu. */
+                    margin-top: 0;
                 }
-
-                /* --- Nav accueil : dropdown --- */
-                .mobile-nav-toggle {
-                    display: flex;
+                .hv2-brand-logo {
+                    width: 56px;
+                    height: 56px;
                 }
-                .nav-bar {
-                    flex-direction: column;
-                    align-items: stretch;
-                    gap: 0;
-                    padding: 6px 0;
+                .hv2-brand-title {
+                    font-size: 17px;
                 }
-                .nav-bar .mobile-nav-toggle {
-                    align-self: center;
-                    margin: 6px 0;
+                .hv2-journalists-btn {
+                    padding: 6px 10px;
+                    font-size: 0.75rem;
                 }
-                .nav-bar a {
-                    display: none;
-                    width: 100%;
-                    text-align: center;
-                    padding: 12px 0;
-                    box-sizing: border-box;
-                    border-top: 1px solid rgba(255, 255, 255, 0.08);
-                }
-                .nav-bar.is-open a {
-                    display: block;
-                }
-                .nav-bar.is-open {
-                    padding-bottom: 10px;
+                .hv2-search-wrap.is-open .hv2-search-inline {
+                    width: clamp(120px, 40vw, 200px);
                 }
 
                 /* --- En-tête interne (hors accueil) --- */
@@ -633,12 +981,6 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
             }
 
             @media (max-width: 968px) {
-                header h1 {
-                    font-size: 1.5rem !important;
-                }
-                .fixed-logo-wrapper img {
-                    width: 72px;
-                }
                 .header-inner-logo {
                     width: 85px;
                 }
@@ -688,7 +1030,42 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
             .substack-link:hover .substack-icon {
                 filter: none;
             }
+
+            html[data-article-font="serif"] .prose-content,
+            html[data-article-font="serif"] .prose-content h2 {
+                font-family: 'Libre Baskerville', Baskerville, Georgia, serif !important;
+            }
+            html[data-article-font="editorial"] .prose-content,
+            html[data-article-font="editorial"] .prose-content h2 {
+                font-family: Georgia, 'Times New Roman', serif !important;
+            }
+            html[data-article-font-size="small"] .prose-content {
+                font-size: 1.1rem !important;
+            }
+            html[data-article-font-size="small"] .prose-content h2 {
+                font-size: 1.4rem !important;
+            }
+            html[data-article-font-size="large"] .prose-content {
+                font-size: 1.55rem !important;
+            }
+            html[data-article-font-size="large"] .prose-content h2 {
+                font-size: 2rem !important;
+            }
         </style>
+        <script is:inline>
+            (function () {
+                try {
+                    var font = localStorage.getItem('sonar_article_font');
+                    if (font && font !== 'sans') {
+                        document.documentElement.setAttribute('data-article-font', font);
+                    }
+                    var size = localStorage.getItem('sonar_article_font_size');
+                    if (size && size !== 'medium') {
+                        document.documentElement.setAttribute('data-article-font-size', size);
+                    }
+                } catch (e) {}
+            })();
+        </script>
     </head>
     <body>
         <script is:inline define:vars={{ supabaseUrl, supabaseAnonKey }}>
@@ -701,71 +1078,119 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                1. VERSION POUR LA PAGE D'ACCUEIL
                ========================================== */
             <>
-                <div class="fixed-logo-wrapper">
-                    <a href="/" style="text-decoration: none;">
-                        <img src={logoSonar.src} alt="Logo Sonar" style="width: 140px; height: auto; display: block;" />
-                    </a>
-                </div>
-
-                <header>
-                    <h1 style="color: #ff8826; margin: 0; font-size: 2.5rem; letter-spacing: 2px;">
-                        <a href="/" style="text-decoration: none; color: inherit;">SONAR</a>
-                    </h1>
-
-                    <div class="header-home-actions">
-                        <AuthNav variant="home" />
-                        <div class="lang-selector-home-wrapper">
-                            <button class="lang-selector-btn">
-                                FR | ENG
+                <header class="header-v2">
+                    <div class="header-v2-row">
+                        <div class="header-v2-left">
+                            <button
+                                type="button"
+                                class="hv2-icon-btn hv2-burger"
+                                aria-label="Ouvrir le menu des catégories"
+                                aria-expanded="false"
+                                aria-controls="hv2-menu-panel"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
                             </button>
+
+                            <button
+                                type="button"
+                                class="hv2-icon-btn hv2-search-toggle"
+                                aria-label="Rechercher un article"
+                                aria-expanded="false"
+                                aria-controls="hv2-search-panel"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="7"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </button>
+                            <div id="hv2-search-panel" class="hv2-search-wrap">
+                                <div class="hv2-search-inline">
+                                    <input
+                                        type="search"
+                                        class="hv2-search-input"
+                                        placeholder="Rechercher un article…"
+                                        data-i18n-placeholder="search_placeholder"
+                                        aria-label="Rechercher un article"
+                                    />
+                                </div>
+                                <ul class="hv2-search-results" data-search-results hidden></ul>
+                            </div>
+
+                            <a href="/journaliste" class="hv2-journalists-btn" data-i18n="nav_journalists">Nos Journalistes</a>
+                        </div>
+
+                        <div class="header-v2-center">
+                            <a href="/" class="hv2-brand">
+                                <img src={logoSonar.src} alt="Logo Sonar" class="hv2-brand-logo" />
+                                <span class="hv2-brand-title">L'Echo du Sonar</span>
+                            </a>
+                        </div>
+
+                        <div class="header-v2-right">
+                            <div class="hv2-lang-switch" role="group" aria-label="Langue">
+                                <button type="button" class="hv2-lang-btn" data-lang-btn="FR" aria-pressed="true">FR</button>
+                                <span class="hv2-lang-sep">/</span>
+                                <button type="button" class="hv2-lang-btn" data-lang-btn="EN" aria-pressed="false">EN</button>
+                            </div>
+                            <AuthNav variant="home-v2" />
                         </div>
                     </div>
-                </header>
 
-                <nav class="nav-bar">
-                    <button type="button" class="mobile-nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false">
-                        <span></span><span></span><span></span>
-                    </button>
-                    <a href="/" data-i18n="nav_home">Accueil</a>
-                    <a href="/politique" data-i18n="nav_politique">Politique</a>
-                    <a href="/culture" data-i18n="nav_culture">Culture</a>
-                    <a href="/societe" data-i18n="nav_societe">Société</a>
-                    <a href="/technologie" data-i18n="nav_tech">Technologie</a>
-                </nav>
-            </>
-        ) : (
-            /* ==========================================
-               2. VERSION HORS ACCUEIL
-               ========================================== */
-            <header class="header-inner">
-                <div class="header-inner-logo">
-                    <a href="/" aria-label="Retour au menu principal">
-                        <img src={logoSonar.src} alt="Logo Sonar" style="width: 100%; height: auto; display: block;" />
-                    </a>
-                </div>
-
-                <div class="header-right-group">
-                    <nav class="nav-bar-inner">
-                        <button type="button" class="mobile-nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false">
-                            <span></span><span></span><span></span>
-                        </button>
+                    <nav class="hv2-category-bar" aria-label="Catégories">
                         <a href="/" data-i18n="nav_home">Accueil</a>
                         <a href="/politique" data-i18n="nav_politique">Politique</a>
                         <a href="/culture" data-i18n="nav_culture">Culture</a>
                         <a href="/societe" data-i18n="nav_societe">Société</a>
                         <a href="/technologie" data-i18n="nav_tech">Technologie</a>
-                        </nav>
+                    </nav>
 
-                    <div class="header-toolbar">
-                        <AuthNav variant="inner" />
-                        <div class="lang-selector-wrapper">
-                            <button class="lang-selector-btn">
-                                FR | ENG
-                            </button>
+                    <script type="application/json" id="hv2-search-data" set:html={searchIndexJson} />
+                </header>
+
+                {/* En dehors du header : le "backdrop-filter" du header en ferait sinon le
+                    référentiel de positionnement (containing block) de ces éléments fixed,
+                    ce qui casserait leur ancrage plein écran. */}
+                <div class="hv2-overlay" id="hv2-overlay"></div>
+                <nav id="hv2-menu-panel" class="hv2-menu-panel" aria-label="Menu">
+                    <div class="hv2-menu-top">
+                        <button type="button" class="hv2-menu-close" aria-label="Fermer le menu">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                            </svg>
+                        </button>
+                        <a href="/" class="hv2-menu-brand">
+                            <img src={logoSonar.src} alt="Logo Sonar" class="hv2-menu-brand-logo" />
+                            <span class="hv2-menu-brand-title">L'Echo du Sonar</span>
+                        </a>
+                        <div class="hv2-lang-switch hv2-menu-lang" role="group" aria-label="Langue">
+                            <button type="button" class="hv2-lang-btn" data-lang-btn="FR" aria-pressed="true">FR</button>
+                            <span class="hv2-lang-sep">/</span>
+                            <button type="button" class="hv2-lang-btn" data-lang-btn="EN" aria-pressed="false">EN</button>
                         </div>
                     </div>
-                </div>
-            </header>
+                    <div class="hv2-menu-links">
+                        <a href="/" data-i18n="nav_home">Accueil</a>
+                        <a href="/politique" data-i18n="nav_politique">Politique</a>
+                        <a href="/culture" data-i18n="nav_culture">Culture</a>
+                        <a href="/societe" data-i18n="nav_societe">Société</a>
+                        <a href="/technologie" data-i18n="nav_tech">Technologie</a>
+                    </div>
+                </nav>
+
+                {/* Remplace en douceur le grand header ci-dessus une fois qu'il a
+                    totalement défilé hors de l'écran (voir setupStickyHeader). */}
+                <HeaderInner fixedClone />
+            </>
+        ) : (
+            /* ==========================================
+               2. VERSION HORS ACCUEIL
+               ========================================== */
+            <HeaderInner />
         )}
 
         <main>
@@ -777,7 +1202,8 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
             <div class="footer-container">
                 <div class="footer-brand">
                     <h3>SONAR</h3>
-                    <p data-i18n="footer_description">Le média qui amplifie l'information. Analyses, décryptages et perspectives sur l'actualité politique, culturelle et technologique.</p>
+                    <p data-i18n="footer_description">Erigé sur les exigences de transparence, de liberté, de méthode et de rigueur, Le Sonar s'assigne pour vocation première d'éclairer l'actualité avec une véritable vigilance factuelle. Au coeur de notre démarche réside une ambition fondamentale : tisser un pacte de confiance pérenne entre notre rédaction (composée de journalistes, étudiants, experts, collaborateurs...) et la nouvelle génération de lecteurs à laquelle nous nous adressons.</p>
+                    <p data-i18n="footer_description_2">Pour donner corps à cet engagement, nous déployons une information plurielle et transparente, incarnée par la diversité de nos formats (brèves, articles, reportages, carrousels...). Convaincus qu'un journalisme de qualité se nourrit du dialogue, nous façonnons notre espace S'onde comme un lieu d'échange et de raisonnance active collective. C'est en prêtant une oreille attentive aux attentes, aux doutes et aux nuances de notre audience que nous entendons mieux appréhender la complexité du débat public.</p>
                 </div>
                 
                 <div class="footer-links">
@@ -827,6 +1253,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 <div class="legal-links">
                     <a href="/deontologie" class="legal-link" data-i18n="footer_deontologie">Méthodologie et Déontologie</a>
                     <a href="/charte" class="legal-link" data-i18n="footer_charte">Charte journalistique</a>
+                    <a href="/charte-commentaires" class="legal-link" data-i18n="footer_comments_charter">Charte des commentaires</a>
                 </div>
             </div>
 
@@ -835,9 +1262,208 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
             </div>
         </footer>
 
+        <AccountDrawer />
+
         <!-- SCRIPT D'INTERACTION & GESTION DU DICTIONNAIRE ET DE LA LANGUE -->
         <script>
             import { dictionary } from '../data/dictionary.js';
+
+            // --- HEADER ACCUEIL (v2) : menu catégories + recherche d'articles ---
+            function setupHeaderV2() {
+                const header = document.querySelector('.header-v2');
+                if (!header) return; // Header v2 uniquement présent sur la page d'accueil
+
+                // Le menu latéral et son voile sombre sont rendus hors du header (voir
+                // Layout.astro) pour rester positionnés par rapport à la fenêtre, pas au
+                // header (qui a un backdrop-filter, cf. commentaire dans le markup).
+                const overlay = document.getElementById('hv2-overlay');
+                const menuPanel = document.getElementById('hv2-menu-panel');
+                const menuCloseBtn = menuPanel ? menuPanel.querySelector('.hv2-menu-close') : null;
+                const burgerBtn = header.querySelector('.hv2-burger');
+
+                const searchBtn = header.querySelector('.hv2-search-toggle');
+                const searchWrap = header.querySelector('#hv2-search-panel');
+                const searchInput = searchWrap ? searchWrap.querySelector('.hv2-search-input') : null;
+                const resultsList = searchWrap ? searchWrap.querySelector('[data-search-results]') : null;
+
+                function isMenuOpen() {
+                    return Boolean(menuPanel && menuPanel.classList.contains('is-open'));
+                }
+                function isSearchOpen() {
+                    return Boolean(searchWrap && searchWrap.classList.contains('is-open'));
+                }
+
+                function closeMenu() {
+                    if (!menuPanel || !isMenuOpen()) return;
+                    menuPanel.classList.remove('is-open');
+                    if (overlay) overlay.classList.remove('is-open');
+                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'false');
+                }
+                function openMenu() {
+                    if (!menuPanel) return;
+                    closeSearch();
+                    menuPanel.classList.add('is-open');
+                    if (overlay) overlay.classList.add('is-open');
+                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'true');
+                }
+                function toggleMenu() {
+                    if (isMenuOpen()) closeMenu();
+                    else openMenu();
+                }
+
+                function closeSearch() {
+                    if (!searchWrap || !isSearchOpen()) return;
+                    searchWrap.classList.remove('is-open');
+                    if (searchBtn) searchBtn.setAttribute('aria-expanded', 'false');
+                    if (searchInput) searchInput.value = '';
+                    if (resultsList) {
+                        resultsList.hidden = true;
+                        resultsList.innerHTML = '';
+                    }
+                }
+                function openSearch() {
+                    if (!searchWrap) return;
+                    closeMenu();
+                    searchWrap.classList.add('is-open');
+                    if (searchBtn) searchBtn.setAttribute('aria-expanded', 'true');
+                    if (searchInput) searchInput.focus();
+                }
+                function toggleSearch() {
+                    if (isSearchOpen()) closeSearch();
+                    else openSearch();
+                }
+
+                if (burgerBtn) {
+                    burgerBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleMenu();
+                    });
+                }
+                if (menuCloseBtn) {
+                    menuCloseBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        closeMenu();
+                    });
+                }
+                if (overlay) {
+                    overlay.addEventListener('click', closeMenu);
+                }
+                if (menuPanel) {
+                    menuPanel.querySelectorAll('.hv2-menu-links a').forEach((link) => {
+                        link.addEventListener('click', closeMenu);
+                    });
+                }
+                if (searchBtn) {
+                    searchBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleSearch();
+                    });
+                }
+
+                document.addEventListener('click', (e) => {
+                    const insideHeader = header.contains(e.target);
+                    const insideMenu = menuPanel && menuPanel.contains(e.target);
+                    if (!insideHeader && !insideMenu) {
+                        closeMenu();
+                        closeSearch();
+                    }
+                });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        closeMenu();
+                        closeSearch();
+                    }
+                });
+                // Empêche la fermeture immédiate quand on clique à l'intérieur des panneaux
+                [menuPanel, searchWrap].forEach((panel) => {
+                    if (panel) panel.addEventListener('click', (e) => e.stopPropagation());
+                });
+
+                // --- Recherche d'articles (regex insensible aux accents/casse) ---
+                let searchIndex = [];
+                try {
+                    const raw = document.getElementById('hv2-search-data');
+                    searchIndex = raw && raw.textContent ? JSON.parse(raw.textContent) : [];
+                } catch {
+                    searchIndex = [];
+                }
+
+                const normalize = (str) => String(str || '')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase();
+
+                function renderResults(query) {
+                    if (!resultsList) return;
+                    const q = query.trim();
+                    const langKey = (localStorage.getItem('site_lang') || 'FR').toUpperCase();
+
+                    if (!q) {
+                        resultsList.hidden = true;
+                        resultsList.innerHTML = '';
+                        return;
+                    }
+
+                    let regex;
+                    try {
+                        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        regex = new RegExp(normalize(escaped));
+                    } catch {
+                        resultsList.hidden = true;
+                        return;
+                    }
+
+                    const matches = searchIndex.filter((item) => {
+                        const title = (langKey === 'EN' && item.titleEn) ? item.titleEn : item.title;
+                        return regex.test(normalize(title));
+                    }).slice(0, 8);
+
+                    resultsList.innerHTML = '';
+                    if (matches.length === 0) {
+                        const li = document.createElement('li');
+                        li.className = 'hv2-search-empty';
+                        li.textContent = (dictionary[langKey] && dictionary[langKey].search_no_results)
+                            || dictionary.FR.search_no_results;
+                        resultsList.appendChild(li);
+                    } else {
+                        matches.forEach((item) => {
+                            const title = (langKey === 'EN' && item.titleEn) ? item.titleEn : item.title;
+                            const li = document.createElement('li');
+                            const a = document.createElement('a');
+                            a.href = `/articles/${item.slug}`;
+                            a.textContent = title;
+                            li.appendChild(a);
+                            resultsList.appendChild(li);
+                        });
+                    }
+                    resultsList.hidden = false;
+                }
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => renderResults(e.target.value));
+                    window.addEventListener('languageChanged', () => {
+                        if (isSearchOpen()) renderResults(searchInput.value);
+                    });
+                }
+            }
+
+            // Accueil uniquement : remplace en douceur le grand header par le bandeau
+            // compact ("header-inner") une fois qu'il a totalement défilé hors de
+            // l'écran. Ne fait rien sur les autres pages (pas de .header-v2/.header-fixed-clone).
+            function setupStickyHeader() {
+                const heroHeader = document.querySelector('.header-v2');
+                const stickyHeader = document.querySelector('.header-fixed-clone');
+                if (!heroHeader || !stickyHeader) return;
+
+                function update() {
+                    const isFullyScrolledPast = heroHeader.getBoundingClientRect().bottom <= 0;
+                    stickyHeader.classList.toggle('is-visible', isFullyScrolledPast);
+                }
+
+                update();
+                window.addEventListener('scroll', update, { passive: true });
+                window.addEventListener('resize', update);
+            }
 
             function applyLanguage(lang) {
                 const langKey = lang.toUpperCase(); 
@@ -907,9 +1533,20 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                     el.setAttribute('aria-hidden', show ? 'false' : 'true');
                 });
 
-                // 9. Mise à jour visuelle des boutons de langue
-                document.querySelectorAll('.lang-selector-btn').forEach(btn => {
-                    btn.textContent = langKey === 'EN' ? 'ENG | FR' : 'FR | ENG';
+                // 9. Sélecteur FR / EN à deux boutons séparés (header accueil + header
+                // compact) : met en surbrillance le mode actuellement sélectionné.
+                document.querySelectorAll('.hv2-lang-btn').forEach(btn => {
+                    const isActive = btn.getAttribute('data-lang-btn') === langKey;
+                    btn.classList.toggle('is-active', isActive);
+                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+
+                // 9ter. Placeholders traduits (ex: champ de recherche du header accueil)
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-placeholder');
+                    if (dictionary[langKey] && dictionary[langKey][key]) {
+                        el.setAttribute('placeholder', dictionary[langKey][key]);
+                    }
                 });
 
                 // 10. Notifier les pages (ex: brèves) qui écoutent le changement
@@ -919,12 +1556,15 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
             document.addEventListener('DOMContentLoaded', () => {
                 const savedLang = localStorage.getItem('site_lang') || 'FR';
                 applyLanguage(savedLang);
+                setupHeaderV2();
+                setupStickyHeader();
 
-                document.querySelectorAll('.lang-selector-btn').forEach(btn => {
+                // Sélecteur FR / EN à deux boutons séparés (header accueil + header compact)
+                document.querySelectorAll('.hv2-lang-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
+                        const target = btn.getAttribute('data-lang-btn');
                         const currentLang = localStorage.getItem('site_lang') || 'FR';
-                        const newLang = currentLang === 'FR' ? 'EN' : 'FR';
-                        applyLanguage(newLang);
+                        if (target && target !== currentLang) applyLanguage(target);
                     });
                 });
 
@@ -939,7 +1579,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.
                 });
 
                 // Ferme le menu déroulant quand on choisit un lien
-                document.querySelectorAll('.nav-bar a, .nav-bar-inner a').forEach((link) => {
+                document.querySelectorAll('.nav-bar-inner a').forEach((link) => {
                     link.addEventListener('click', () => {
                         const nav = link.closest('nav');
                         if (!nav) return;

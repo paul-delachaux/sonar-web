@@ -71,6 +71,114 @@
       white-space: nowrap !important;
       display: block !important;
     }
+
+    /* 8. ÉDITEUR VISUEL DE MINIATURE (glisser-déposer) */
+    .thumb-editor-wrapper { margin-top: 6px; }
+    .thumb-editor-hint { color: #9ca3af; font-size: 12px; margin: 0 0 8px 0; font-style: italic; }
+    .thumb-editor-canvas {
+      position: relative; width: 100%; max-width: 787px;
+      border-radius: 8px; overflow: hidden; background-color: #111827;
+      border: 1px solid #cbd5e1; user-select: none; background-image:
+        linear-gradient(45deg, #1f2937 25%, transparent 25%),
+        linear-gradient(-45deg, #1f2937 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1f2937 75%),
+        linear-gradient(-45deg, transparent 75%, #1f2937 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    }
+    .thumb-editor-stage { position: absolute; left: 0; top: 0; }
+    .thumb-editor-format {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px 0;
+    }
+    .thumb-editor-format-label {
+      font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .thumb-editor-format-btn {
+      background: #fff; border: 1px solid #cbd5e1; color: #334155; border-radius: 4px;
+      padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .thumb-editor-format-btn.is-active {
+      background: #ff7900; border-color: #ff7900; color: #fff;
+    }
+    .thumb-editor-frame-fields { display: flex; align-items: center; gap: 8px; margin: 0 0 10px 0; }
+    .thumb-editor-frame-fields label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; font-weight: 600; }
+    .thumb-editor-frame-fields input { width: 72px; padding: 5px 7px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
+    .thumb-editor-img {
+      position: absolute; box-sizing: border-box; cursor: grab;
+      object-fit: fill; user-select: none;
+    }
+    .thumb-editor-img.is-selected { outline: 2px solid #ff7900; cursor: grabbing; }
+    .thumb-editor-shadow { position: absolute; inset: 0; background: rgba(0,0,0,0.3); pointer-events: none; z-index: 1; }
+    .thumb-editor-handle {
+      position: absolute; width: 10px; height: 10px; background: #fff;
+      border: 1px solid #ff7900; border-radius: 1px; z-index: 3;
+    }
+    .thumb-editor-handle.nw { left: -6px; top: -6px; cursor: nwse-resize; }
+    .thumb-editor-handle.n  { left: 50%; top: -6px; margin-left: -5px; cursor: ns-resize; }
+    .thumb-editor-handle.ne { right: -6px; top: -6px; cursor: nesw-resize; }
+    .thumb-editor-handle.e  { right: -6px; top: 50%; margin-top: -5px; cursor: ew-resize; }
+    .thumb-editor-handle.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+    .thumb-editor-handle.s  { left: 50%; bottom: -6px; margin-left: -5px; cursor: ns-resize; }
+    .thumb-editor-handle.sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+    .thumb-editor-handle.w  { left: -6px; top: 50%; margin-top: -5px; cursor: ew-resize; }
+    .thumb-editor-add-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+    .thumb-editor-add-row input[type="text"] {
+      flex: 1 1 180px; min-width: 140px; padding: 7px 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;
+    }
+    .thumb-editor-block {
+      position: absolute; margin: 0; padding: 2px 4px; line-height: 1.2;
+      cursor: grab; border: 1px dashed transparent; border-radius: 3px;
+      box-sizing: border-box; overflow: hidden;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.9); word-wrap: break-word; overflow-wrap: break-word; white-space: normal;
+    }
+    .thumb-editor-block:hover { border-color: rgba(255,121,0,0.6); }
+    .thumb-editor-block.is-selected { border-color: #ff7900; background: rgba(255,121,0,0.15); cursor: grabbing; }
+    .thumb-editor-toolbar {
+      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-top: 10px;
+      padding: 10px 12px; background: #f4f4f5; border: 1px solid #e2e2e2; border-radius: 6px; font-size: 12px;
+    }
+    .thumb-editor-toolbar label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #555; font-weight: 600; }
+    .thumb-editor-toolbar-text { flex: 1 1 160px; min-width: 140px; padding: 7px 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; align-self: center; }
+    .thumb-editor-toolbar select, .thumb-editor-toolbar input[type="number"] { padding: 5px 7px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
+    .thumb-editor-toolbar-color input { width: 36px; height: 28px; padding: 0; border: 1px solid #ccc; border-radius: 4px; }
+    .thumb-editor-remove-btn { margin-left: auto; background: #e5484d; border: none; color: #fff; border-radius: 4px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; align-self: center; }
+    .thumb-editor-remove-btn:hover { background: #c93a3f; }
+    .thumb-editor-add-btn {
+      background: #1D9E75; color: #fff; border: none; border-radius: 4px;
+      padding: 9px 16px; font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .thumb-editor-add-btn:hover { background: #178a64; }
+    .thumb-editor-add-btn.secondary { background: #334155; }
+    .thumb-editor-add-btn.secondary:hover { background: #1e293b; }
+    .thumb-editor-layers {
+      margin-top: 12px; border: 1px solid #e2e2e2; border-radius: 6px; overflow: hidden; background: #fff;
+    }
+    .thumb-editor-layers-title {
+      padding: 8px 12px; font-size: 11px; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: 0.4px; background: #f4f4f5; border-bottom: 1px solid #e2e2e2;
+    }
+    .thumb-editor-layers-hint {
+      padding: 0 12px 8px; font-size: 11px; color: #888; font-style: italic; background: #f4f4f5;
+    }
+    .thumb-editor-layer {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+      border-top: 1px solid #eee; font-size: 12px; cursor: pointer; background: #fff;
+    }
+    .thumb-editor-layer:first-of-type { border-top: none; }
+    .thumb-editor-layer.is-active { background: #fff7ed; }
+    .thumb-editor-layer:hover { background: #f8fafc; }
+    .thumb-editor-layer.is-active:hover { background: #ffedd5; }
+    .thumb-editor-layer-icon { width: 22px; text-align: center; flex-shrink: 0; }
+    .thumb-editor-layer-label {
+      flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #334155;
+    }
+    .thumb-editor-layer-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    .thumb-editor-layer-btns button {
+      width: 26px; height: 24px; padding: 0; border: 1px solid #cbd5e1; border-radius: 4px;
+      background: #fff; color: #334155; font-size: 12px; cursor: pointer; line-height: 1;
+    }
+    .thumb-editor-layer-btns button:hover:not(:disabled) { background: #ff7900; border-color: #ff7900; color: #fff; }
+    .thumb-editor-layer-btns button:disabled { opacity: 0.35; cursor: default; }
   </style>
 </head>
 <body>
@@ -388,6 +496,773 @@
 
     CMS.registerWidget('relation-filtered', FilteredRelationControl, NativeRelationWidget.preview);
 
+    // 🖱️ Widget "Éditeur visuel de miniature"
+    // Cadre (à la une / sidebar / personnalisé) + calques image avec poignées
+    // style Word (déplacer / redimensionner / recadrer par débordement) + textes.
+    (function() {
+      const PRESETS = {
+        hero: { w: 787, h: 700 },
+        strip: { w: 443, h: 170 },
+        brief: { w: 393, h: 321 },
+        tile: { w: 189, h: 323 }
+      };
+      const FORMAT_BUTTONS = [
+        { id: 'hero', label: 'À la une' },
+        { id: 'strip', label: 'Bandeau' },
+        { id: 'brief', label: 'Sidebar' },
+        { id: 'tile', label: 'Vignette' },
+        { id: 'custom', label: 'Personnalisé' }
+      ];
+      const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+      const MIN_SIZE = 24;
+
+      const THUMB_FONT_OPTIONS = [
+        { value: 'sans-serif', label: 'Moderne (Sans-Serif)' },
+        { value: 'serif', label: 'Journal (Serif)' },
+        { value: 'monospace', label: 'Code (Monospace)' }
+      ];
+      const THUMB_WEIGHT_OPTIONS = [
+        { value: '300', label: 'Fin' },
+        { value: '400', label: 'Normal' },
+        { value: '700', label: 'Gras' },
+        { value: '900', label: 'Ultra-Gras' }
+      ];
+
+      function clamp(n, min, max) { return Math.min(max, Math.max(min, n)); }
+      function asNum(v, fallback) {
+        const n = Number(v);
+        return isFinite(n) ? n : fallback;
+      }
+      function resolveFormat(raw) {
+        if (raw === 'custom') return 'custom';
+        if (raw === 'brief') return 'brief';
+        if (raw === 'tile') return 'tile';
+        if (raw === 'strip' || raw === 'sidebar' || raw === 'landscape') return 'strip';
+        return 'hero';
+      }
+
+      function presetFor(format) {
+        return PRESETS[format] || PRESETS.hero;
+      }
+
+      function remapLayoutToFrame(layout, newW, newH) {
+        const oldW = Math.max(1, layout.frame.w);
+        const oldH = Math.max(1, layout.frame.h);
+        if (oldW === newW && oldH === newH) return layout;
+        const scale = Math.max(newW / oldW, newH / oldH);
+        const ox = (newW - oldW * scale) / 2;
+        const oy = (newH - oldH * scale) / 2;
+        return Object.assign({}, layout, {
+          frame: { w: newW, h: newH },
+          images: layout.images.map(function(img) {
+            return Object.assign({}, img, {
+              x: Math.round(img.x * scale + ox),
+              y: Math.round(img.y * scale + oy),
+              w: Math.round(img.w * scale),
+              h: Math.round(img.h * scale)
+            });
+          }),
+          blocks: layout.blocks.map(function(b) {
+            return Object.assign({}, b, {
+              x: Math.round(b.x * scale + ox),
+              y: Math.round(b.y * scale + oy),
+              size: Math.max(8, Math.round(b.size * scale)),
+              w: Math.max(24, Math.round((b.w || oldW * 0.55) * scale)),
+              h: Math.max(20, Math.round((b.h || b.size * 1.8) * scale))
+            });
+          })
+        });
+      }
+
+      function nextZ(layout) {
+        var max = -1;
+        layout.images.forEach(function(img) { if (img.z > max) max = img.z; });
+        layout.blocks.forEach(function(b) { if (b.z > max) max = b.z; });
+        return max + 1;
+      }
+
+      function layerFileName(src) {
+        const raw = String(src || '').split('?')[0];
+        const name = raw.split('/').pop() || 'Image';
+        try { return decodeURIComponent(name); } catch (err) { return name; }
+      }
+
+      function getThumbLayoutValue(rawValue, thumbnailBg) {
+        const plain = rawValue && typeof rawValue.toJS === 'function' ? rawValue.toJS() : (rawValue || {});
+        const format = resolveFormat(plain.format);
+        const preset = presetFor(format);
+        const frame = {
+          w: Math.max(40, asNum(plain.frame && plain.frame.w, preset.w)),
+          h: Math.max(40, asNum(plain.frame && plain.frame.h, preset.h))
+        };
+        const rawBlocks = Array.isArray(plain.blocks)
+          ? plain.blocks
+          : Array.isArray(plain.descs)
+            ? (plain.title && plain.title.x != null ? [plain.title].concat(plain.descs) : plain.descs)
+            : [];
+        const blocks = rawBlocks.map(function(b, i) {
+          const size = asNum(b.size, 20);
+          return {
+            line: b.line || '',
+            x: asNum(b.x, 20),
+            y: asNum(b.y, 20),
+            size: size,
+            w: Math.max(24, asNum(b.w, Math.round(frame.w * 0.55))),
+            h: Math.max(20, asNum(b.h, Math.round(size * 1.8))),
+            weight: b.weight || '700',
+            font: b.font || 'sans-serif',
+            color: b.color || '#ffffff',
+            z: b.z == null ? undefined : asNum(b.z, 0)
+          };
+        });
+        const hasImages = Array.isArray(plain.images);
+        var images = hasImages
+          ? plain.images.map(function(img, i) {
+              return {
+                src: String(img.src || ''),
+                x: asNum(img.x, 0),
+                y: asNum(img.y, 0),
+                w: Math.max(20, asNum(img.w, frame.w)),
+                h: Math.max(20, asNum(img.h, frame.h)),
+                z: img.z == null ? i : asNum(img.z, i)
+              };
+            }).filter(function(img) { return img.src; })
+          : [];
+        if (!hasImages && thumbnailBg) {
+          const bg = plain.bg || {};
+          const zoom = asNum(bg.zoom, 100);
+          const w = Math.max(20, frame.w * zoom / 100);
+          const h = Math.max(20, frame.h * zoom / 100);
+          const xPct = asNum(bg.x, 50) / 100;
+          const yPct = asNum(bg.y, 50) / 100;
+          images = [{
+            src: String(thumbnailBg),
+            x: (frame.w - w) * xPct,
+            y: (frame.h - h) * yPct,
+            w: w,
+            h: h,
+            z: 0
+          }];
+        }
+        var layout = {
+          format: format,
+          frame: frame,
+          images: images,
+          blocks: blocks.map(function(b, i) {
+            return Object.assign({}, b, {
+              z: b.z == null ? images.length + i : asNum(b.z, images.length + i)
+            });
+          })
+        };
+        if (format !== 'custom') {
+          const target = presetFor(format);
+          if (frame.w !== target.w || frame.h !== target.h) {
+            layout = remapLayoutToFrame(layout, target.w, target.h);
+          }
+        }
+        return layout;
+      }
+
+      const ThumbnailEditorControl = createClass({
+        getInitialState: function() {
+          return { selected: null, addSrc: '' };
+        },
+
+        fieldBg: function() {
+          const entry = this.props.entry;
+          return entry && entry.getIn ? entry.getIn(['data', 'thumbnail_bg']) : null;
+        },
+
+        getLayout: function() {
+          return getThumbLayoutValue(this.props.value, this.fieldBg());
+        },
+
+        canvasScale: function() {
+          const el = this._canvasEl;
+          const layout = this.getLayout();
+          if (!el || !layout.frame.w) return 1;
+          return el.getBoundingClientRect().width / layout.frame.w || 1;
+        },
+
+        emit: function(layout) {
+          this.props.onChange(window.Immutable ? window.Immutable.fromJS(layout) : layout);
+        },
+
+        applyPreset: function(format, e) {
+          if (e) e.preventDefault();
+          if (format === 'custom') {
+            this.updateFrame({});
+            return;
+          }
+          const layout = this.getLayout();
+          const preset = presetFor(format);
+          const next = remapLayoutToFrame(layout, preset.w, preset.h);
+          next.format = format;
+          this.emit(next);
+        },
+
+        updateFrame: function(patch) {
+          const layout = this.getLayout();
+          layout.format = 'custom';
+          layout.frame = Object.assign({}, layout.frame, patch);
+          if (layout.frame.w < 40) layout.frame.w = 40;
+          if (layout.frame.h < 40) layout.frame.h = 40;
+          this.emit(layout);
+        },
+
+        updateImage: function(index, patch) {
+          const layout = this.getLayout();
+          layout.images = layout.images.map(function(img, i) {
+            return i === index ? Object.assign({}, img, patch) : img;
+          });
+          this.emit(layout);
+        },
+
+        updateBlock: function(index, patch) {
+          const layout = this.getLayout();
+          layout.blocks = layout.blocks.map(function(b, i) {
+            return i === index ? Object.assign({}, b, patch) : b;
+          });
+          this.emit(layout);
+        },
+
+        addBlock: function(e) {
+          if (e) e.preventDefault();
+          const layout = this.getLayout();
+          const nextIndex = layout.blocks.length;
+          layout.blocks = layout.blocks.concat([{
+            line: 'Nouveau texte',
+            x: 20,
+            y: 20 + nextIndex * 30,
+            size: 20,
+            w: Math.round(layout.frame.w * 0.55),
+            h: 36,
+            weight: '700',
+            font: 'sans-serif',
+            color: '#ffffff',
+            z: nextZ(layout)
+          }]);
+          this.setState({ selected: { kind: 'block', index: nextIndex } });
+          this.emit(layout);
+        },
+
+        removeBlock: function(index, e) {
+          if (e) e.preventDefault();
+          const layout = this.getLayout();
+          layout.blocks = layout.blocks.filter(function(_, i) { return i !== index; });
+          this.setState({ selected: null });
+          this.emit(layout);
+        },
+
+        addImage: function(src, e) {
+          if (e) e.preventDefault();
+          const url = String(src || '').trim();
+          if (!url) return;
+          const layout = this.getLayout();
+          const nextIndex = layout.images.length;
+          layout.images = layout.images.concat([{
+            src: url, x: 20, y: 20, w: Math.round(layout.frame.w * 0.7), h: Math.round(layout.frame.h * 0.7), z: nextZ(layout)
+          }]);
+          this.setState({ selected: { kind: 'image', index: nextIndex }, addSrc: '' });
+          this.emit(layout);
+        },
+
+        removeImage: function(index, e) {
+          if (e) e.preventDefault();
+          const layout = this.getLayout();
+          layout.images = layout.images.filter(function(_, i) { return i !== index; });
+          this.setState({ selected: null });
+          this.emit(layout);
+        },
+
+        getLayerItems: function(layout) {
+          const items = [];
+          layout.images.forEach(function(img, index) {
+            items.push({ kind: 'image', index: index, z: img.z, label: layerFileName(img.src) });
+          });
+          layout.blocks.forEach(function(b, index) {
+            items.push({ kind: 'block', index: index, z: b.z, label: (b.line || 'Texte vide').trim() || 'Texte vide' });
+          });
+          items.sort(function(a, b) {
+            if (a.z !== b.z) return a.z - b.z;
+            if (a.kind !== b.kind) return a.kind === 'image' ? -1 : 1;
+            return a.index - b.index;
+          });
+          return items;
+        },
+
+        moveLayer: function(kind, index, dir, e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          const layout = this.getLayout();
+          const items = this.getLayerItems(layout);
+          var pos = -1;
+          for (var i = 0; i < items.length; i++) {
+            if (items[i].kind === kind && items[i].index === index) { pos = i; break; }
+          }
+          const next = pos + dir;
+          if (pos < 0 || next < 0 || next >= items.length) return;
+          const tmp = items[pos];
+          items[pos] = items[next];
+          items[next] = tmp;
+          items.forEach(function(it, z) {
+            if (it.kind === 'image') layout.images[it.index].z = z;
+            else layout.blocks[it.index].z = z;
+          });
+          this.emit(layout);
+        },
+
+        selectLayer: function(kind, index, e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          this.setState({ selected: { kind: kind, index: index } });
+        },
+
+        renderLayers: function() {
+          const self = this;
+          const layout = this.getLayout();
+          const selected = this.state.selected;
+          const items = this.getLayerItems(layout).slice().reverse();
+          if (!items.length) return null;
+          return h('div', { className: 'thumb-editor-layers' },
+            h('div', { className: 'thumb-editor-layers-title' }, 'Calques (haut = devant)'),
+            h('p', { className: 'thumb-editor-layers-hint' },
+              'Monter / descendre pour décider ce qui passe au-dessus. La sélection ne change plus l’ordre.'),
+            items.map(function(it, visualIndex) {
+              const isActive = selected && selected.kind === it.kind && selected.index === it.index;
+              const atFront = visualIndex === 0;
+              const atBack = visualIndex === items.length - 1;
+              return h('div', {
+                key: it.kind + '-' + it.index,
+                className: 'thumb-editor-layer' + (isActive ? ' is-active' : ''),
+                onClick: function(e) { self.selectLayer(it.kind, it.index, e); }
+              },
+                h('span', { className: 'thumb-editor-layer-icon' }, it.kind === 'image' ? '🖼' : 'T'),
+                h('span', { className: 'thumb-editor-layer-label', title: it.label },
+                  (it.kind === 'image' ? 'Image — ' : 'Texte — ') + it.label),
+                h('div', { className: 'thumb-editor-layer-btns' },
+                  h('button', {
+                    type: 'button',
+                    title: 'Mettre au-dessus',
+                    disabled: atFront,
+                    onClick: function(e) { self.moveLayer(it.kind, it.index, 1, e); }
+                  }, '↑'),
+                  h('button', {
+                    type: 'button',
+                    title: 'Mettre en dessous',
+                    disabled: atBack,
+                    onClick: function(e) { self.moveLayer(it.kind, it.index, -1, e); }
+                  }, '↓')
+                )
+              );
+            })
+          );
+        },
+
+        componentDidMount: function() {
+          const self = this;
+          this._onWheel = function(e) {
+            if (!self._canvasEl) return;
+            const selected = self.state.selected;
+            const layout = self.getLayout();
+            if (selected && selected.kind === 'block') {
+              const block = layout.blocks[selected.index];
+              if (!block) return;
+              e.preventDefault();
+              const factor = e.deltaY > 0 ? 0.95 : 1.05;
+              const w = Math.max(MIN_SIZE, block.w * factor);
+              const h = Math.max(20, block.h * factor);
+              self.updateBlock(selected.index, {
+                w: Math.round(w),
+                h: Math.round(h),
+                size: Math.max(8, Math.round(block.size * factor)),
+                x: Math.round(block.x - (w - block.w) / 2),
+                y: Math.round(block.y - (h - block.h) / 2)
+              });
+              return;
+            }
+            const idx = selected && selected.kind === 'image' ? selected.index : 0;
+            const img = layout.images[idx];
+            if (!img) return;
+            e.preventDefault();
+            const factor = e.deltaY > 0 ? 0.95 : 1.05;
+            const w = Math.max(MIN_SIZE, img.w * factor);
+            const h = Math.max(MIN_SIZE, img.h * factor);
+            self.updateImage(idx, {
+              w: Math.round(w),
+              h: Math.round(h),
+              x: Math.round(img.x - (w - img.w) / 2),
+              y: Math.round(img.y - (h - img.h) / 2)
+            });
+          };
+          if (this._canvasEl) this._canvasEl.addEventListener('wheel', this._onWheel, { passive: false });
+        },
+
+        componentDidUpdate: function() {
+          if (this._canvasEl && this._onWheel) {
+            this._canvasEl.removeEventListener('wheel', this._onWheel);
+            this._canvasEl.addEventListener('wheel', this._onWheel, { passive: false });
+          }
+        },
+
+        componentWillUnmount: function() {
+          if (this._canvasEl && this._onWheel) this._canvasEl.removeEventListener('wheel', this._onWheel);
+        },
+
+        startImageDrag: function(index, e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const self = this;
+          const scale = this.canvasScale();
+          const layout = this.getLayout();
+          const img = layout.images[index];
+          if (!img) return;
+          const startX = img.x;
+          const startY = img.y;
+          const startMouseX = e.clientX;
+          const startMouseY = e.clientY;
+          this.setState({ selected: { kind: 'image', index: index } });
+
+          function onMove(ev) {
+            const dx = (ev.clientX - startMouseX) / scale;
+            const dy = (ev.clientY - startMouseY) / scale;
+            self.updateImage(index, {
+              x: Math.round(startX + dx),
+              y: Math.round(startY + dy)
+            });
+          }
+          function onUp() {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          }
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        },
+
+        startImageResize: function(index, handle, e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const self = this;
+          const scale = this.canvasScale();
+          const layout = this.getLayout();
+          const img = layout.images[index];
+          if (!img) return;
+          const start = { x: img.x, y: img.y, w: img.w, h: img.h };
+          const startMouseX = e.clientX;
+          const startMouseY = e.clientY;
+          this.setState({ selected: { kind: 'image', index: index } });
+
+          function onMove(ev) {
+            const dx = (ev.clientX - startMouseX) / scale;
+            const dy = (ev.clientY - startMouseY) / scale;
+            var x = start.x, y = start.y, w = start.w, h = start.h;
+            if (handle.indexOf('e') !== -1) w = Math.max(MIN_SIZE, start.w + dx);
+            if (handle.indexOf('s') !== -1) h = Math.max(MIN_SIZE, start.h + dy);
+            if (handle.indexOf('w') !== -1) {
+              w = Math.max(MIN_SIZE, start.w - dx);
+              x = start.x + (start.w - w);
+            }
+            if (handle.indexOf('n') !== -1) {
+              h = Math.max(MIN_SIZE, start.h - dy);
+              y = start.y + (start.h - h);
+            }
+            self.updateImage(index, {
+              x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h)
+            });
+          }
+          function onUp() {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          }
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        },
+
+        startBlockDrag: function(index, e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const self = this;
+          const scale = this.canvasScale();
+          const layout = this.getLayout();
+          const block = layout.blocks[index];
+          if (!block) return;
+          const startX = block.x;
+          const startY = block.y;
+          const startMouseX = e.clientX;
+          const startMouseY = e.clientY;
+          this.setState({ selected: { kind: 'block', index: index } });
+
+          function onMove(ev) {
+            const dx = (ev.clientX - startMouseX) / scale;
+            const dy = (ev.clientY - startMouseY) / scale;
+            self.updateBlock(index, {
+              x: Math.round(startX + dx),
+              y: Math.round(startY + dy)
+            });
+          }
+          function onUp() {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          }
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        },
+
+        startBlockResize: function(index, handle, e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const self = this;
+          const scale = this.canvasScale();
+          const layout = this.getLayout();
+          const block = layout.blocks[index];
+          if (!block) return;
+          const start = { x: block.x, y: block.y, w: block.w, h: block.h, size: block.size };
+          const startMouseX = e.clientX;
+          const startMouseY = e.clientY;
+          this.setState({ selected: { kind: 'block', index: index } });
+
+          function onMove(ev) {
+            const dx = (ev.clientX - startMouseX) / scale;
+            const dy = (ev.clientY - startMouseY) / scale;
+            var x = start.x, y = start.y, w = start.w, h = start.h;
+            if (handle.indexOf('e') !== -1) w = Math.max(MIN_SIZE, start.w + dx);
+            if (handle.indexOf('s') !== -1) h = Math.max(20, start.h + dy);
+            if (handle.indexOf('w') !== -1) {
+              w = Math.max(MIN_SIZE, start.w - dx);
+              x = start.x + (start.w - w);
+            }
+            if (handle.indexOf('n') !== -1) {
+              h = Math.max(20, start.h - dy);
+              y = start.y + (start.h - h);
+            }
+            var size = start.size;
+            if (h !== start.h) size = start.size * (h / start.h);
+            else if (w !== start.w) size = start.size * (w / start.w);
+            self.updateBlock(index, {
+              x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h),
+              size: Math.max(8, Math.round(size))
+            });
+          }
+          function onUp() {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          }
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        },
+
+        renderToolbar: function() {
+          const selected = this.state.selected;
+          if (!selected) return null;
+          const layout = this.getLayout();
+          const self = this;
+
+          if (selected.kind === 'image') {
+            const img = layout.images[selected.index];
+            if (!img) return null;
+            return h('div', { className: 'thumb-editor-toolbar' },
+              h('span', { style: { alignSelf: 'center', fontSize: '12px', color: '#555' } },
+                'Image — glisse pour déplacer, poignées pour recadrer / redimensionner, molette pour zoomer.'),
+              h('button', {
+                type: 'button',
+                className: 'thumb-editor-remove-btn',
+                onClick: function(e) { self.removeImage(selected.index, e); }
+              }, '🗑 Supprimer cette image')
+            );
+          }
+
+          const block = layout.blocks[selected.index];
+          if (!block) return null;
+          function patch(p) { self.updateBlock(selected.index, p); }
+
+          return h('div', { className: 'thumb-editor-toolbar' },
+            h('input', {
+              type: 'text',
+              className: 'thumb-editor-toolbar-text',
+              value: block.line,
+              placeholder: 'Texte du bloc…',
+              onChange: function(e) { patch({ line: e.target.value }); }
+            }),
+            h('label', {}, 'Taille',
+              h('input', {
+                type: 'number', min: 8, max: 200, value: block.size,
+                onChange: function(e) {
+                  const n = parseInt(e.target.value, 10);
+                  patch({ size: isNaN(n) ? block.size : n });
+                }
+              })
+            ),
+            h('label', {}, 'Police',
+              h('select', {
+                value: block.font,
+                onChange: function(e) { patch({ font: e.target.value }); }
+              }, THUMB_FONT_OPTIONS.map(function(opt) {
+                return h('option', { key: opt.value, value: opt.value }, opt.label);
+              }))
+            ),
+            h('label', {}, 'Épaisseur',
+              h('select', {
+                value: String(block.weight),
+                onChange: function(e) { patch({ weight: e.target.value }); }
+              }, THUMB_WEIGHT_OPTIONS.map(function(opt) {
+                return h('option', { key: opt.value, value: opt.value }, opt.label);
+              }))
+            ),
+            h('label', { className: 'thumb-editor-toolbar-color' }, 'Couleur',
+              h('input', {
+                type: 'color', value: block.color,
+                onChange: function(e) { patch({ color: e.target.value }); }
+              })
+            ),
+            h('button', {
+              type: 'button',
+              className: 'thumb-editor-remove-btn',
+              onClick: function(e) { self.removeBlock(selected.index, e); }
+            }, '🗑 Supprimer ce bloc')
+          );
+        },
+
+        render: function() {
+          const self = this;
+          const layout = this.getLayout();
+          const fieldBg = this.fieldBg();
+          const selected = this.state.selected;
+          const format = layout.format;
+          const stageScale = this._canvasEl
+            ? this.canvasScale()
+            : Math.min(1, 700 / layout.frame.w, 520 / layout.frame.h);
+
+          return h('div', { className: 'thumb-editor-wrapper' },
+            h('div', { className: 'thumb-editor-format' },
+              h('span', { className: 'thumb-editor-format-label' }, 'Cadre'),
+              FORMAT_BUTTONS.map(function(btn) {
+                return h('button', {
+                  key: btn.id,
+                  type: 'button',
+                  className: 'thumb-editor-format-btn' + (format === btn.id ? ' is-active' : ''),
+                  onClick: function(e) { self.applyPreset(btn.id, e); }
+                }, btn.label);
+              })
+            ),
+            h('div', { className: 'thumb-editor-frame-fields' },
+              h('label', {}, 'Largeur',
+                h('input', {
+                  type: 'number', min: 40, max: 2000, value: layout.frame.w,
+                  onChange: function(e) {
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) self.updateFrame({ w: n });
+                  }
+                })
+              ),
+              h('label', {}, 'Hauteur',
+                h('input', {
+                  type: 'number', min: 40, max: 2000, value: layout.frame.h,
+                  onChange: function(e) {
+                    const n = parseInt(e.target.value, 10);
+                    if (!isNaN(n)) self.updateFrame({ h: n });
+                  }
+                })
+              ),
+              h('span', { style: { fontSize: '11px', color: '#888' } }, 'px')
+            ),
+            h('p', { className: 'thumb-editor-hint' },
+              'Poignées sur les images et les textes (comme dans Word). Changer de cadre recadre la composition. Classe les calques pour l’ordre d’empilement.'
+            ),
+            h('div', {
+              className: 'thumb-editor-canvas',
+              ref: function(el) { self._canvasEl = el; },
+              style: { aspectRatio: layout.frame.w + ' / ' + layout.frame.h },
+              onMouseDown: function() { self.setState({ selected: null }); }
+            },
+              h('div', {
+                className: 'thumb-editor-stage',
+                style: {
+                  width: layout.frame.w + 'px',
+                  height: layout.frame.h + 'px',
+                  transform: 'scale(' + stageScale + ')',
+                  transformOrigin: 'top left'
+                }
+              },
+              layout.images.map(function(img, i) {
+                const isSel = selected && selected.kind === 'image' && selected.index === i;
+                return h('div', {
+                  key: 'img-' + i,
+                  className: 'thumb-editor-img' + (isSel ? ' is-selected' : ''),
+                  style: {
+                    left: img.x + 'px', top: img.y + 'px', width: img.w + 'px', height: img.h + 'px',
+                    zIndex: 10 + img.z,
+                    backgroundImage: "url('" + img.src + "')",
+                    backgroundSize: '100% 100%',
+                    backgroundRepeat: 'no-repeat'
+                  },
+                  onMouseDown: function(e) { self.startImageDrag(i, e); }
+                },
+                  isSel && HANDLES.map(function(handle) {
+                    return h('span', {
+                      key: handle,
+                      className: 'thumb-editor-handle ' + handle,
+                      onMouseDown: function(e) { self.startImageResize(i, handle, e); }
+                    });
+                  })
+                );
+              }),
+              h('div', { className: 'thumb-editor-shadow' }),
+              layout.blocks.map(function(b, i) {
+                const isSel = selected && selected.kind === 'block' && selected.index === i;
+                return h('div', {
+                  key: 'txt-' + i,
+                  className: 'thumb-editor-block' + (isSel ? ' is-selected' : ''),
+                  style: {
+                    left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px',
+                    fontSize: b.size + 'px',
+                    fontWeight: b.weight, fontFamily: b.font, color: b.color,
+                    zIndex: 10 + b.z
+                  },
+                  onMouseDown: function(e) { self.startBlockDrag(i, e); }
+                },
+                  b.line || 'Texte vide',
+                  isSel && HANDLES.map(function(handle) {
+                    return h('span', {
+                      key: handle,
+                      className: 'thumb-editor-handle ' + handle,
+                      onMouseDown: function(e) { self.startBlockResize(i, handle, e); }
+                    });
+                  })
+                );
+              })
+              )
+            ),
+            this.renderLayers(),
+            this.renderToolbar(),
+            h('div', { className: 'thumb-editor-add-row' },
+              fieldBg && h('button', {
+                type: 'button',
+                className: 'thumb-editor-add-btn secondary',
+                onClick: function(e) { self.addImage(fieldBg, e); }
+              }, "+ Image de fond"),
+              h('input', {
+                type: 'text',
+                value: self.state.addSrc,
+                placeholder: 'URL ou /assets/uploads/…',
+                onChange: function(e) { self.setState({ addSrc: e.target.value }); }
+              }),
+              h('button', {
+                type: 'button',
+                className: 'thumb-editor-add-btn secondary',
+                onClick: function(e) { self.addImage(self.state.addSrc, e); }
+              }, '+ Image'),
+              h('button', {
+                type: 'button',
+                className: 'thumb-editor-add-btn',
+                onClick: function(e) { self.addBlock(e); }
+              }, '+ Texte')
+            )
+          );
+        }
+      });
+
+      CMS.registerWidget('thumbnail-editor', ThumbnailEditorControl, function() { return null; });
+    })();
+
+
     // ==========================================================================
     // 👁️ Aperçus (Previews) — Articles & Brèves
     // Reproduisent fidèlement les layouts réels de src/pages/articles/[slug].astro
@@ -526,16 +1401,7 @@
         category: data.category || '',
         use_thumbnail: data.use_thumbnail === true || data.use_thumbnail === 'true',
         thumbnail_bg: data.thumbnail_bg,
-        thumbnail_bg_zoom: data.thumbnail_bg_zoom,
-        thumbnail_bg_position: data.thumbnail_bg_position,
-        thumbnail_title: data.thumbnail_title,
-        title_x: data.title_x,
-        title_y: data.title_y,
-        title_size: data.title_size,
-        title_weight: data.title_weight,
-        title_font: data.title_font,
-        title_color: data.title_color,
-        thumbnail_descs: Array.isArray(data.thumbnail_descs) ? data.thumbnail_descs : [],
+        thumbnail_layout: data.thumbnail_layout || {},
         empty: false,
         missing: false
       };
@@ -618,7 +1484,10 @@
       const interests = entry.getIn(['data', 'author_info', 0, 'author_interests'])
         || entry.getIn(['data', 'author_interests'])
         || "";
-      return { about: about, interests: interests };
+      const partners = entry.getIn(['data', 'author_info', 0, 'author_partners'])
+        || entry.getIn(['data', 'author_partners'])
+        || "";
+      return { about: about, interests: interests, partners: partners };
     }
 
     function renderSourcesList(entry) {
@@ -853,14 +1722,15 @@
       .breve-figure { margin: 25px 0; width: 100%; }
       .breve-image { width: 100%; height: auto; display: block; object-fit: cover; border-radius: 4px; }
       .breve-caption { margin-top: 8px; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; }
-      .breve-sidebar { position: sticky; top: 30px; }
-      .breve-author-block { display: flex; flex-direction: column; align-items: center; text-align: left; }
-      .breve-avatar-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; }
-      .breve-avatar { width: 70px; height: 70px; border-radius: 50%; background-color: #ffffff; object-fit: cover; }
-      .breve-avatar-pointer { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #ffffff; margin-top: 4px; }
-      .breve-author-bio { font-size: 0.78rem; line-height: 1.4; color: #9ca3af; border-top: 1px solid #ffffff; padding-top: 10px; width: 100%; }
-      .breve-author-name { font-weight: 700; color: #ffffff; margin-bottom: 4px; font-size: 0.85rem; }
-      .breve-author-interests { margin-top: 6px; opacity: 0.8; font-style: italic; }
+      .breve-sidebar { position: static; }
+      .breve-author-block { display: flex; flex-direction: column; text-align: left; }
+      .breve-author-header { display: flex; align-items: flex-start; gap: 12px; }
+      .breve-avatar { width: 48px; height: 48px; border-radius: 50%; background-color: #d9d9d9; object-fit: cover; flex-shrink: 0; }
+      .breve-author-header-text { flex: 1; min-width: 0; }
+      .breve-author-name { font-weight: 700; color: #ff8826; margin: 0 0 4px 0; font-size: 0.95rem; }
+      .breve-author-about { margin: 0; font-size: 0.8rem; line-height: 1.4; color: #d7dee6; }
+      .breve-author-detail { margin: 14px 0 0 0; font-size: 0.8rem; line-height: 1.5; color: #d7dee6; }
+      .breve-author-detail strong { color: #ffffff; font-weight: 700; }
       .breve-sources-section { margin-top: 25px; margin-bottom: 20px; }
       .breve-sources-title { color: #ea580c; font-size: 0.95rem; font-weight: 700; margin-bottom: 15px; }
       .breve-sources-list { list-style-type: none; padding: 0; margin: 0; }
@@ -887,25 +1757,25 @@
       .home-preview .container-accueil { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
       .home-preview .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: stretch; min-height: 520px; }
       .home-preview .article-une, .home-preview .article-sidebar, .home-preview .article-bottom-card { text-decoration: none; color: inherit; }
-      .home-preview .article-une { background: white; padding: 24px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 420px; }
-      .home-preview .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #111; }
+      .home-preview .article-une { background: #01002d; padding: 24px; border: 1px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; min-height: 420px; }
+      .home-preview .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #ffffff; }
       .home-preview .image-wrapper { width: 100%; flex-grow: 1; min-height: 220px; position: relative; margin-top: 15px; }
       .home-preview .image-wrapper img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
       .home-preview .sidebar-articles { display: flex; flex-direction: column; gap: 15px; height: auto; }
       .home-preview .article-sidebar.long, .home-preview .sub-grid { flex: 1; }
       .home-preview .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-      .home-preview .article-sidebar { background: white; padding: 15px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; height: auto; }
-      .home-preview .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #111; }
+      .home-preview .article-sidebar { background: #01002d; padding: 15px; border: 1px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; height: auto; }
+      .home-preview .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #ffffff; }
       .home-preview .bottom-row-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; }
-      .home-preview .article-bottom-card { background: white; padding: 20px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 240px; border-radius: 2%; }
+      .home-preview .article-bottom-card { background: #01002d; padding: 20px; border: 1px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; min-height: 240px; border-radius: 2%; }
       .home-preview .card-content-top { margin-bottom: 5px; }
-      .home-preview .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; }
-      .home-preview .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #f7f7f7; min-height: 60px; }
+      .home-preview .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; color: #ffffff; }
+      .home-preview .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #0a0a40; min-height: 60px; }
       .home-preview .spacer-img { width: 100%; height: 100%; object-fit: cover; }
       .home-preview .article-tag, .home-preview .sidebar-tag, .home-preview .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
       .home-preview .article-tag { margin: 0 0 10px 0; }
       .home-preview .sidebar-tag, .home-preview .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
-      .home-preview .article-desc, .home-preview .sidebar-desc { font-size: 0.95rem; line-height: 1.5; color: #333; margin: 0; }
+      .home-preview .article-desc, .home-preview .sidebar-desc { font-size: 0.95rem; line-height: 1.5; color: #c9c9d4; margin: 0; }
       .home-preview .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }
       .home-preview .article-bottom-card.has-bg .overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)); z-index: -1; }
       .home-preview .article-bottom-card.has-bg h3 { color: #ffffff !important; }
@@ -1015,18 +1885,13 @@
         const avatarUrl = getAuthorAvatar(author);
 
         const bg = entry.getIn(['data', 'thumbnail_bg']);
-        const bgPosition = entry.getIn(['data', 'thumbnail_bg_position']) || 'center';
-        const bgZoom = Number(entry.getIn(['data', 'thumbnail_bg_zoom']));
-        const bgSize = isNaN(bgZoom) || bgZoom === 0 ? 'cover' : bgZoom + '%';
-        const tText = entry.getIn(['data', 'thumbnail_title']);
-        const tX = Number(entry.getIn(['data', 'title_x'])) || 20;
-        const tY = Number(entry.getIn(['data', 'title_y'])) || 20;
-        const tSize = Number(entry.getIn(['data', 'title_size'])) || 24;
-        const tWeight = entry.getIn(['data', 'title_weight']) || '700';
-        const tFont = entry.getIn(['data', 'title_font']) || 'sans-serif';
-        const tColor = entry.getIn(['data', 'title_color']) || '#ffffff';
-        const descsList = entry.getIn(['data', 'thumbnail_descs']);
-        const descsArray = descsList ? descsList.toJS() : [];
+        const thumbLayout = entry.getIn(['data', 'thumbnail_layout']);
+        const thumbLayoutJS = thumbLayout && thumbLayout.toJS ? thumbLayout.toJS() : (thumbLayout || {});
+        const thumbBg = thumbLayoutJS.bg || {};
+        const bgX = typeof thumbBg.x === 'number' ? thumbBg.x : 50;
+        const bgY = typeof thumbBg.y === 'number' ? thumbBg.y : 50;
+        const bgZoom = typeof thumbBg.zoom === 'number' ? thumbBg.zoom : 100;
+        const blocksArray = Array.isArray(thumbLayoutJS.blocks) ? thumbLayoutJS.blocks : [];
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
 
@@ -1091,11 +1956,11 @@
               style: {
                 backgroundImage: bg ? 'url(' + bg + ')' : 'none',
                 backgroundColor: '#121f2f',
-                backgroundSize: bgSize,
+                backgroundSize: bgZoom + '%',
                 backgroundRepeat: 'no-repeat',
-                backgroundPosition: bgPosition,
+                backgroundPosition: bgX + '% ' + bgY + '%',
                 width: '100%',
-                aspectRatio: '16/9',
+                aspectRatio: (thumbLayoutJS.format === 'landscape' ? '16 / 9' : '1 / 1'),
                 maxHeight: '350px',
                 borderRadius: '8px',
                 position: 'relative',
@@ -1103,20 +1968,13 @@
                 boxShadow: 'inset 0 0 100px rgba(0,0,0,0.7)'
               }
             },
-              h('h3', {
-                style: {
-                  position: 'absolute', left: tX + 'px', top: tY + 'px', margin: 0, padding: 0, width: '60%', maxWidth: '400px',
-                  lineHeight: '1.2', color: tColor, fontSize: tSize + 'px', fontWeight: tWeight, fontFamily: tFont, textShadow: '2px 2px 5px rgba(0,0,0,0.9)',
-                  whiteSpace: 'normal', wordWrap: 'break-word', overflowWrap: 'break-word'
-                }
-              }, tText || 'Titre de la miniature vacant...'),
-              ...descsArray.map(function(bloc, i) {
+              ...blocksArray.map(function(bloc, i) {
                 return h('p', {
                   key: i,
                   style: {
-                    position: 'absolute', left: (isNaN(bloc.x) ? 20 : bloc.x) + 'px', top: (isNaN(bloc.y) ? 80 : bloc.y) + 'px', margin: 0, padding: 0,
-                    lineHeight: '1.2', color: bloc.color || '#e1e8ed', fontSize: (isNaN(bloc.size) || bloc.size === 0 ? 14 : bloc.size) + 'px',
-                    fontWeight: bloc.weight || '400', fontFamily: bloc.font || 'sans-serif', textShadow: '1px 1px 4px rgba(0,0,0,0.9)',
+                    position: 'absolute', left: (isNaN(bloc.x) ? 20 : bloc.x) + 'px', top: (isNaN(bloc.y) ? 20 : bloc.y) + 'px', margin: 0, padding: 0,
+                    lineHeight: '1.2', color: bloc.color || '#ffffff', fontSize: (isNaN(bloc.size) || bloc.size === 0 ? 20 : bloc.size) + 'px',
+                    fontWeight: bloc.weight || '700', fontFamily: bloc.font || 'sans-serif', textShadow: '1px 1px 4px rgba(0,0,0,0.9)',
                     whiteSpace: 'normal', wordWrap: 'break-word', overflowWrap: 'break-word'
                   }
                 }, bloc.line || '');
@@ -1168,6 +2026,7 @@
         const authorInfo = getAuthorAboutInterests(entry);
         const authorAbout = authorInfo.about;
         const authorInterests = authorInfo.interests;
+        const authorPartners = authorInfo.partners;
 
         const avatarUrl = getAuthorAvatar(author);
         const categoryLabel = getCategoryLabelFR(category);
@@ -1198,14 +2057,18 @@
 
                 h('aside', { className: 'breve-sidebar' },
                   h('div', { className: 'breve-author-block' },
-                    h('div', { className: 'breve-avatar-wrapper' },
+                    h('div', { className: 'breve-author-header' },
                       h('img', { src: avatarUrl, alt: author, className: 'breve-avatar' }),
-                      h('div', { className: 'breve-avatar-pointer' })
+                      h('div', { className: 'breve-author-header-text' },
+                        h('p', { className: 'breve-author-name' }, author),
+                        h('p', { className: 'breve-author-about' }, authorAbout)
+                      )
                     ),
-                    h('div', { className: 'breve-author-bio' },
-                      h('p', { className: 'breve-author-name' }, author),
-                      h('p', {}, authorAbout),
-                      authorInterests && h('p', { className: 'breve-author-interests' }, authorInterests)
+                    authorInterests && h('p', { className: 'breve-author-detail' },
+                      h('strong', {}, "Déclaration d'intérêts"), " : ", authorInterests
+                    ),
+                    authorPartners && h('p', { className: 'breve-author-detail' },
+                      h('strong', {}, "Partenaires"), " : ", authorPartners
                     )
                   )
                 )
@@ -1251,40 +2114,31 @@
         return renderHomeEmpty('article-une', 'Aucun article à la une');
       }
       if (article.use_thumbnail && article.thumbnail_bg) {
-        const descs = article.thumbnail_descs || [];
+        const layout = article.thumbnail_layout || {};
+        const bg = layout.bg || {};
+        const blocks = layout.blocks || [];
         return h('div', { className: 'thumbnail-wrapper article-une' },
           h('div', {
             className: 'thumbnail-canvas',
             style: {
               backgroundImage: "url('" + article.thumbnail_bg + "')",
-              backgroundSize: article.thumbnail_bg_zoom ? article.thumbnail_bg_zoom + '%' : 'cover',
-              backgroundPosition: article.thumbnail_bg_position || 'center',
+              backgroundSize: (bg.zoom != null ? bg.zoom : 100) + '%',
+              backgroundPosition: (bg.x != null ? bg.x : 50) + '% ' + (bg.y != null ? bg.y : 50) + '%',
               backgroundRepeat: 'no-repeat'
             }
           },
             h('div', { className: 'thumbnail-shadow' }),
-            article.thumbnail_title ? h('h2', {
-              className: 'thumbnail-text',
-              style: {
-                left: (article.title_x != null ? article.title_x : 20) + 'px',
-                top: (article.title_y != null ? article.title_y : 20) + 'px',
-                fontSize: (article.title_size != null ? article.title_size : 24) + 'px',
-                fontWeight: article.title_weight || 700,
-                fontFamily: article.title_font || 'sans-serif',
-                color: article.title_color || '#ffffff'
-              }
-            }, article.title) : null,
-            descs.map(function(bloc, i) {
+            blocks.map(function(bloc, i) {
               return h('p', {
                 key: i,
                 className: 'thumbnail-text',
                 style: {
                   left: (bloc.x != null ? bloc.x : 20) + 'px',
-                  top: (bloc.y != null ? bloc.y : 80) + 'px',
-                  fontSize: (bloc.size != null ? bloc.size : 14) + 'px',
-                  fontWeight: bloc.weight || 400,
+                  top: (bloc.y != null ? bloc.y : 20) + 'px',
+                  fontSize: (bloc.size != null ? bloc.size : 20) + 'px',
+                  fontWeight: bloc.weight || 700,
                   fontFamily: bloc.font || 'sans-serif',
-                  color: bloc.color || '#e1e8ed'
+                  color: bloc.color || '#ffffff'
                 }
               }, bloc.line);
             })
@@ -1352,7 +2206,7 @@
 
       return h('div', { className: 'home-preview' },
         h('style', {}, PREVIEW_STYLES),
-        h('p', { className: 'home-preview-note' }, 'Aperçu de l’accueil — survolez un sous-menu à gauche pour localiser la zone. Les emplacements vides ne sont pas remplis automatiquement'),
+        h('p', { className: 'home-preview-note' }, 'Aperçu de l’accueil — survolez un sous-menu à gauche pour localiser la zone. Les emplacements vides sont remplis automatiquement par l\'article le plus récent.'),
         h('div', { className: 'container-accueil' },
           h('div', { className: 'main-grid' },
             h('div', { className: 'preview-anchor', 'data-preview-anchor': 'preview-hero' }, withDuplicateOverlay(hero, renderHomeHero(hero))),

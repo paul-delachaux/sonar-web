@@ -1,12 +1,12 @@
 {
-  "asymRightArticle": "",
+  "asymRightArticle": "gecko-le-meilleur-initiateur-de-valorant",
   "bottomArticles": [
-    "article",
+    "gecko-le-meilleur-initiateur-de-valorant",
     "test-pour-la-catégorie-société",
     "test-pour-la-catégorie-technologie"
   ],
   "sidebarSmallArticles": [
-    "test-admin",
+    "gecko-le-meilleur-initiateur-de-valorant",
     ""
   ],
   "bottomArticlesStyles": [
@@ -27,7 +27,7 @@
     }
   ],
   "asymLeftArticles": [
-    "test-pour-victor",
+    "gecko-le-meilleur-initiateur-de-valorant",
     "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
     null
   ],
@@ -54,5 +54,5 @@
     "titleFont": "sans-serif"
   },
   "heroArticle": "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
-  "sidebarLongArticle": "enfin-le-nouveau-menu-admin"
+  "sidebarLongArticle": ""
 }

@@ -1,5 +1,6 @@
 ---
 import MainLayout from '../layouts/Layout.astro';
+import ThumbnailCard from '../components/ThumbnailCard.astro';
 import { getCollection } from 'astro:content';
 import homeSettings from '../data/settings.json';
 import { categoryLabel } from '../utils/i18n.js';
@@ -277,56 +278,15 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
         <div class="main-grid">
             {articleUneFR ? (
                 articleUneFR.data.use_thumbnail && articleUneFR.data.thumbnail_bg ? (
-                    <a 
-                      href={`/articles/${articleUneFR.id}`} 
-                      class="thumbnail-wrapper article-une article-card-item"
-                      data-href-fr={`/articles/${articleUneFR.id}`}
-                      data-href-en={enHref(articleUneEN, hasEnUne)}
-                      data-has-en={hasEnUne ? "true" : "false"}
-                    >
-                        <div class="thumbnail-canvas" 
-                        data-bg-fr={articleUneFR.data.thumbnail_bg}
-                        data-bg-en={enBg(articleUneEN, hasEnUne, "thumbnail_bg")}
-                        style={`
-                        background-image: url('${articleUneFR.data.thumbnail_bg}');
-                        background-size: ${articleUneFR.data.thumbnail_bg_zoom ? articleUneFR.data.thumbnail_bg_zoom + '%' : 'cover'};
-                        background-position: ${articleUneFR.data.thumbnail_bg_position || 'center'};
-                        background-repeat: no-repeat;
-                        `}>
-                            <div class="thumbnail-shadow"></div>
-
-                            {articleUneFR.data.thumbnail_title && (
-                                <h2 
-                                  class="thumbnail-text" 
-                                  style={`
-                                    left: ${articleUneFR.data.title_x ?? 20}px;
-                                    top: ${articleUneFR.data.title_y ?? 20}px;
-                                    font-size: ${articleUneFR.data.title_size ?? 24}px;
-                                    font-weight: ${articleUneFR.data.title_weight ?? 700};
-                                    font-family: ${articleUneFR.data.title_font ?? 'sans-serif'};
-                                    color: ${articleUneFR.data.title_color ?? '#ffffff'};
-                                  `}
-                                  data-fr={articleUneFR.data.title}
-                                  data-en={enText(articleUneEN, hasEnUne, "title_en")}
-                                >
-                                    {articleUneFR.data.title}
-                                </h2>
-                            )}
-
-                            {(articleUneFR.data.thumbnail_descs ?? []).map((bloc: any) => (
-                                <p class="thumbnail-text" style={`
-                                left: ${bloc.x ?? 20}px;
-                                top: ${bloc.y ?? 80}px;
-                                font-size: ${bloc.size ?? 14}px;
-                                font-weight: ${bloc.weight ?? 400};
-                                font-family: ${bloc.font ?? 'sans-serif'};
-                                color: ${bloc.color ?? '#e1e8ed'};
-                                `}>
-                                    {bloc.line}
-                                </p>
-                            ))}
-                        </div>
-                    </a>
+                    <ThumbnailCard
+                      href={`/articles/${articleUneFR.id}`}
+                      hrefEn={enHref(articleUneEN, hasEnUne)}
+                      hasEn={hasEnUne}
+                      bg={articleUneFR.data.thumbnail_bg}
+                      bgEn={enBg(articleUneEN, hasEnUne, "thumbnail_bg")}
+                      layout={articleUneFR.data.thumbnail_layout}
+                      variant="hero"
+                    />
                 ) : (
                     <a 
                       href={`/articles/${articleUneFR.id}`} 
@@ -375,6 +335,17 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
 
             <aside class="sidebar-articles">
                 {premierSecondaireLongFR && (
+                    premierSecondaireLongFR.data.use_thumbnail && premierSecondaireLongFR.data.thumbnail_bg ? (
+                        <ThumbnailCard
+                          href={`/articles/${premierSecondaireLongFR.id}`}
+                          hrefEn={enHref(premierSecondaireLongEN, hasEnLong)}
+                          hasEn={hasEnLong}
+                          bg={premierSecondaireLongFR.data.thumbnail_bg}
+                          bgEn={enBg(premierSecondaireLongEN, hasEnLong, "thumbnail_bg")}
+                          layout={premierSecondaireLongFR.data.thumbnail_layout}
+                          variant="sidebar"
+                        />
+                    ) : (
                     <a 
                       href={`/articles/${premierSecondaireLongFR.id}`} 
                       class="article-sidebar long article-card-item"
@@ -414,6 +385,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                             />
                         </div>
                     </a>
+                    )
                 )}
 
                 {autresSecondairesBasFR.length > 0 && (
@@ -422,6 +394,18 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                             const artEN = autresSecondairesBasResult[idx]?.article ?? null;
                             const hasEn = autresSecondairesBasResult[idx]?.hasEn ?? false;
                             return (
+                                artFR.data.use_thumbnail && artFR.data.thumbnail_bg ? (
+                                    <ThumbnailCard
+                                      href={`/articles/${artFR.id}`}
+                                      hrefEn={enHref(artEN, hasEn)}
+                                      hasEn={hasEn}
+                                      bg={artFR.data.thumbnail_bg}
+                                      bgEn={enBg(artEN, hasEn, "thumbnail_bg")}
+                                      layout={artFR.data.thumbnail_layout}
+                                      variant="tile"
+                                      extraClass="scroll-fade-up"
+                                    />
+                                ) : (
                                 <a 
                                   href={`/articles/${artFR.id}`} 
                                   class="article-sidebar article-card-item scroll-fade-up" 
@@ -462,6 +446,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                         />
                                     </div>
                                 </a>
+                                )
                             );
                         })}
                     </div>
@@ -477,6 +462,17 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                     const hasEn = articlesRangeeInferieureResult[idx]?.hasEn ?? false;
                     const bgImageFR = artFR.data.image || IMG_PLACEHOLDER;
                     return (
+                        artFR.data.use_thumbnail && artFR.data.thumbnail_bg ? (
+                            <ThumbnailCard
+                              href={`/articles/${artFR.id}`}
+                              hrefEn={enHref(artEN, hasEn)}
+                              hasEn={hasEn}
+                              bg={artFR.data.thumbnail_bg}
+                              bgEn={enBg(artEN, hasEn, "thumbnail_bg")}
+                              layout={artFR.data.thumbnail_layout}
+                              variant="bottom"
+                            />
+                        ) : (
                         <a 
                           href={`/articles/${artFR.id}`} 
                           class="article-bottom-card has-bg article-card-item" 
@@ -513,6 +509,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                 </p>
                             </div>
                         </a>
+                        )
                     );
                 })}
             </section>
@@ -527,6 +524,17 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                     const bgImageFR = artFR.data.image || IMG_PLACEHOLDER;
                     return (
                         <div class="scroll-left-to-right article-card-item" data-index={index} set:key={artFR.id} data-has-en={hasEn ? "true" : "false"}>
+                            {artFR.data.use_thumbnail && artFR.data.thumbnail_bg ? (
+                                <ThumbnailCard
+                                  href={`/articles/${artFR.id}`}
+                                  hrefEn={enHref(artEN, hasEn)}
+                                  hasEn={hasEn}
+                                  bg={artFR.data.thumbnail_bg}
+                                  bgEn={enBg(artEN, hasEn, "thumbnail_bg")}
+                                  layout={artFR.data.thumbnail_layout}
+                                  variant="asym-left"
+                                />
+                            ) : (
                             <a 
                               href={`/articles/${artFR.id}`} 
                               class="article-bottom-card has-bg" 
@@ -554,6 +562,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                     </h3>
                                 </div>
                             </a>
+                            )}
                         </div>
                     );
                 })}
@@ -563,6 +572,17 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                 const bgImageFR = articleAsymDroiteFR.data.image || IMG_PLACEHOLDER;
                 return (
                     <div class="scroll-bottom-to-top article-card-item" data-has-en={hasEnAsymDroite ? "true" : "false"}>
+                        {articleAsymDroiteFR.data.use_thumbnail && articleAsymDroiteFR.data.thumbnail_bg ? (
+                            <ThumbnailCard
+                              href={`/articles/${articleAsymDroiteFR.id}`}
+                              hrefEn={enHref(articleAsymDroiteEN, hasEnAsymDroite)}
+                              hasEn={hasEnAsymDroite}
+                              bg={articleAsymDroiteFR.data.thumbnail_bg}
+                              bgEn={enBg(articleAsymDroiteEN, hasEnAsymDroite, "thumbnail_bg")}
+                              layout={articleAsymDroiteFR.data.thumbnail_layout}
+                              variant="asym-right"
+                            />
+                        ) : (
                         <a 
                           href={`/articles/${articleAsymDroiteFR.id}`} 
                           class="article-bottom-card has-bg asym-right-giant" 
@@ -597,6 +617,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                 </p>
                             </div>
                         </a>
+                        )}
                     </div>
                 );
             })()}
@@ -687,30 +708,39 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
 
 <style>
     .container-accueil { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 80px; padding-bottom: 80px; }
-    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; color: #000; align-items: stretch; min-height: 700px; }
+    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; color: #fff; align-items: stretch; min-height: 700px; }
     .article-une, .article-sidebar, .article-bottom-card { text-decoration: none; color: inherit; }
-    .article-une { background: white; padding: 24px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; transition: color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;}
+    .article-une { background: #01002d; padding: 24px; border: 0px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; transition: color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;}
     .article-une:hover {transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);}
-    .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #111; }
+    .article-une h2 { margin: 0 0 12px 0; font-size: 1.8rem; color: #ffffff; }
     .image-wrapper { width: 100%; flex-grow: 1; min-height: 350px; position: relative; margin-top: 15px; }
     .image-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
     .sidebar-articles { display: flex; flex-direction: column; gap: 15px; }
-    .article-sidebar.long, .sub-grid { flex: 1; }
-    .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .article-sidebar { background: white; padding: 15px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: color 0.3s ease, transform 0.2s ease;}
+    .article-sidebar.long, .sub-grid, .sidebar-articles > :global(.thumb-card--sidebar) { flex: 1; }
+    .sub-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; gap: 15px; align-items: stretch; min-height: 0; }
+    .sub-grid > .article-sidebar,
+    .sub-grid > :global(.thumb-card) {
+        height: 100%;
+        min-height: 0;
+        align-self: stretch;
+        box-sizing: border-box;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .article-sidebar { background: #01002d; padding: 15px; border: 0px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: color 0.3s ease, transform 0.2s ease;}
     .article-sidebar:hover {transform: translateY(-5px);}
-    .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #111; }
+    .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #ffffff; }
     .bottom-row-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; align-items: stretch; }
-    .article-bottom-card { background: white; padding: 20px; border: 1px solid #ddd; display: flex; flex-direction: column; justify-content: space-between; min-height: 320px; border-radius: 2%; transition: color 0.3s ease, transform 0.2s ease;}
+    .article-bottom-card { background: #01002d; padding: 20px; border: 0px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; min-height: 320px; border-radius: 2%; transition: color 0.3s ease, transform 0.2s ease;}
     .article-bottom-card:hover {transform: translateY(-5px);}
     .card-content-top { margin-bottom: 5px; }
-    .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; }
-    .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #f7f7f7; height: 60px; }
+    .article-bottom-card h3 { margin: 0 0 8px 0; font-size: 1.2rem; color: #ffffff; }
+    .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #0a0a40; height: 60px; }
     .spacer-img { width: 100%; height: 100%; object-fit: cover; }
     .article-tag, .sidebar-tag, .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
     .article-tag { margin: 0 0 10px 0; }
     .sidebar-tag, .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
-    .article-desc, .sidebar-desc, .card-desc { font-size: 0.95rem; line-height: 1.5; color: #333; margin: 0; }
+    .article-desc, .sidebar-desc, .card-desc { font-size: 0.95rem; line-height: 1.5; color: #c9c9d4; margin: 0; }
     .article-une:hover h2, .article-sidebar:hover h3, .article-bottom-card:hover h3 { text-decoration: underline; }
     .scroll-interactive { opacity: 0; transform: translateY(50px); transition: opacity 0.1s ease-out, transform 0.1s ease-out; will-change: opacity, transform; }
     .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }
@@ -719,16 +749,13 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     .article-bottom-card.has-bg .card-desc { color: #e0e0e0; }
     .asym-container { display: grid; grid-template-columns: 3.5fr 6.5fr; gap: 20px; width: 100%; align-items: stretch; }
     .asym-left-stack { display: flex; flex-direction: column; gap: 15px; justify-content: space-between; }
-    .asym-left-stack .article-bottom-card { min-height: 120px; padding: 15px; width: 100%; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .asym-left-stack .article-bottom-card { min-height: 170px; padding: 15px; width: 100%; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .asym-left-stack .article-bottom-card:hover{ transform: translateY(-6px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); }
     .asym-right-giant { min-height: 410px; height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; }
     .asym-right-giant:hover { transform: translateY(-6px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); }
-    .scroll-left-to-right { opacity: 0; transform: translateX(-20px); transition: opacity 0.15s ease-out, transform 0.15s ease-out; will-change: opacity, transform; }
-    .scroll-bottom-to-top { opacity: 0; transform: translateY(70px); transition: opacity 0.15s ease-out, transform 0.15s ease-out; will-change: opacity, transform; }
-    .thumbnail-wrapper { display: block; text-decoration: none; width: 100%; height: 100%; }
-    .thumbnail-canvas { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; }
-    .thumbnail-shadow { position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 0; }
-    .thumbnail-text { position: absolute; z-index: 1; margin: 0; padding: 0; width: 60%; max-width: 400px; line-height: 1.2; word-wrap: break-word; overflow-wrap: break-word; text-shadow: 2px 2px 5px rgba(0,0,0,0.9); }
+    .scroll-left-to-right { flex: 1; min-height: 0; display: flex; flex-direction: column; opacity: 0; transform: translateX(-20px); transition: opacity 0.15s ease-out, transform 0.15s ease-out; will-change: opacity, transform; }
+    .scroll-left-to-right :global(.thumb-card) { flex: 1; width: 100%; height: 100%; min-height: 170px; }
+    .scroll-bottom-to-top { height: 100%; opacity: 0; transform: translateY(70px); transition: opacity 0.15s ease-out, transform 0.15s ease-out; will-change: opacity, transform; }
 
     /* ==========================================
        RESPONSIVE — même disposition, blocs réduits
@@ -810,42 +837,6 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
         /* Animations d'apparition unifiées en "bas → haut" (voir script) */
         .scroll-left-to-right {
             transform: translateY(40px);
-        }
-
-        /* Hero à vignette (texte positionné par l'admin) :
-           on repasse en flux normal pour éviter tout chevauchement
-           et garder le texte lisible, quelle que soit la config d'origine. */
-        .thumbnail-canvas {
-            aspect-ratio: auto;
-            min-height: 220px;
-            /* "visible" seulement en hauteur : le texte (positionné par l'admin en
-               desktop) doit pouvoir dépasser la hauteur de l'image une fois repassé
-               en flux normal, mais on garde une coupe stricte en largeur pour ne
-               jamais créer de défilement horizontal sur la page. */
-            overflow-x: hidden;
-            overflow-y: visible;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            gap: 4px;
-            padding: 14px;
-            box-sizing: border-box;
-        }
-        .thumbnail-shadow {
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.75) 100%);
-        }
-        .thumbnail-text {
-            position: static !important;
-            left: auto !important;
-            top: auto !important;
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-        h2.thumbnail-text {
-            font-size: clamp(1.05rem, 5vw, 1.4rem) !important;
-        }
-        p.thumbnail-text {
-            font-size: clamp(0.8rem, 3.5vw, 0.95rem) !important;
         }
     }
 

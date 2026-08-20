@@ -1,0 +1,201 @@
+---
+import { normalizeThumbLayout } from '../utils/thumbnail';
+
+interface Props {
+    href: string;
+    hrefEn?: string;
+    hasEn?: boolean;
+    bg: string;
+    bgEn?: string;
+    layout?: any;
+    variant?: 'hero' | 'sidebar' | 'tile' | 'bottom' | 'asym-left' | 'asym-right';
+    extraClass?: string;
+}
+
+const {
+    href,
+    hrefEn = "",
+    hasEn = false,
+    bg,
+    bgEn = "",
+    layout,
+    variant = 'hero',
+    extraClass = "",
+} = Astro.props;
+
+const thumb = normalizeThumbLayout(layout, bg);
+const fw = thumb.frame.w;
+const fh = thumb.frame.h;
+---
+
+<a
+  href={href}
+  class:list={['thumb-card', `thumb-card--${variant}`, 'article-card-item', extraClass]}
+  data-href-fr={href}
+  data-href-en={hrefEn}
+  data-has-en={hasEn ? "true" : "false"}
+>
+    <div class="thumb-card__frame">
+        {thumb.images.map((img) => (
+            <img
+              class="thumb-card__photo"
+              src={img.src}
+              alt=""
+              data-img-fr={img.src}
+              data-img-en={bgEn || img.src}
+              style={`
+                left: ${img.x / fw * 100}%;
+                top: ${img.y / fh * 100}%;
+                width: ${img.w / fw * 100}%;
+                height: ${img.h / fh * 100}%;
+                z-index: ${10 + img.z};
+              `}
+            />
+        ))}
+        <div class="thumb-card__shadow"></div>
+        {thumb.blocks.map((bloc) => (
+            <p class="thumb-card__text" style={`
+              left: ${bloc.x / fw * 100}%;
+              top: ${bloc.y / fh * 100}%;
+              width: ${bloc.w / fw * 100}%;
+              height: ${bloc.h / fh * 100}%;
+              font-size: calc(${bloc.size} / ${fw} * 100cqw);
+              font-weight: ${bloc.weight};
+              font-family: ${bloc.font};
+              color: ${bloc.color};
+              z-index: ${10 + bloc.z};
+            `}>
+                {bloc.line}
+            </p>
+        ))}
+    </div>
+</a>
+
+<style>
+    .thumb-card {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .thumb-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .thumb-card__frame {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #0a0a18;
+        container-type: inline-size;
+        box-sizing: border-box;
+    }
+
+    .thumb-card__photo {
+        position: absolute;
+        object-fit: fill;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .thumb-card__shadow {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .thumb-card__text {
+        position: absolute;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+        line-height: 1.2;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    /* À la une : occupe toute la case gauche de la grille (min 700px). */
+    .thumb-card--hero {
+        align-self: stretch;
+        height: 100%;
+        min-height: 700px;
+    }
+    .thumb-card--hero .thumb-card__frame {
+        border-radius: 4px;
+        min-height: 700px;
+    }
+
+    /* Sidebar longue : même flex que .article-sidebar.long. */
+    .thumb-card--sidebar {
+        flex: 1;
+        height: 100%;
+        min-height: 0;
+    }
+    .thumb-card--sidebar .thumb-card__frame {
+        border-radius: 4px;
+        min-height: 100%;
+    }
+
+    /* Vignettes du sub-grid : même case que .article-sidebar (pas de flex: 1). */
+    .thumb-card--tile {
+        height: 100%;
+        min-height: 0;
+        align-self: stretch;
+        flex: none;
+    }
+    .thumb-card--tile .thumb-card__frame {
+        border-radius: 4px;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .thumb-card--bottom { min-height: 320px; }
+    .thumb-card--bottom .thumb-card__frame { border-radius: 2%; min-height: 320px; }
+
+    .thumb-card--asym-left {
+        flex: 1;
+        align-self: stretch;
+        width: 100%;
+        height: 100%;
+        min-height: 170px;
+    }
+    .thumb-card--asym-left .thumb-card__frame {
+        border-radius: 4px;
+        min-height: 170px;
+        height: 100%;
+    }
+    .thumb-card--asym-left:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .thumb-card--asym-right { min-height: 410px; height: 100%; }
+    .thumb-card--asym-right .thumb-card__frame { min-height: 410px; }
+    .thumb-card--asym-right:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (max-width: 968px) {
+        .thumb-card--hero,
+        .thumb-card--hero .thumb-card__frame { min-height: 420px; }
+        .thumb-card--sidebar .thumb-card__frame,
+        .thumb-card--tile .thumb-card__frame { min-height: 180px; }
+        .thumb-card--bottom { min-height: 200px; }
+        .thumb-card--bottom .thumb-card__frame { min-height: 200px; }
+        .thumb-card--asym-left { min-height: 110px; }
+        .thumb-card--asym-left .thumb-card__frame { min-height: 110px; }
+        .thumb-card--asym-right { min-height: 240px; }
+        .thumb-card--asym-right .thumb-card__frame { min-height: 240px; }
+    }
+</style>

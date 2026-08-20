@@ -1,0 +1,601 @@
+<div class="account-overlay" id="account-overlay"></div>
+
+<aside class="account-drawer" id="account-drawer" aria-label="Menu du compte" aria-hidden="true">
+  <header class="account-drawer-profile">
+    <button type="button" class="account-drawer-close" id="account-drawer-close" aria-label="Fermer le menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+      </svg>
+    </button>
+    <span class="sonar-avatar sonar-avatar-lg" data-account-avatar aria-hidden="true"></span>
+    <strong class="account-drawer-username" data-account-username></strong>
+    <span class="account-drawer-email" data-account-email></span>
+  </header>
+
+  <div class="account-drawer-inner">
+
+    <nav class="account-drawer-nav" aria-label="Compte">
+      <a href="/compte" class="account-drawer-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"></circle>
+          <path d="M4 20c0-4 3.5-6 8-6s8 2 8 6"></path>
+        </svg>
+        <span data-i18n="account_title">Mon compte</span>
+      </a>
+      <a href="/favoris" class="account-drawer-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span data-i18n="account_favorites">Mes favoris</span>
+      </a>
+      <button type="button" class="account-drawer-item" id="account-open-notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 4h16v16H4z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+        <span data-i18n="account_notifications">Notifications</span>
+        <svg class="account-drawer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="9 6 15 12 9 18"></polyline>
+        </svg>
+      </button>
+      <button type="button" class="account-drawer-item" id="account-open-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span data-i18n="account_settings">Paramètres</span>
+        <svg class="account-drawer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="9 6 15 12 9 18"></polyline>
+        </svg>
+      </button>
+    </nav>
+
+    <div class="account-drawer-footer">
+      <button type="button" class="account-drawer-item" id="account-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span data-i18n="auth_logout">Déconnexion</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<aside class="account-subdrawer" id="notifications-drawer" aria-label="Notifications" aria-hidden="true">
+  <header class="account-subdrawer-header">
+    <button type="button" class="account-subdrawer-back" data-close-subdrawer aria-label="Retour">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polyline points="15 6 9 12 15 18"></polyline>
+      </svg>
+    </button>
+    <h2 data-i18n="account_notifications">Notifications</h2>
+  </header>
+  <p class="account-subdrawer-empty" data-i18n="account_notifications_empty">
+    Aucune notification pour le moment. Les réponses et likes sur vos commentaires apparaîtront ici.
+  </p>
+</aside>
+
+<aside class="account-subdrawer" id="settings-drawer" aria-label="Paramètres" aria-hidden="true">
+  <header class="account-subdrawer-header">
+    <button type="button" class="account-subdrawer-back" data-close-subdrawer aria-label="Retour">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polyline points="15 6 9 12 15 18"></polyline>
+      </svg>
+    </button>
+    <h2 data-i18n="account_settings">Paramètres</h2>
+  </header>
+
+  <fieldset class="account-font-fieldset">
+    <legend data-i18n="account_font_legend">Police des articles</legend>
+    <p class="account-font-help" data-i18n="account_font_help">
+      Choisissez la police utilisée pour le texte des articles.
+    </p>
+    <label class="account-font-option">
+      <input type="radio" name="article-font" value="sans" />
+      <span>
+        <strong data-i18n="account_font_sans">Classique</strong>
+        <em>Helvetica Neue</em>
+      </span>
+    </label>
+    <label class="account-font-option">
+      <input type="radio" name="article-font" value="serif" />
+      <span>
+        <strong data-i18n="account_font_serif">Lecture</strong>
+        <em>Libre Baskerville</em>
+      </span>
+    </label>
+    <label class="account-font-option">
+      <input type="radio" name="article-font" value="editorial" />
+      <span>
+        <strong data-i18n="account_font_editorial">Éditoriale</strong>
+        <em>Georgia</em>
+      </span>
+    </label>
+  </fieldset>
+
+  <fieldset class="account-font-fieldset">
+    <legend data-i18n="account_font_size_legend">Taille du texte</legend>
+    <p class="account-font-help" data-i18n="account_font_size_help">
+      Ajuste la taille du texte des articles.
+    </p>
+    <label class="account-font-option">
+      <input type="radio" name="article-font-size" value="small" />
+      <span>
+        <strong data-i18n="account_font_size_small">Petite</strong>
+      </span>
+    </label>
+    <label class="account-font-option">
+      <input type="radio" name="article-font-size" value="medium" />
+      <span>
+        <strong data-i18n="account_font_size_medium">Moyenne</strong>
+      </span>
+    </label>
+    <label class="account-font-option">
+      <input type="radio" name="article-font-size" value="large" />
+      <span>
+        <strong data-i18n="account_font_size_large">Grande</strong>
+      </span>
+    </label>
+  </fieldset>
+</aside>
+
+<script>
+  import { getBrowserSupabase, getCurrentAccount, saveArticlePrefs, type Account, type ArticleFont, type ArticleFontSize } from '../utils/supabase-browser';
+  import { avatarInitial } from '../utils/avatar';
+
+  const FONT_KEY = 'sonar_article_font';
+  const FONT_SIZE_KEY = 'sonar_article_font_size';
+  const overlay = document.getElementById('account-overlay');
+  const drawer = document.getElementById('account-drawer');
+  const closeBtn = document.getElementById('account-drawer-close');
+  const notifDrawer = document.getElementById('notifications-drawer');
+  const settingsDrawer = document.getElementById('settings-drawer');
+
+  function fillAvatar(el: HTMLElement, account: Account) {
+    el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
+    if (account.avatar_url) {
+      el.innerHTML = `<img src="${account.avatar_url.replace(/"/g, '&quot;')}" alt="" />`;
+    } else {
+      el.textContent = avatarInitial(account.username);
+    }
+  }
+
+  function syncUserButtons(expanded: boolean) {
+    document.querySelectorAll('.auth-nav-user-btn').forEach((btn) => {
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      btn.setAttribute('aria-controls', 'account-drawer');
+    });
+  }
+
+  function isDrawerOpen() {
+    return Boolean(drawer?.classList.contains('is-open'));
+  }
+
+  function closeSubdrawers() {
+    notifDrawer?.classList.remove('is-open');
+    settingsDrawer?.classList.remove('is-open');
+    notifDrawer?.setAttribute('aria-hidden', 'true');
+    settingsDrawer?.setAttribute('aria-hidden', 'true');
+  }
+
+  function closeDrawer() {
+    if (!drawer || !overlay) return;
+    closeSubdrawers();
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('is-open');
+    syncUserButtons(false);
+  }
+
+  async function openDrawer() {
+    if (!drawer || !overlay) return;
+    const account = await getCurrentAccount();
+    if (!account) return;
+
+    const avatarEl = drawer.querySelector('[data-account-avatar]') as HTMLElement | null;
+    const usernameEl = drawer.querySelector('[data-account-username]') as HTMLElement | null;
+    const emailEl = drawer.querySelector('[data-account-email]') as HTMLElement | null;
+    if (avatarEl) fillAvatar(avatarEl, account);
+    if (usernameEl) usernameEl.textContent = account.username;
+    if (emailEl) emailEl.textContent = account.email;
+
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('is-open');
+    syncUserButtons(true);
+  }
+
+  function openSubdrawer(panel: HTMLElement | null) {
+    closeSubdrawers();
+    if (!panel) return;
+    panel.classList.add('is-open');
+    panel.setAttribute('aria-hidden', 'false');
+  }
+
+  const FONT_VALUES = ['sans', 'serif', 'editorial'] as const;
+  const FONT_SIZE_VALUES = ['small', 'medium', 'large'] as const;
+
+  function isFont(value: string): value is ArticleFont {
+    return (FONT_VALUES as readonly string[]).includes(value);
+  }
+
+  function isFontSize(value: string): value is ArticleFontSize {
+    return (FONT_SIZE_VALUES as readonly string[]).includes(value);
+  }
+
+  function currentFont(): ArticleFont {
+    const value = localStorage.getItem(FONT_KEY) || 'sans';
+    return isFont(value) ? value : 'sans';
+  }
+
+  function currentFontSize(): ArticleFontSize {
+    const value = localStorage.getItem(FONT_SIZE_KEY) || 'medium';
+    return isFontSize(value) ? value : 'medium';
+  }
+
+  function applyArticleFont(value: string) {
+    const font = isFont(value) ? value : 'sans';
+    localStorage.setItem(FONT_KEY, font);
+    if (font === 'sans') document.documentElement.removeAttribute('data-article-font');
+    else document.documentElement.setAttribute('data-article-font', font);
+
+    document.querySelectorAll<HTMLInputElement>('input[name="article-font"]').forEach((input) => {
+      input.checked = input.value === font;
+    });
+  }
+
+  function applyArticleFontSize(value: string) {
+    const size = isFontSize(value) ? value : 'medium';
+    localStorage.setItem(FONT_SIZE_KEY, size);
+    if (size === 'medium') document.documentElement.removeAttribute('data-article-font-size');
+    else document.documentElement.setAttribute('data-article-font-size', size);
+
+    document.querySelectorAll<HTMLInputElement>('input[name="article-font-size"]').forEach((input) => {
+      input.checked = input.value === size;
+    });
+  }
+
+  async function persistArticlePrefs(prefs: {
+    article_font?: ArticleFont;
+    article_font_size?: ArticleFontSize;
+  }) {
+    try {
+      const account = await getCurrentAccount();
+      if (!account) return;
+      await saveArticlePrefs(account.id, prefs);
+    } catch {
+      /* localStorage reste à jour même si Supabase n'est pas encore migré */
+    }
+  }
+
+  async function syncPrefsFromAccount() {
+    try {
+      const account = await getCurrentAccount();
+      if (!account) return;
+      if (account.article_font) applyArticleFont(account.article_font);
+      if (account.article_font_size) applyArticleFontSize(account.article_font_size);
+    } catch {
+      /* colonnes absentes : on reste sur localStorage */
+    }
+  }
+
+  window.addEventListener('sonar:account-toggle', () => {
+    if (isDrawerOpen()) closeDrawer();
+    else openDrawer();
+  });
+
+  closeBtn?.addEventListener('click', closeDrawer);
+  overlay?.addEventListener('click', closeDrawer);
+
+  document.getElementById('account-open-notifications')?.addEventListener('click', () => {
+    openSubdrawer(notifDrawer);
+  });
+  document.getElementById('account-open-settings')?.addEventListener('click', () => {
+    applyArticleFont(currentFont());
+    applyArticleFontSize(currentFontSize());
+    openSubdrawer(settingsDrawer);
+  });
+  document.querySelectorAll('[data-close-subdrawer]').forEach((btn) => {
+    btn.addEventListener('click', closeSubdrawers);
+  });
+
+  document.querySelectorAll<HTMLInputElement>('input[name="article-font"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      if (!input.checked || !isFont(input.value)) return;
+      applyArticleFont(input.value);
+      persistArticlePrefs({ article_font: input.value });
+    });
+  });
+  document.querySelectorAll<HTMLInputElement>('input[name="article-font-size"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      if (!input.checked || !isFontSize(input.value)) return;
+      applyArticleFontSize(input.value);
+      persistArticlePrefs({ article_font_size: input.value });
+    });
+  });
+
+  document.getElementById('account-logout')?.addEventListener('click', async () => {
+    const supabase = getBrowserSupabase();
+    await supabase.auth.signOut();
+    window.location.reload();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (notifDrawer?.classList.contains('is-open') || settingsDrawer?.classList.contains('is-open')) {
+      closeSubdrawers();
+      return;
+    }
+    if (isDrawerOpen()) closeDrawer();
+  });
+
+  applyArticleFont(currentFont());
+  applyArticleFontSize(currentFontSize());
+  syncPrefsFromAccount();
+</script>
+
+<style is:global>
+  .account-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1110;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .account-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .account-drawer,
+  .account-subdrawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: min(380px, 92vw);
+    margin-right: calc(-1 * var(--page-pad, 20px));
+    z-index: 1120;
+    background: #01002d;
+    border-left: 1px solid #1f2937;
+    box-shadow: none;
+    transform: translateX(calc(100% + var(--page-pad, 20px)));
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: #ffffff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    box-sizing: border-box;
+    padding-right: var(--page-pad, 20px);
+    display: flex;
+    flex-direction: column;
+  }
+  .account-drawer.is-open,
+  .account-subdrawer.is-open {
+    transform: translateX(0);
+  }
+  .account-subdrawer {
+    z-index: 1130;
+  }
+
+  .account-drawer-close {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .account-drawer-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .account-drawer-close svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .account-drawer-inner {
+    padding: 8px 20px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    max-width: 100%;
+  }
+
+  .account-drawer-profile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    width: auto;
+    margin-right: calc(-1 * var(--page-pad, 20px));
+    padding: 12px calc(20px + var(--page-pad, 20px)) 16px 20px;
+    background: #02001d;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    transform: translateX(15px) translateY(20px);
+  }
+  .account-drawer-profile .sonar-avatar,
+  .account-drawer-profile .sonar-avatar-lg {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    clip-path: circle(50%);
+    flex-shrink: 0;
+    font-size: 1.25rem;
+  }
+  .account-drawer-profile .sonar-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  .account-drawer-username {
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .account-drawer-email {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    word-break: break-all;
+    line-height: 1.3;
+  }
+
+  .account-drawer-nav {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    transform: translateY(20px);
+  }
+
+  .account-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    text-align: left;
+    padding: 13px 4px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-family: inherit;
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+  .account-drawer-item svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: #8fa0b5;
+  }
+  .account-drawer-chevron {
+    margin-left: auto;
+    width: 14px !important;
+    height: 14px !important;
+  }
+  .account-drawer-item:hover,
+  .account-drawer-item:hover svg {
+    color: #ea580c;
+  }
+
+  .account-drawer-footer {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
+  }
+
+  .account-subdrawer-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+    box-sizing: border-box;
+    max-width: 150%;
+    transform: translateX(7px);
+  }
+  .account-subdrawer-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    min-width: 0;
+  }
+  .account-subdrawer-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .account-subdrawer-back:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .account-subdrawer-back svg {
+    width: 18px;
+    height: 18px;
+  }
+  .account-subdrawer-empty {
+    margin: 24px 20px;
+    color: #9ca3af;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+  }
+
+  .account-font-fieldset {
+    border: none;
+    margin: 20px 16px;
+    padding: 0;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .account-font-fieldset legend {
+    padding: 0;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .account-font-help {
+    margin: 8px 0 16px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .account-font-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .account-font-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .account-font-option span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .account-font-option em {
+    font-style: normal;
+    color: #9ca3af;
+    font-size: 0.8rem;
+  }
+</style>

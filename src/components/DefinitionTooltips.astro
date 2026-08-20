@@ -1,0 +1,229 @@
+---
+import { normalizeDefinitions } from '../utils/definitions';
+
+interface Props {
+  items?: unknown;
+}
+
+const { items } = Astro.props;
+const definitions = normalizeDefinitions(items);
+const payload = JSON.stringify(definitions);
+---
+
+{definitions.length > 0 && (
+  <script type="application/json" id="article-definitions" set:html={payload} />
+)}
+
+<style is:global>
+  .def-term {
+    position: relative;
+    cursor: help;
+    text-decoration: underline;
+    text-decoration-color: #ff7900;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    text-decoration-skip-ink: none;
+    color: inherit;
+    font: inherit;
+  }
+
+  .def-tooltip {
+    position: absolute;
+    left: 85%;
+    bottom: calc(100% + 10px);
+    z-index: 40;
+    width: max-content;
+    max-width: min(340px, calc(100vw - 32px));
+    padding: 10px 14px;
+    background: #ff7900;
+    color: #111;
+    border-radius: 8px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: left;
+    text-decoration: none;
+    white-space: normal;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  }
+
+  .def-tooltip::after {
+    content: '';
+    position: absolute;
+    left: 14px;
+    top: 100%;
+    border: 8px solid transparent;
+    border-top-color: #ff7900;
+  }
+
+  .def-term:hover .def-tooltip,
+  .def-term:focus-visible .def-tooltip,
+  .def-term.is-open .def-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 640px) {
+    .def-tooltip {
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+    }
+    .def-term:hover .def-tooltip,
+    .def-term:focus-visible .def-tooltip,
+    .def-term.is-open .def-tooltip {
+      transform: translateX(-50%) translateY(0);
+    }
+    .def-tooltip::after {
+      left: 50%;
+      margin-left: -8px;
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    function escapeRegExp(value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function readDefinitions() {
+      const node = document.getElementById('article-definitions');
+      if (!node || !node.textContent) return [];
+      try { return JSON.parse(node.textContent); } catch (err) { return []; }
+    }
+
+    function termsForLang(defs, lang) {
+      const useEn = String(lang || 'FR').toUpperCase() === 'EN';
+      return defs
+        .map(function (item) {
+          const term = useEn
+            ? (item.term_en || item.term)
+            : (item.term || item.term_en);
+          const definition = useEn
+            ? (item.definition_en || item.definition)
+            : (item.definition || item.definition_en);
+          if (!term || !definition) return null;
+          return { term: term, definition: definition };
+        })
+        .filter(Boolean)
+        .sort(function (a, b) { return b.term.length - a.term.length; });
+    }
+
+    function skipParent(node) {
+      const parent = node.parentElement;
+      if (!parent) return true;
+      return Boolean(parent.closest('a, code, pre, script, style, .def-term'));
+    }
+
+    function wrapTextNode(textNode, terms) {
+      const source = textNode.nodeValue || '';
+      if (!source.trim()) return;
+
+      const frag = document.createDocumentFragment();
+      var remaining = source;
+      var matched = false;
+
+      while (remaining.length) {
+        var best = null;
+        for (var i = 0; i < terms.length; i++) {
+          var term = terms[i];
+          var pattern = new RegExp('(^|[^\\p{L}\\p{N}])(' + escapeRegExp(term.term) + ')(?![\\p{L}\\p{N}])', 'iu');
+          var found = pattern.exec(remaining);
+          if (!found) continue;
+          var prefixLen = found[1] ? found[1].length : 0;
+          var index = found.index + prefixLen;
+          var length = found[2].length;
+          if (!best || index < best.index || (index === best.index && length > best.length)) {
+            best = { index: index, length: length, text: found[2], definition: term.definition };
+          }
+        }
+
+        if (!best) {
+          frag.appendChild(document.createTextNode(remaining));
+          break;
+        }
+
+        matched = true;
+        if (best.index > 0) {
+          frag.appendChild(document.createTextNode(remaining.slice(0, best.index)));
+        }
+
+        var span = document.createElement('span');
+        span.className = 'def-term';
+        span.tabIndex = 0;
+        span.appendChild(document.createTextNode(best.text));
+
+        var tip = document.createElement('span');
+        tip.className = 'def-tooltip';
+        tip.setAttribute('role', 'tooltip');
+        tip.textContent = best.definition;
+        span.appendChild(tip);
+        frag.appendChild(span);
+
+        remaining = remaining.slice(best.index + best.length);
+      }
+
+      if (matched && textNode.parentNode) {
+        textNode.parentNode.replaceChild(frag, textNode);
+      }
+    }
+
+    function applyToContainer(container, terms) {
+      if (!container || !terms.length) return;
+      var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+        acceptNode: function (node) {
+          if (skipParent(node)) return NodeFilter.FILTER_REJECT;
+          if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      var nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(function (node) { wrapTextNode(node, terms); });
+    }
+
+    function applyDefinitions() {
+      var defs = readDefinitions();
+      if (!defs.length) return;
+      document.querySelectorAll('.prose-content').forEach(function (container) {
+        if (container.querySelector('.def-term')) return;
+        var lang = container.getAttribute('data-lang-content') || 'FR';
+        applyToContainer(container, termsForLang(defs, lang));
+      });
+    }
+
+    function closeAll(except) {
+      document.querySelectorAll('.def-term.is-open').forEach(function (el) {
+        if (el !== except) el.classList.remove('is-open');
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      var term = event.target.closest && event.target.closest('.def-term');
+      if (term) {
+        term.classList.toggle('is-open');
+        closeAll(term.classList.contains('is-open') ? term : null);
+        return;
+      }
+      closeAll();
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeAll();
+    });
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyDefinitions);
+    } else {
+      applyDefinitions();
+    }
+    window.addEventListener('languageChanged', applyDefinitions);
+  })();
+</script>

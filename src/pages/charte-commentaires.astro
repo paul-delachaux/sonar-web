@@ -1,0 +1,164 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+---
+
+<MainLayout title="Charte des commentaires — Le Sonar">
+  <div class="presentation-wrapper">
+    <div class="presentation-container">
+
+      <div data-lang-content="FR">
+        <header class="presentation-header">
+          <h1 class="main-title">Charte des commentaires</h1>
+          <div class="header-accent-bar"></div>
+        </header>
+
+        <main class="presentation-content">
+          <p class="lead-text">
+            L’espace commentaires du Sonar est un lieu de débat, pas une poubelle. En publiant, vous acceptez ces règles. Les enfreindre, c’est risquer la suppression de votre commentaire — sans appel pathétique.
+          </p>
+
+          <h2>Ce que nous attendons</h2>
+          <ul>
+            <li>Argumentez. Un désaccord ferme vaut mieux qu’une insulte paresseuse.</li>
+            <li>Restez dans le sujet de l’article. Le hors-sujet systématique sera retiré.</li>
+            <li>Citez vos sources si vous avancez un fait contestable.</li>
+            <li>Respectez les personnes. On discute des idées, pas des vies privées.</li>
+          </ul>
+
+          <h2>Ce qui n’est pas négociable</h2>
+          <ul>
+            <li>Insultes, harcèlement, menaces, propos haineux ou discriminatoires.</li>
+            <li>Diffamation, doxxing, usurpation d’identité.</li>
+            <li>Spam, publicité déguisée, liens malveillants.</li>
+            <li>Contenu illégal, appel à la violence, pornographie.</li>
+          </ul>
+
+          <h2>Modération</h2>
+          <p>
+            La rédaction se réserve le droit de masquer, d’éditer ou de supprimer tout commentaire contraire à cette charte, sans obligation de justifier chaque décision en public. Les comptes récidivistes pourront être suspendus.
+          </p>
+
+          <div class="highlight-box">
+            En cas de doute : relisez-vous. Si votre message ne tient que par l’insulte, il n’a pas sa place ici.
+          </div>
+        </main>
+      </div>
+
+      <div data-lang-content="EN" hidden>
+        <header class="presentation-header">
+          <h1 class="main-title">Comments charter</h1>
+          <div class="header-accent-bar"></div>
+        </header>
+
+        <main class="presentation-content">
+          <p class="lead-text">
+            The Sonar comments space is a place for debate, not a dumpster. By posting, you accept these rules. Break them, and your comment may disappear — no tragic appeal required.
+          </p>
+
+          <h2>What we expect</h2>
+          <ul>
+            <li>Make an argument. A firm disagreement beats a lazy insult.</li>
+            <li>Stay on the article’s topic. Repeated off-topic posts will be removed.</li>
+            <li>Cite sources if you make a contested factual claim.</li>
+            <li>Respect people. Debate ideas, not private lives.</li>
+          </ul>
+
+          <h2>What is not negotiable</h2>
+          <ul>
+            <li>Insults, harassment, threats, hateful or discriminatory speech.</li>
+            <li>Defamation, doxxing, impersonation.</li>
+            <li>Spam, disguised advertising, malicious links.</li>
+            <li>Illegal content, calls to violence, pornography.</li>
+          </ul>
+
+          <h2>Moderation</h2>
+          <p>
+            The newsroom may hide, edit or delete any comment that breaks this charter, without a public justification for every decision. Repeat offenders may be suspended.
+          </p>
+
+          <div class="highlight-box">
+            When in doubt: reread. If your message only works as an insult, it does not belong here.
+          </div>
+        </main>
+      </div>
+
+    </div>
+  </div>
+</MainLayout>
+
+<style is:global>
+  .presentation-wrapper {
+    background-color: #02001d;
+    max-width: 900px;
+    margin: 60px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  .presentation-container { padding: 50px 60px; }
+  .presentation-header { margin-bottom: 40px; text-align: left; }
+  .presentation-header .main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin: 0 0 15px 0;
+  }
+  .header-accent-bar {
+    width: 80px;
+    height: 4px;
+    background-color: #ea580c;
+    border-radius: 2px;
+  }
+  .presentation-content {
+    color: #e5e7eb;
+    font-size: 1.15rem;
+    line-height: 1.8;
+  }
+  .presentation-content .lead-text {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: #ffffff;
+    line-height: 1.7;
+    border-left: 3px solid #ea580c;
+    padding-left: 20px;
+    margin-bottom: 35px;
+  }
+  .presentation-content h2 {
+    font-size: 1.6rem;
+    color: #ffffff;
+    margin-top: 45px;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+  .presentation-content ul {
+    margin: 0 0 30px 0;
+    padding-left: 25px;
+    list-style-type: none;
+  }
+  .presentation-content li {
+    position: relative;
+    margin-bottom: 15px;
+  }
+  .presentation-content li::before {
+    content: "•";
+    color: #ea580c;
+    font-weight: bold;
+    font-size: 1.4rem;
+    position: absolute;
+    left: -20px;
+    top: -2px;
+  }
+  .highlight-box {
+    border-left: 4px solid #ea580c;
+    padding: 20px 25px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 40px;
+    font-weight: 500;
+    color: #ffffff;
+  }
+  @media (max-width: 768px) {
+    .presentation-wrapper { margin: 0; border-radius: 0; }
+    .presentation-container { padding: 40px 24px; }
+    .presentation-header .main-title { font-size: 1.8rem; }
+  }
+</style>

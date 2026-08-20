@@ -4,6 +4,7 @@ import MainLayout from '../../layouts/Layout.astro';
 import { Tweet } from 'astro-embed';
 import { t, categoryLabel } from '../../utils/i18n.js';
 import CommentsSection from '../../components/CommentsSection.astro';
+import DefinitionTooltips from '../../components/DefinitionTooltips.astro';
 import { supabase } from '../../utils/supabase';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
@@ -126,6 +127,9 @@ const authorAboutEN = authorData?.author_about_en || article.data.author_about_e
 const authorInterestsFR = authorData?.author_interests || article.data.author_interests || "";
 const authorInterestsEN = authorData?.author_interests_en || article.data.author_interests_en || authorInterestsFR;
 
+const authorPartnersFR = authorData?.author_partners || article.data.author_partners || "";
+const authorPartnersEN = authorData?.author_partners_en || article.data.author_partners_en || authorPartnersFR;
+
 const imagePos = article.data.image_position ?? 0;
 const tweetPos = article.data.tweet_position ?? 0;
 
@@ -197,21 +201,29 @@ const descEN = hasEn && article.data.description_en
 
           <aside class="breve-sidebar">
             <div class="breve-author-block">
-              <div class="breve-avatar-wrapper">
+              <div class="breve-author-header">
                 <img src={authorInfo.avatarUrl} alt={currentAuthorName} class="breve-avatar" />
-                <div class="breve-avatar-pointer"></div>
+                <div class="breve-author-header-text">
+                  <p class="breve-author-name">{currentAuthorName}</p>
+                  <p class="breve-author-about" data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
+                </div>
               </div>
-              
-              <div class="breve-author-bio">
-                <p class="breve-author-name">{currentAuthorName}</p>
-                <p data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
-                
-                {(authorInterestsFR || authorInterestsEN) && (
-                  <p class="breve-author-interests" data-fr={authorInterestsFR} data-en={authorInterestsEN}>
-                    {authorInterestsFR}
-                  </p>
-                )}
-              </div>
+
+              {(authorInterestsFR || authorInterestsEN) && (
+                <p class="breve-author-detail">
+                  <strong data-i18n="author_interests_label">{t('author_interests_label', 'FR')}</strong>
+                  {" : "}
+                  <span data-fr={authorInterestsFR} data-en={authorInterestsEN}>{authorInterestsFR}</span>
+                </p>
+              )}
+
+              {(authorPartnersFR || authorPartnersEN) && (
+                <p class="breve-author-detail">
+                  <strong data-i18n="author_partners_label">{t('author_partners_label', 'FR')}</strong>
+                  {" : "}
+                  <span data-fr={authorPartnersFR} data-en={authorPartnersEN}>{authorPartnersFR}</span>
+                </p>
+              )}
             </div>
           </aside>
         </div>
@@ -451,6 +463,7 @@ const descEN = hasEn && article.data.description_en
   )}
   <!-- Section commentaire à la fin de l'article -->
   <CommentsSection articleSlug={slug} />
+  <DefinitionTooltips items={article.data.definitions} />
 </MainLayout>
 
 <!-- Script JS -->
@@ -595,14 +608,15 @@ const descEN = hasEn && article.data.description_en
   .breve-figure { margin: 25px 0; width: 100%; }
   .breve-image { width: 100%; height: auto; display: block; object-fit: cover; border-radius: 4px; }
   .breve-caption { margin-top: 8px; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .breve-sidebar { position: sticky; top: 30px; }
-  .breve-author-block { display: flex; flex-direction: column; align-items: center; text-align: left; }
-  .breve-avatar-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; }
-  .breve-avatar { width: 70px; height: 70px; border-radius: 50%; background-color: #ffffff; object-fit: cover; }
-  .breve-avatar-pointer { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #ffffff; margin-top: 4px; }
-  .breve-author-bio { font-size: 0.78rem; line-height: 1.4; color: #9ca3af; border-top: 1px solid #ffffff; padding-top: 10px; width: 100%; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .breve-author-name { font-weight: 700; color: #ffffff; margin-bottom: 4px; font-size: 0.85rem; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .breve-author-interests { margin-top: 6px; opacity: 0.8; font-style: italic; }
+  .breve-sidebar { position: static; }
+  .breve-author-block { display: flex; flex-direction: column; text-align: left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .breve-author-header { display: flex; align-items: flex-start; gap: 12px; }
+  .breve-avatar { width: 48px; height: 48px; border-radius: 50%; background-color: #d9d9d9; object-fit: cover; flex-shrink: 0; }
+  .breve-author-header-text { flex: 1; min-width: 0; }
+  .breve-author-name { font-weight: 700; color: #ff8826; margin: 0 0 4px 0; font-size: 0.95rem; }
+  .breve-author-about { margin: 0; font-size: 0.8rem; line-height: 1.4; color: #d7dee6; }
+  .breve-author-detail { margin: 14px 0 0 0; font-size: 0.8rem; line-height: 1.5; color: #d7dee6; }
+  .breve-author-detail strong { color: #ffffff; font-weight: 700; }
   .breve-sources-section { margin-top: 25px; margin-bottom: 20px; }
   .breve-sources-title { color: #ea580c; font-size: 0.95rem; font-weight: 700; margin-bottom: 15px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .breve-sources-list { list-style-type: none; padding: 0; margin: 0; }
@@ -630,7 +644,7 @@ const descEN = hasEn && article.data.description_en
   .hero-img { width: 100%; height: auto; display: block; max-height: 550px; object-fit: cover; }
   .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; max-width: 100%; overflow-x: hidden; }
-  .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word; }
+  .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word; overflow: visible; }
   .prose-content p { margin-bottom: 28px; margin-top: 28px;}
   .prose-content li { margin-bottom: 28px; }
   .prose-content h2 { font-size: 1.7rem; color: #ffffff; margin-top: 40px; margin-bottom: 20px; font-weight: 700; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
@@ -670,10 +684,6 @@ const descEN = hasEn && article.data.description_en
     .breve-body-grid { grid-template-columns: 1fr; gap: 25px; }
     .breve-main-content, .breve-sidebar { min-width: 0; }
     .breve-sidebar { position: static; top: auto; border-top: 1px solid #1f2937; padding-top: 20px; }
-    .breve-author-block { align-items: flex-start; flex-direction: row; gap: 16px; text-align: left; }
-    .breve-avatar-wrapper { margin-bottom: 0; flex-shrink: 0; }
-    .breve-avatar-pointer { display: none; }
-    .breve-author-bio { width: auto; flex: 1; min-width: 0; border-top: none; padding-top: 0; }
     .article-footer-transparency { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; margin-top: 40px; }
     .transparency-card { width: 75%; height: auto; min-height: 140px; }
     .transparency-card:has([data-i18n="transparency_sources"]) { width: 88%; } 

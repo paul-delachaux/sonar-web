@@ -35,6 +35,20 @@ collections:
       - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
       - { name: "body_en", label: "Contenu de l'article (EN)", widget: "markdown", required: false }
 
+      # --- MOTS DÉFINIS (SURVOL) ---
+      - { name: "definitions_sep", widget: "separator", label: "📖 Mots définis (survol orange)", required: false }
+      - label: "Définitions"
+        name: "definitions"
+        widget: "list"
+        required: false
+        summary: "{{fields.term}}{{fields.term_en}}"
+        hint: "Remplis le français, l'anglais, ou les deux. Un mot uniquement anglais fonctionne aussi dans le texte FR."
+        fields:
+          - { label: "Mot ou expression (FR)", name: "term", widget: "string", required: false }
+          - { label: "Définition (FR)", name: "definition", widget: "text", required: false }
+          - { label: "Mot ou expression (EN)", name: "term_en", widget: "string", required: false }
+          - { label: "Définition (EN)", name: "definition_en", widget: "text", required: false }
+
       # --- INFORMATIONS GÉNÉRALES ---
       - { label: "INFORMATIONS GÉNÉRALES DE L'ARTICLE", name: "sep_article", widget: "separator", required: false }
       - { label: "Date de publication", name: "date", widget: "datetime" }
@@ -77,6 +91,8 @@ collections:
           - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
           - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
+          - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
+          - { label: "Partenaires (EN)", name: "author_partners_en", widget: "text", required: false }
       
       - { label: "Temps de lecture (minutes)", name: "reading_time", widget: "number", default: 5, value_type: "int" }
       
@@ -96,76 +112,12 @@ collections:
       # --- MINIATURE CUSTOM ---
       - { label: "CONFIGURATION GRAPHIQUE DE LA MINIATURE (optionnel)", name: "sep_miniature", widget: "separator", required: false, collapsed: true }
       - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false, title: "Partie Miniature (optionnel)" }
-      - label: "Position du fond"
-        name: "thumbnail_bg_position"
-        widget: "select"
-        default: "center"
-        required: false
-        options:
-          - { label: "Centre", value: "center" }
-          - { label: "Haut", value: "top" }
-          - { label: "Bas", value: "bottom" }
-          - { label: "Gauche", value: "left" }
-          - { label: "Droite", value: "right" }
-          - { label: "Haut gauche", value: "top left" }
-          - { label: "Haut droite", value: "top right" }
-          - { label: "Bas gauche", value: "bottom left" }
-          - { label: "Bas droite", value: "bottom right" }
-      - { label: "Zoom du fond (%)", name: "thumbnail_bg_zoom", widget: "number", default: 100, value_type: "int", min: 50, max: 300, required: false }
 
-      - { label: "Titre sur la Miniature", name: "thumbnail_title", widget: "string", required: false }
-      - { label: "Position X Titre (en px)", name: "title_x", widget: "number", default: 20, value_type: "int", min: 0, max: 500, required: false }
-      - { label: "Position Y Titre (en px)", name: "title_y", widget: "number", default: 20, value_type: "int", min: 0, max: 300, required: false }
-      - { label: "Taille police titre (px)", name: "title_size", widget: "number", default: 24, value_type: "int", min: 8, max: 80, required: false }
-      - label: "Épaisseur police titre"
-        name: "title_weight"
-        widget: "select"
-        default: "700"
+      - label: "Aperçu et textes de la miniature (glisser-déposer)"
+        name: "thumbnail_layout"
+        widget: "thumbnail-editor"
         required: false
-        options:
-          - { label: "Fin (300)", value: "300" }
-          - { label: "Normal (400)", value: "400" }
-          - { label: "Gras (700)", value: "700" }
-          - { label: "Ultra-Gras (900)", value: "900" }
-      - label: "Police titre"
-        name: "title_font"
-        widget: "select"
-        default: "sans-serif"
-        required: false
-        options:
-          - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
-          - { label: "Journal (Serif)", value: "serif" }
-          - { label: "Code (Monospace)", value: "monospace" }
-      - { label: "Couleur titre (ex: #ffffff)", name: "title_color", widget: "color", default: "#ffffff", required: false }
-
-      - label: "Blocs de description sur la Miniature"
-        name: "thumbnail_descs"
-        widget: "list"
-        required: false
-        summary: "{{fields.line}}"
-        fields:
-          - { label: "Texte", name: "line", widget: "string", required: false }
-          - { label: "Position X (px)", name: "x", widget: "number", default: 20, value_type: "int", min: 0, max: 500, required: false }
-          - { label: "Position Y (px)", name: "y", widget: "number", default: 80, value_type: "int", min: 0, max: 300, required: false }
-          - { label: "Taille police (px)", name: "size", widget: "number", default: 14, value_type: "int", min: 8, max: 60, required: false }
-          - label: "Épaisseur"
-            name: "weight"
-            widget: "select"
-            default: "400"
-            options:
-              - { label: "Fin (300)", value: "300" }
-              - { label: "Normal (400)", value: "400" }
-              - { label: "Gras (700)", value: "700" }
-              - { label: "Ultra-Gras (900)", value: "900" }
-          - label: "Police"
-            name: "font"
-            widget: "select"
-            default: "sans-serif"
-            options:
-              - { label: "Moderne (Sans-Serif)", value: "sans-serif" }
-              - { label: "Journal (Serif)", value: "serif" }
-              - { label: "Code (Monospace)", value: "monospace" }
-          - { label: "Couleur (ex: #e1e8ed)", name: "color", widget: "color", default: "#e1e8ed" }
+        hint: "Choisis le cadre (à la une, sidebar, ou largeur/hauteur perso). Ajoute une ou plusieurs images, déplace-les et redimensionne-les avec les poignées. Ajoute des blocs de texte par-dessus."
 
       - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
 
@@ -193,6 +145,20 @@ collections:
       - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
       - { name: "body_en", label: "Texte court", widget: "markdown", required: false }
 
+      # --- MOTS DÉFINIS (SURVOL) ---
+      - { name: "definitions_sep", widget: "separator", label: "📖 Mots définis (survol orange)", required: false }
+      - label: "Définitions"
+        name: "definitions"
+        widget: "list"
+        required: false
+        summary: "{{fields.term}}{{fields.term_en}}"
+        hint: "Remplis le français, l'anglais, ou les deux. Un mot uniquement anglais fonctionne aussi dans le texte FR."
+        fields:
+          - { label: "Mot ou expression (FR)", name: "term", widget: "string", required: false }
+          - { label: "Définition (FR)", name: "definition", widget: "text", required: false }
+          - { label: "Mot ou expression (EN)", name: "term_en", widget: "string", required: false }
+          - { label: "Définition (EN)", name: "definition_en", widget: "text", required: false }
+
       - { label: "INFORMATIONS GÉNÉRALES DE L'ARTICLE", name: "sep_article", widget: "separator", required: false }
       - { label: "Date de publication", name: "date", widget: "datetime" }
       - label: "Auteur de l'article"
@@ -213,6 +179,8 @@ collections:
           - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
           - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
+          - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
+          - { label: "Partenaires (EN)", name: "author_partners_en", widget: "text", required: false }
 
       - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe", "technologie"] }
       - { label: "Image de miniature", name: "image", widget: "image" }
@@ -241,6 +209,18 @@ collections:
           - { label: "Nom de la source (FR)", name: "source_title", widget: "string" }
           - { label: "Nom de la source (EN)", name: "source_title_en", widget: "string", required: false }
           - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
+
+      # --- MINIATURE CUSTOM ---
+      - { label: "CONFIGURATION GRAPHIQUE DE LA MINIATURE (optionnel)", name: "sep_miniature", widget: "separator", required: false, collapsed: true }
+      - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false, title: "Partie Miniature (optionnel)" }
+
+      - label: "Aperçu et textes de la miniature (glisser-déposer)"
+        name: "thumbnail_layout"
+        widget: "thumbnail-editor"
+        required: false
+        hint: "Choisis le cadre (à la une, sidebar, ou largeur/hauteur perso). Ajoute une ou plusieurs images, déplace-les et redimensionne-les avec les poignées. Ajoute des blocs de texte par-dessus."
+
+      - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
 
   # ==========================================
   # 3. VUES FILTRÉES : ARTICLES PAR CATÉGORIE

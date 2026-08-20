@@ -40,74 +40,143 @@ function commentAuthor(comment: any) {
     avatarColor: account?.avatar_color || '#ea580c',
   };
 }
+
+function formatCommentStamp(iso: string) {
+  const commentDate = new Date(iso);
+  return {
+    ts: commentDate.getTime(),
+    dateFR: commentDate.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    dateEN: commentDate.toLocaleString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+  };
+}
+
+const commentCount = comments?.length || 0;
 ---
 
 <section class="comments-section">
-  <h2>Commentaires ({comments?.length || 0})</h2>
+  <button
+    type="button"
+    class="comments-toggle"
+    id="comments-toggle"
+    aria-expanded="false"
+    aria-controls="comments-drawer"
+  >
+    <span data-i18n="comments_title">Espace Commentaires</span>
+  </button>
+</section>
 
-  <div id="comment-login-prompt" class="comment-login-prompt">
-    <p data-i18n="comments_login_prompt">Connectez-vous pour publier un commentaire.</p>
-    <div class="comment-login-actions">
-      <a href={`/connexion?redirect=${encodeURIComponent(redirectTo)}`} class="comment-login-btn" data-i18n="auth_login">
-        Connexion
-      </a>
-      <a href={`/inscription?redirect=${encodeURIComponent(redirectTo)}`} class="comment-signup-link" data-i18n="auth_create_account">
-        Créer un compte
-      </a>
+<div class="comments-overlay" id="comments-overlay"></div>
+
+<aside class="comments-drawer" id="comments-drawer" aria-label="Espace commentaires" aria-hidden="true">
+  <div class="comments-drawer-inner">
+    <header class="comments-drawer-header">
+      <h2 class="comments-drawer-title" data-i18n="comments_title">Espace Commentaires</h2>
+
+      <div class="comments-filters" role="tablist" aria-label="Trier les commentaires">
+        <button type="button" class="comments-filter is-active" data-sort="recent" data-i18n="comments_filter_recent">
+          les plus récents
+        </button>
+        <button type="button" class="comments-filter" data-sort="popular" data-i18n="comments_filter_popular">
+          les plus likes
+        </button>
+        <button type="button" class="comments-filter" data-sort="debate" data-i18n="comments_filter_debate">
+          les plus controversés
+        </button>
+      </div>
+
+      <aside class="comments-charter-box">
+        <p>
+          <span data-i18n="comments_charter_before">Respectez notre </span>
+          <a href="/charte-commentaires" data-i18n="comments_charter_link">charte des commentaires</a>
+          <span data-i18n="comments_charter_after"> ou assistez impuissants à la suppression de votre misérable commentaire</span>
+        </p>
+      </aside>
+
+      <button type="button" class="comments-drawer-close" id="comments-drawer-close" aria-label="Fermer les commentaires">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <div id="comment-login-prompt" class="comment-login-prompt">
+      <p data-i18n="comments_login_prompt">Connectez-vous pour publier un commentaire.</p>
+      <div class="comment-login-actions">
+        <a href={`/connexion?redirect=${encodeURIComponent(redirectTo)}`} class="comment-login-btn" data-i18n="auth_login">
+          Connexion
+        </a>
+        <a href={`/inscription?redirect=${encodeURIComponent(redirectTo)}`} class="comment-signup-link" data-i18n="auth_create_account">
+          Créer un compte
+        </a>
+      </div>
     </div>
-  </div>
 
-  <form id="comment-form" data-slug={articleSlug} class="comment-form" hidden>
-    <div class="comment-as">
-      <span id="comment-form-avatar" class="sonar-avatar" aria-hidden="true"></span>
-      <p>
-        <span data-i18n="comments_as">Vous commentez en tant que</span>
-        {' '}
-        <strong id="comment-form-username"></strong>
-      </p>
-    </div>
+    <form id="comment-form" data-slug={articleSlug} class="comment-form" hidden>
+      <div class="comment-as">
+        <span id="comment-form-avatar" class="sonar-avatar" aria-hidden="true"></span>
+        <p>
+          <span data-i18n="comments_as">Vous commentez en tant que</span>
+          {' '}
+          <strong id="comment-form-username"></strong>
+        </p>
+      </div>
 
-    <div class="form-group">
-      <label for="content">Votre commentaire :</label>
-      <textarea id="content" name="content" rows="4" required placeholder="Votre message..."></textarea>
-    </div>
+      <div class="form-group">
+        <label for="content">Votre commentaire :</label>
+        <textarea id="content" name="content" rows="4" required placeholder="Votre message..."></textarea>
+      </div>
 
-    <button type="submit" id="submit-btn">Publier le commentaire</button>
-    <p id="form-message"></p>
-  </form>
+      <button type="submit" id="submit-btn">Publier le commentaire</button>
+      <p id="form-message"></p>
+    </form>
 
-  <hr class="comments-divider" />
+    <div class="comments-list" data-count={commentCount}>
+      {comments && comments.length > 0 ? (
+        comments.map((comment: any) => {
+          const author = commentAuthor(comment);
+          const stamp = formatCommentStamp(comment.created_at);
 
-  <div class="comments-list">
-    {comments && comments.length > 0 ? (
-      comments.map((comment: any) => {
-        const author = commentAuthor(comment);
-        const commentDate = new Date(comment.created_at);
-        const dateFR = commentDate.toLocaleDateString('fr-FR');
-        const dateEN = commentDate.toLocaleDateString('en-US');
-
-        return (
-          <div class="comment-card">
-            <div class="comment-header">
-              <div class="comment-author-block">
+          return (
+            <article
+              class="comment-card"
+              data-created-at={stamp.ts}
+              data-likes={comment.likes_count ?? 0}
+              data-replies={comment.replies_count ?? 0}
+            >
+              <div class="comment-header">
                 <UserAvatar
                   username={author.username}
                   avatarUrl={author.avatarUrl}
                   avatarColor={author.avatarColor}
                 />
                 <strong class="author">{author.username}</strong>
+                <time class="date" datetime={comment.created_at} data-fr={stamp.dateFR} data-en={stamp.dateEN}>
+                  {stamp.dateFR}
+                </time>
               </div>
-              <small class="date" data-fr={dateFR} data-en={dateEN}>{dateFR}</small>
-            </div>
-            <p class="comment-body">{comment.content}</p>
-          </div>
-        );
-      })
-    ) : (
-      <p class="no-comments">Soyez le premier à laisser un commentaire !</p>
-    )}
+              <p class="comment-body">{comment.content}</p>
+            </article>
+          );
+        })
+      ) : (
+        <p class="no-comments" data-i18n="comments_empty">Soyez le premier à laisser un commentaire !</p>
+      )}
+    </div>
   </div>
-</section>
+</aside>
 
 <script>
   import { getBrowserSupabase, getCurrentAccount, type Account } from '../utils/supabase-browser';
@@ -118,6 +187,11 @@ function commentAuthor(comment: any) {
   const messageEl = document.getElementById('form-message');
   const usernameEl = document.getElementById('comment-form-username');
   const avatarEl = document.getElementById('comment-form-avatar');
+  const toggleBtn = document.getElementById('comments-toggle');
+  const closeBtn = document.getElementById('comments-drawer-close');
+  const overlay = document.getElementById('comments-overlay');
+  const drawer = document.getElementById('comments-drawer');
+  const listEl = document.querySelector('.comments-list');
 
   function fillAvatar(el: HTMLElement, account: Account) {
     el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
@@ -138,6 +212,100 @@ function commentAuthor(comment: any) {
     }
     return `<span class="sonar-avatar" style="background-color:${escapeHtml(avatarColor)}">${escapeHtml(avatarInitial(username))}</span>`;
   }
+
+  function formatStamp(iso: string) {
+    const commentDate = new Date(iso);
+    return {
+      ts: commentDate.getTime(),
+      dateFR: commentDate.toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      dateEN: commentDate.toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }),
+    };
+  }
+
+  function isDrawerOpen() {
+    return Boolean(drawer && drawer.classList.contains('is-open'));
+  }
+
+  function openDrawer() {
+    if (!drawer || !overlay) return;
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('is-open');
+    toggleBtn?.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    closeBtn?.focus();
+  }
+
+  function closeDrawer() {
+    if (!drawer || !overlay || !isDrawerOpen()) return;
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('is-open');
+    toggleBtn?.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    toggleBtn?.focus();
+  }
+
+  if (overlay && overlay.parentElement !== document.body) {
+    document.body.appendChild(overlay);
+  }
+  if (drawer && drawer.parentElement !== document.body) {
+    document.body.appendChild(drawer);
+  }
+
+  function currentSort() {
+    const active = document.querySelector('.comments-filter.is-active') as HTMLElement | null;
+    return active?.dataset.sort || 'recent';
+  }
+
+  function sortComments(mode: string) {
+    if (!listEl) return;
+    const cards = Array.from(listEl.querySelectorAll('.comment-card'));
+    cards.sort((a, b) => {
+      const elA = a as HTMLElement;
+      const elB = b as HTMLElement;
+      if (mode === 'popular') {
+        const likes = Number(elB.dataset.likes || 0) - Number(elA.dataset.likes || 0);
+        if (likes) return likes;
+      }
+      if (mode === 'debate') {
+        const replies = Number(elB.dataset.replies || 0) - Number(elA.dataset.replies || 0);
+        if (replies) return replies;
+      }
+      return Number(elB.dataset.createdAt || 0) - Number(elA.dataset.createdAt || 0);
+    });
+    cards.forEach((card) => listEl.appendChild(card));
+  }
+
+  toggleBtn?.addEventListener('click', () => {
+    if (isDrawerOpen()) closeDrawer();
+    else openDrawer();
+  });
+  closeBtn?.addEventListener('click', closeDrawer);
+  overlay?.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  document.querySelectorAll('.comments-filter').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.comments-filter').forEach((el) => el.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      sortComments((btn as HTMLElement).dataset.sort || 'recent');
+    });
+  });
 
   async function setupCommentsAuth() {
     const account = await getCurrentAccount();
@@ -203,7 +371,6 @@ function commentAuthor(comment: any) {
         messageEl.textContent = 'Commentaire publié avec succès !';
         messageEl.style.color = '#22c55e';
 
-        const listEl = document.querySelector('.comments-list');
         if (listEl) {
           const noCommentsEl = listEl.querySelector('.no-comments');
           if (noCommentsEl) noCommentsEl.remove();
@@ -213,37 +380,30 @@ function commentAuthor(comment: any) {
             ? insertedComment.created_at
             : new Date().toISOString();
 
-          const commentDate = new Date(rawDate);
-          const dateFR = commentDate.toLocaleDateString('fr-FR');
-          const dateEN = commentDate.toLocaleDateString('en-US');
-
+          const stamp = formatStamp(rawDate);
           const currentLang = (localStorage.getItem('site_lang') || 'FR').toUpperCase();
-          const dateToDisplay = currentLang === 'EN' ? dateEN : dateFR;
+          const dateToDisplay = currentLang === 'EN' ? stamp.dateEN : stamp.dateFR;
 
           const username = insertedComment?.username || account.username;
           const avatarUrl = insertedComment?.avatar_url ?? account.avatar_url;
           const avatarColor = insertedComment?.avatar_color || account.avatar_color;
 
-          const newCommentCard = document.createElement('div');
+          const newCommentCard = document.createElement('article');
           newCommentCard.className = 'comment-card';
+          newCommentCard.dataset.createdAt = String(stamp.ts);
+          newCommentCard.dataset.likes = '0';
+          newCommentCard.dataset.replies = '0';
           newCommentCard.innerHTML = `
             <div class="comment-header">
-              <div class="comment-author-block">
-                ${avatarMarkup(username, avatarUrl, avatarColor)}
-                <strong class="author">${escapeHtml(username)}</strong>
-              </div>
-              <small class="date" data-fr="${dateFR}" data-en="${dateEN}">${dateToDisplay}</small>
+              ${avatarMarkup(username, avatarUrl, avatarColor)}
+              <strong class="author">${escapeHtml(username)}</strong>
+              <time class="date" datetime="${escapeHtml(rawDate)}" data-fr="${escapeHtml(stamp.dateFR)}" data-en="${escapeHtml(stamp.dateEN)}">${escapeHtml(dateToDisplay)}</time>
             </div>
             <p class="comment-body">${escapeHtml(content)}</p>
           `;
 
           listEl.prepend(newCommentCard);
-        }
-
-        const countTitle = document.querySelector('.comments-section h2');
-        if (countTitle) {
-          const current = document.querySelectorAll('.comment-card').length;
-          countTitle.textContent = `Commentaires (${current})`;
+          sortComments(currentSort());
         }
 
         form.reset();
@@ -260,18 +420,175 @@ function commentAuthor(comment: any) {
 
 <style is:global>
   .comments-section {
-    max-width: 1200px;
-    margin: 3rem auto 0 auto;
-    padding: 0 40px 40px 40px;
+    width: calc(100% + (2 * var(--page-pad, 20px)));
+    max-width: none;
+    margin: 2.5rem 0 0 calc(-1 * var(--page-pad, 20px));
+    padding: 0 0 40px 0;
     box-sizing: border-box;
+  }
+
+  .comments-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: #01002d;
+    color: #ffffff;
+    border: none;
+    border-radius: 0 999px 999px 0;
+    padding: 12px 22px 12px 16px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    text-shadow: 1px 1px 0 #ff7900;
+    box-shadow: 2px 0 0 rgba(255, 121, 0, 0.18);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .comments-toggle:hover {
+    transform: translateX(2px);
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.28);
+  }
+
+  .comments-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1090;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .comments-overlay.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .comments-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: min(980px, 94vw);
+    z-index: 1100;
+    background: #01002d;
+    border-right: 1px solid #1f2937;
+    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.5);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 32px;
     color: #ffffff;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   }
+  .comments-drawer.is-open {
+    transform: translateX(0);
+  }
 
-  .comments-section h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
+  .comments-drawer-inner {
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .comments-drawer-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) 38px;
+    grid-template-rows: auto auto;
+    gap: 18px 16px;
+    align-items: start;
+    margin-bottom: 28px;
+  }
+
+  .comments-drawer-title {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    text-align: left;
+    font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
+    font-size: 2rem;
+    font-weight: 700;
     color: #ffffff;
+    line-height: 1.2;
+    transform: translateX(10px) translateY(5px);
+  }
+
+  .comments-drawer-close {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .comments-drawer-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .comments-drawer-close svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .comments-filters {
+    grid-column: 1;
+    grid-row: 2;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 3px;
+    background: #1a1a4a;
+    border-radius: 999px;
+    width: fit-content;
+    transform: translateX(5px);
+  }
+  .comments-filter {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 1px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .comments-filter.is-active,
+  .comments-filter:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .comments-charter-box {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    background: #1a1a4a;
+    color: #ffffff;
+    border: 3px solid #d4510b;
+    border-radius: 4px;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    margin-top: 25px;
+  }
+  .comments-charter-box p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  .comments-charter-box a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   .comment-login-prompt {
@@ -279,21 +596,18 @@ function commentAuthor(comment: any) {
     border: 1px solid #1f2937;
     border-radius: 8px;
     padding: 1.25rem 1.5rem;
-    max-width: 600px;
+    margin-bottom: 1.5rem;
   }
-
   .comment-login-prompt p {
     margin: 0 0 1rem 0;
     color: #d1d5db;
   }
-
   .comment-login-actions {
     display: flex;
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
   }
-
   .comment-login-btn {
     background-color: #ea580c;
     color: #ffffff;
@@ -302,52 +616,39 @@ function commentAuthor(comment: any) {
     border-radius: 6px;
     font-weight: 600;
   }
-
-  .comment-login-btn:hover {
-    background-color: #d4510b;
-  }
-
+  .comment-login-btn:hover { background-color: #d4510b; }
   .comment-signup-link {
     color: #ea580c;
     font-weight: 600;
     text-decoration: none;
   }
-
-  .comment-signup-link:hover {
-    text-decoration: underline;
-  }
+  .comment-signup-link:hover { text-decoration: underline; }
 
   .comment-form {
     display: flex;
     flex-direction: column;
-    gap: 1.2rem;
-    max-width: 600px;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
   }
-
   .comment-as {
     display: flex;
     align-items: center;
     gap: 12px;
   }
-
   .comment-as p {
     margin: 0;
     color: #d1d5db;
     font-size: 0.95rem;
   }
-
   .form-group {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
-
   .form-group label {
     font-size: 0.9rem;
     color: #d1d5db;
   }
-
-  .form-group input,
   .form-group textarea {
     background-color: #0b092b;
     border: 1px solid #1f2937;
@@ -356,14 +657,17 @@ function commentAuthor(comment: any) {
     color: #ffffff;
     font-family: inherit;
     font-size: 0.95rem;
+    resize: vertical;
+    width: 100%;
+    max-width: 100%;
+    min-height: 96px;
+    max-height: 240px;
+    box-sizing: border-box;
   }
-
-  .form-group input:focus,
   .form-group textarea:focus {
     outline: none;
     border-color: #ea580c;
   }
-
   #submit-btn {
     align-self: flex-start;
     background-color: #ea580c;
@@ -373,80 +677,88 @@ function commentAuthor(comment: any) {
     border-radius: 6px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s ease;
   }
-
-  #submit-btn:hover {
-    background-color: #d4510b;
-  }
-
-  .comments-divider {
-    border: none;
-    border-top: 1px solid #1f2937;
-    margin: 2.5rem 0;
-  }
+  #submit-btn:hover { background-color: #d4510b; }
 
   .comments-list {
     display: flex;
     flex-direction: column;
-    gap: 1.2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
   }
 
   .comment-card {
-    background-color: transparent;
-    border-bottom: 1px solid #1f2937;
-    padding-bottom: 1rem;
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28);
   }
 
   .comment-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    margin-bottom: 0.5rem;
-    gap: 12px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    margin-bottom: 8px;
   }
-
-  .comment-author-block {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
+  .comment-header .sonar-avatar {
+    align-self: center;
   }
-
-  .comment-header .date {
-    font-size: 0.8rem;
-    color: #9ca3af;
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-
   .author {
-    font-size: 1rem;
+    font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #ffffff;
   }
-
-  .comment-body {
-    margin: 0;
-    font-size: 0.95rem;
-    color: #e5e7eb;
-    line-height: 1.5;
-    padding-left: 46px;
+  .comment-header .date {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #9ca3af;
   }
-
+  .comment-body {
+    margin: 0 0 0 48px;
+    font-size: 0.98rem;
+    color: #ffffff;
+    line-height: 1.55;
+  }
   .no-comments {
     color: #9ca3af;
     font-style: italic;
+    padding: 18px 0;
   }
 
   @media (max-width: 968px) {
     .comments-section {
       padding: 0 0 24px 0;
     }
-
+    .comments-toggle {
+      font-size: 1.1rem;
+      padding: 10px 18px 10px 14px;
+      text-shadow: 1px 1px 0 #ff7900;
+    }
+    .comments-drawer {
+      width: 100vw;
+      padding: 20px;
+    }
+    .comments-drawer-header {
+      grid-template-columns: minmax(0, 1fr) 38px;
+    }
+    .comments-drawer-title {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .comments-drawer-close {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .comments-filters {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    .comments-charter-box {
+      grid-column: 1 / -1;
+      grid-row: 3;
+    }
     .comment-body {
-      padding-left: 0;
+      margin-left: 0;
     }
   }
 </style>

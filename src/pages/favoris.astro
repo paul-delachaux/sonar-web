@@ -1,0 +1,89 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+---
+
+<MainLayout title="Mes favoris — Le Sonar">
+  <div class="presentation-wrapper">
+    <div class="presentation-container">
+      <div data-lang-content="FR">
+        <header class="presentation-header">
+          <h1 class="main-title">Mes favoris</h1>
+          <div class="header-accent-bar"></div>
+        </header>
+        <main class="presentation-content">
+          <p class="lead-text">
+            Vous n’avez pas encore d’articles en favoris. Cette page accueillera bientôt ceux que vous aurez mis de côté.
+          </p>
+        </main>
+      </div>
+      <div data-lang-content="EN" hidden>
+        <header class="presentation-header">
+          <h1 class="main-title">My favorites</h1>
+          <div class="header-accent-bar"></div>
+        </header>
+        <main class="presentation-content">
+          <p class="lead-text">
+            You have no favorite articles yet. This page will soon list the ones you set aside.
+          </p>
+        </main>
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { getCurrentAccount } from '../utils/supabase-browser';
+
+  try {
+    const account = await getCurrentAccount();
+    if (!account) {
+      window.location.replace(`/connexion?redirect=${encodeURIComponent('/favoris')}`);
+    }
+  } catch {
+    window.location.replace(`/connexion?redirect=${encodeURIComponent('/favoris')}`);
+  }
+</script>
+
+<style is:global>
+  .presentation-wrapper {
+    background-color: #02001d;
+    max-width: 900px;
+    margin: 60px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  .presentation-container { padding: 50px 60px; }
+  .presentation-header { margin-bottom: 40px; text-align: left; }
+  .presentation-header .main-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin: 0 0 15px 0;
+  }
+  .header-accent-bar {
+    width: 80px;
+    height: 4px;
+    background-color: #ea580c;
+    border-radius: 2px;
+  }
+  .presentation-content {
+    color: #e5e7eb;
+    font-size: 1.15rem;
+    line-height: 1.8;
+  }
+  .presentation-content .lead-text {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: #ffffff;
+    line-height: 1.7;
+    border-left: 3px solid #ea580c;
+    padding-left: 20px;
+    margin-bottom: 35px;
+  }
+  @media (max-width: 768px) {
+    .presentation-wrapper { margin: 0; border-radius: 0; }
+    .presentation-container { padding: 40px 24px; }
+    .presentation-header .main-title { font-size: 1.8rem; }
+  }
+</style>

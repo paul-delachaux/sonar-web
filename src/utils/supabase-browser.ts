@@ -7,6 +7,9 @@ declare global {
   }
 }
 
+export type ArticleFont = 'sans' | 'serif' | 'editorial';
+export type ArticleFontSize = 'small' | 'medium' | 'large';
+
 export type Account = {
   id: string;
   first_name: string;
@@ -16,6 +19,8 @@ export type Account = {
   phone: string | null;
   avatar_url: string | null;
   avatar_color: string;
+  article_font?: ArticleFont | null;
+  article_font_size?: ArticleFontSize | null;
 };
 
 let client: SupabaseClient | null = null;
@@ -48,13 +53,34 @@ export async function getCurrentAccount(): Promise<Account | null> {
 
   if (!session) return null;
 
-  const { data } = await supabase
+  const baseSelect = 'id, first_name, last_name, username, email, phone, avatar_url, avatar_color';
+  const withPrefs = `${baseSelect}, article_font, article_font_size`;
+
+  let { data, error } = await supabase
     .from('accounts')
-    .select('id, first_name, last_name, username, email, phone, avatar_url, avatar_color')
+    .select(withPrefs)
     .eq('id', session.user.id)
     .maybeSingle();
 
+  if (error) {
+    const fallback = await supabase
+      .from('accounts')
+      .select(baseSelect)
+      .eq('id', session.user.id)
+      .maybeSingle();
+    data = fallback.data;
+  }
+
   return data as Account | null;
+}
+
+export async function saveArticlePrefs(accountId: string, prefs: {
+  article_font?: ArticleFont;
+  article_font_size?: ArticleFontSize;
+}): Promise<void> {
+  const supabase = getBrowserSupabase();
+  const { error } = await supabase.from('accounts').update(prefs).eq('id', accountId);
+  if (error) throw error;
 }
 
 export function safeRedirectPath(value: string | null | undefined): string {

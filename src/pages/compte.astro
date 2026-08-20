@@ -103,6 +103,34 @@ import MainLayout from '../layouts/Layout.astro';
         <button type="submit" class="btn-primary" data-i18n="account_save">Enregistrer</button>
       </form>
     </section>
+
+    <section class="account-card account-card--danger" data-section="delete">
+      <h2 data-i18n="account_delete">Supprimer le compte</h2>
+      <p class="section-help" data-i18n="account_delete_body">
+        Cette action est irréversible. Votre profil sera effacé et vous ne pourrez plus commenter avec ce compte.
+      </p>
+      <button type="button" class="btn-danger" id="account-delete-open" data-i18n="account_delete">
+        Supprimer le compte
+      </button>
+    </section>
+  </div>
+
+  <div class="account-modal" id="account-delete-modal" hidden>
+    <div class="account-modal-card" role="dialog" aria-modal="true" aria-labelledby="account-delete-title">
+      <h3 id="account-delete-title" data-i18n="account_delete_title">Supprimer votre compte ?</h3>
+      <p data-i18n="account_delete_body">
+        Cette action est irréversible. Votre profil sera effacé et vous ne pourrez plus commenter avec ce compte.
+      </p>
+      <p class="account-modal-error" id="account-delete-error" hidden></p>
+      <div class="account-modal-actions">
+        <button type="button" class="account-modal-cancel" id="account-delete-cancel" data-i18n="account_delete_cancel">
+          Annuler
+        </button>
+        <button type="button" class="account-modal-confirm" id="account-delete-confirm" data-i18n="account_delete_confirm">
+          Supprimer définitivement
+        </button>
+      </div>
+    </div>
   </div>
 </MainLayout>
 
@@ -405,6 +433,54 @@ import MainLayout from '../layouts/Layout.astro';
       setMessage('[data-password-message]', err instanceof Error ? err.message : 'Impossible de changer le mot de passe.', false);
     }
   });
+
+  const deleteModal = document.getElementById('account-delete-modal');
+  const deleteError = document.getElementById('account-delete-error');
+
+  function closeDeleteModal() {
+    if (!deleteModal) return;
+    deleteModal.hidden = true;
+    if (deleteError) {
+      deleteError.hidden = true;
+      deleteError.textContent = '';
+    }
+  }
+
+  document.getElementById('account-delete-open')?.addEventListener('click', () => {
+    if (deleteModal) deleteModal.hidden = false;
+  });
+  document.getElementById('account-delete-cancel')?.addEventListener('click', closeDeleteModal);
+  deleteModal?.addEventListener('click', (e) => {
+    if (e.target === deleteModal) closeDeleteModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && deleteModal && !deleteModal.hidden) closeDeleteModal();
+  });
+
+  document.getElementById('account-delete-confirm')?.addEventListener('click', async () => {
+    const confirmBtn = document.getElementById('account-delete-confirm') as HTMLButtonElement | null;
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (deleteError) {
+      deleteError.hidden = true;
+      deleteError.textContent = '';
+    }
+
+    try {
+      const supabase = getBrowserSupabase();
+      const { error } = await supabase.rpc('delete_own_account');
+      if (error) throw error;
+      await supabase.auth.signOut();
+      window.location.href = '/';
+    } catch (err) {
+      if (deleteError) {
+        deleteError.hidden = false;
+        deleteError.textContent = err instanceof Error
+          ? err.message
+          : 'Impossible de supprimer le compte pour le moment.';
+      }
+      if (confirmBtn) confirmBtn.disabled = false;
+    }
+  });
 </script>
 
 <style>
@@ -568,6 +644,87 @@ import MainLayout from '../layouts/Layout.astro';
 
   .btn-ghost:hover {
     color: #ea580c;
+  }
+
+  .account-card--danger h2 {
+    color: #f87171;
+  }
+
+  .btn-danger {
+    align-self: flex-start;
+    background-color: #dc2626;
+    color: #ffffff;
+    border: none;
+    padding: 0.7rem 1.4rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-danger:hover {
+    background-color: #b91c1c;
+  }
+
+  .account-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1140;
+    background: rgba(0, 0, 0, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .account-modal[hidden] {
+    display: none !important;
+  }
+  .account-modal-card {
+    width: min(420px, 100%);
+    background: #01002d;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 24px;
+    color: #ffffff;
+  }
+  .account-modal-card h3 {
+    margin: 0 0 12px;
+    font-size: 1.2rem;
+  }
+  .account-modal-card p {
+    margin: 0 0 16px;
+    color: #d1d5db;
+    line-height: 1.5;
+  }
+  .account-modal-error {
+    color: #f87171 !important;
+  }
+  .account-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .account-modal-cancel,
+  .account-modal-confirm {
+    border: none;
+    border-radius: 6px;
+    padding: 0.7rem 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .account-modal-cancel {
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid #1f2937;
+  }
+  .account-modal-confirm {
+    background: #dc2626;
+    color: #ffffff;
+  }
+  .account-modal-confirm:disabled {
+    opacity: 0.6;
+    cursor: wait;
   }
 
   @media (max-width: 968px) {

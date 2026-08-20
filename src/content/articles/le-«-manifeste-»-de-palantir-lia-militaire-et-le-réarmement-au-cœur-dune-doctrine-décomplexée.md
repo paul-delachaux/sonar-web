@@ -1,16 +1,12 @@
 ---
-author_info:
-  - author_about: Aucune information fournie pour le moment.
-    author_about_en: No information provided at this time.
-    author_interests: "moi toucher money "
-    author_interests_en: me not touching money, me poor
-consulted_sources:
-  - source_title: "Article du Monde "
-    source_title_en: "Article of the Monde "
-    source_url: "Analyse le Grand continent "
-  - source_title: "Site internet officiel de  Palantir "
-    source_title_en: "Official Palantir WebSite "
-    source_url: https://www.palantir.com
+layout_type: breve
+title: "Le « Manifeste » de Palantir : L'IA militaire et le réarmement au cœur
+  d'une doctrine décomplexée"
+title_en: "Palantir’s “Manifesto”: Military AI and Rearmament at the Heart of an
+  Unabashed Doctrine"
+description_en: "description IN ENGLISH PLEASE Description relativement longue
+  qui sera présent e dans des articles plus travaillée que ce truc fait à
+  l'arrache, j'écris afin de voir le rendu final sur la "
 body_en: >-
   In a striking manifesto dispatched as a series of messages on the social
   network X, Alex Karp, Chief Executive of Palantir Technologies, unveiled the
@@ -47,22 +43,43 @@ body_en: >-
 
 
   Apprehensive over the safeguard of personal data—vulnerable to the extraterritorial reach of American statutes like the CLOUD Act and the Patriot Act France has resolved to gradually supplant Palantir with the domestic firm ChapsVision, founded by Polytechnique alumnus Olivier Dellenbach, for use by its domestic intelligence agency (DGSI). According to the German newspaper *Süddeutsche Zeitung*, a parallel pursuit of technological autonomy has likewise been set in motion by Germany’s domestic intelligence services.
-isVisible: true
-author: Victor Zhâ
-description_en: "description IN ENGLISH PLEASE Description relativement longue
-  qui sera présent e dans des articles plus travaillée que ce truc fait à
-  l'arrache, j'écris afin de voir le rendu final sur la "
-image_position: 0
+definitions:
+  - term: ""
+    definition: ""
+    term_en: manifesto
+    definition_en: In english je voulais un mot
+  - term: Estimant que la puissance douce
+    definition: Je sais pas il me faut des groupes de mots pour tester ce que je dis.
 date: 2026-08-14T15:03:00.000+02:00
-layout_type: breve
-title_en: "Palantir’s “Manifesto”: Military AI and Rearmament at the Heart of an
-  Unabashed Doctrine"
+author: Victor Zhâ
+author_info:
+  - author_about: Diplômé de l'université de la Sorbone et issu des écoles
+      préparatoires françaises aux grandes écoles.
+    author_about_en: A graduate of the Sorbonne and an alumnus of the French
+      preparatory classes for the grandes écoles.
+    author_interests: Ce journaliste ne touche aucune somme d'argent d'aucune
+      organisation quelconque, il est salarié du média.
+    author_interests_en: This journalist does not receive any money from any
+      organization whatsoever; he is an employee of the media outlet.
+    author_partners: Autre nom de journaliste, ou organisation avec lesquels j'ai
+      discuté pour obtenir une information ou pour laquelle je produis cette
+      information.
+    author_partners_en: Name of another journalist or organization with whom I
+      discussed obtaining information, or for whom I am producing this
+      information.
+image: /assets/uploads/palantir-technologies.png.webp
 image_info:
   - image_caption: "photo pompée sur internet pour illustrer le logo de cette entreprise "
     image_caption_en: "ce que j'ai mis sur e truc en fr mais écrit in english "
-title: "Le « Manifeste » de Palantir : L'IA militaire et le réarmement au cœur
-  d'une doctrine décomplexée"
-image: /assets/uploads/palantir-technologies.png.webp
+image_position: 0
+isVisible: true
+consulted_sources:
+  - source_title: "Article du Monde "
+    source_title_en: "Article of the Monde "
+    source_url: "Analyse le Grand continent "
+  - source_title: "Site internet officiel de  Palantir "
+    source_title_en: "Official Palantir WebSite "
+    source_url: https://www.palantir.com
 overlay_opacity: 0
 description: Description relativement longue qui sera présent e dans des
   articles plus travaillée que ce truc fait à l'arrache, j'écris afin de voir le
