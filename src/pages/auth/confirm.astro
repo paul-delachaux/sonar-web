@@ -1,0 +1,134 @@
+---
+import MainLayout from '../../layouts/Layout.astro';
+---
+
+<MainLayout title="Confirmation du compte">
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1>Confirmation</h1>
+      <p id="confirm-message" class="auth-subtitle">Vérification de votre e-mail…</p>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { getBrowserSupabase } from '../../utils/supabase-browser';
+  import { flushPendingAvatar } from '../../utils/avatar';
+  import type { EmailOtpType } from '@supabase/supabase-js';
+
+  const messageEl = document.getElementById('confirm-message');
+  const OTP_TYPES: EmailOtpType[] = [
+    'signup',
+    'invite',
+    'magiclink',
+    'recovery',
+    'email_change',
+    'email',
+  ];
+
+  function setMessage(text: string, ok: boolean) {
+    if (!messageEl) return;
+    messageEl.textContent = text;
+    messageEl.style.color = ok ? '#22c55e' : '#ef4444';
+  }
+
+  function isOtpType(value: string | null): value is EmailOtpType {
+    return Boolean(value && OTP_TYPES.includes(value as EmailOtpType));
+  }
+
+  async function confirmEmail() {
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const errorDescription =
+      search.get('error_description') ||
+      hash.get('error_description') ||
+      search.get('error') ||
+      hash.get('error');
+
+    if (errorDescription) {
+      setMessage('Ce lien n’est plus valide. Demandez un nouvel e-mail de confirmation, puis réessayez.', false);
+      return;
+    }
+
+    try {
+      const supabase = getBrowserSupabase();
+      const tokenHash = search.get('token_hash') || hash.get('token_hash');
+      const typeParam = search.get('type') || hash.get('type');
+
+      if (tokenHash && isOtpType(typeParam)) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: typeParam,
+        });
+        if (error) {
+          setMessage('Ce lien n’est plus valide. Demandez un nouvel e-mail de confirmation, puis réessayez.', false);
+          return;
+        }
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        setMessage('Adresse confirmée. Vous pouvez maintenant vous connecter.', true);
+        window.setTimeout(() => {
+          window.location.replace('/connexion');
+        }, 1600);
+        return;
+      }
+
+      try {
+        await flushPendingAvatar(supabase);
+      } catch {
+        /* la photo pourra être retentée plus tard */
+      }
+
+      history.replaceState(null, '', '/auth/confirm');
+      setMessage('Votre compte est activé. Redirection…', true);
+      window.setTimeout(() => {
+        window.location.replace('/');
+      }, 1200);
+    } catch {
+      setMessage('Impossible de confirmer l’adresse pour le moment. Réessayez.', false);
+    }
+  }
+
+  confirmEmail();
+</script>
+
+<style>
+  .auth-page {
+    max-width: 480px;
+    margin: 40px auto 80px auto;
+  }
+
+  .auth-card {
+    background-color: #02001d;
+    border-radius: 8px;
+    padding: 40px 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .auth-card h1 {
+    margin: 0 0 8px 0;
+    font-size: 1.8rem;
+    color: #ffffff;
+  }
+
+  .auth-subtitle {
+    margin: 0;
+    color: #9ca3af;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 968px) {
+    .auth-page {
+      margin: 20px auto 40px auto;
+    }
+    .auth-card {
+      padding: 28px 20px;
+    }
+  }
+</style>

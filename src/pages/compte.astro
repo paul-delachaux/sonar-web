@@ -135,7 +135,7 @@ import MainLayout from '../layouts/Layout.astro';
 </MainLayout>
 
 <script>
-  import { getBrowserSupabase, getCurrentAccount, type Account } from '../utils/supabase-browser';
+  import { getBrowserSupabase, getCurrentAccount, getAuthRedirectUrl, type Account } from '../utils/supabase-browser';
   import { avatarInitial, avatarImgHtml, uploadAccountAvatar } from '../utils/avatar';
 
   const page = document.getElementById('account-page');
@@ -360,7 +360,7 @@ import MainLayout from '../layouts/Layout.astro';
 
       const { data, error } = await supabase.auth.updateUser(
         { email: nextEmail },
-        { emailRedirectTo: `${window.location.origin}/compte` }
+        { emailRedirectTo: getAuthRedirectUrl('/compte') }
       );
 
       if (error) {

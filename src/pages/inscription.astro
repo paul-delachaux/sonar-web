@@ -34,8 +34,7 @@ import MainLayout from '../layouts/Layout.astro';
             pattern="[A-Za-z0-9_]+"
             autocomplete="username"
           />
-          <small data-i18n="auth_username_hint_1">Attention : votre pseudonyme sera visible par tous si vous commentez.</small>
-          <small data-i18n="auth_username_hint_2">3 à 20 caractères : lettres, chiffres et underscore.</small>
+          <small data-i18n="auth_username_hint">3 à 20 caractères : lettres, chiffres et underscore.</small>
         </div>
 
         <div class="form-group">
@@ -76,7 +75,7 @@ import MainLayout from '../layouts/Layout.astro';
 </MainLayout>
 
 <script>
-  import { getBrowserSupabase, getCurrentAccount, safeRedirectPath } from '../utils/supabase-browser';
+  import { getBrowserSupabase, getCurrentAccount, safeRedirectPath, getAuthRedirectUrl } from '../utils/supabase-browser';
   import { pickAvatarColor, avatarInitial, stashPendingAvatar, uploadAccountAvatar, clearPendingAvatar } from '../utils/avatar';
 
   const params = new URLSearchParams(window.location.search);
@@ -202,7 +201,7 @@ import MainLayout from '../layouts/Layout.astro';
               year: 'numeric',
             }),
           },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: getAuthRedirectUrl('/auth/confirm'),
         },
       });
 

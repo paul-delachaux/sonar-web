@@ -88,3 +88,13 @@ export function safeRedirectPath(value: string | null | undefined): string {
   if (!value.startsWith('/') || value.startsWith('//')) return '/';
   return value;
 }
+
+export const PRODUCTION_SITE_URL = 'https://le-sonar.vercel.app';
+
+export function getAuthRedirectUrl(path = '/auth/confirm'): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  if (typeof window === 'undefined') return `${PRODUCTION_SITE_URL}${normalized}`;
+  const origin = window.location.origin;
+  const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+  return `${isLocal ? origin : PRODUCTION_SITE_URL}${normalized}`;
+}
