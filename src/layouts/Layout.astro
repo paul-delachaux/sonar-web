@@ -163,6 +163,8 @@ const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
                 font-size: 0.95rem;
                 background-color: #ea580c;
                 line-height: 1;
+                transform: translateZ(0);
+                isolation: isolate;
             }
 
             .sonar-avatar-sm {
@@ -182,6 +184,9 @@ const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
                 height: 100%;
                 object-fit: cover;
                 display: block;
+                image-rendering: auto;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
             }
 
             /* --- STYLE DU HEADER DE L'ACCUEIL (v2) --- */

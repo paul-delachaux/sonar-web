@@ -23,14 +23,7 @@ export function avatarInitial(username: string): string {
 }
 
 export const PENDING_AVATAR_KEY = 'sonar_pending_avatar';
-
-function fileExtension(file: File): string {
-  const fromName = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (fromName) return fromName;
-  if (file.type === 'image/png') return 'png';
-  if (file.type === 'image/webp') return 'webp';
-  return 'jpg';
-}
+const AVATAR_EXPORT_SIZE = 256;
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -39,6 +32,63 @@ function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+async function loadImage(file: File): Promise<HTMLImageElement | ImageBitmap> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      return await createImageBitmap(file);
+    } catch {
+      /* fallback ci-dessous */
+    }
+  }
+
+  const url = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Impossible de lire l’image.'));
+      img.src = url;
+    });
+    return image;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function normalizeAvatarPng(file: File): Promise<File> {
+  const source = await loadImage(file);
+  const srcW = 'naturalWidth' in source ? source.naturalWidth || source.width : source.width;
+  const srcH = 'naturalHeight' in source ? source.naturalHeight || source.height : source.height;
+  if (!srcW || !srcH) throw new Error('Image invalide.');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = AVATAR_EXPORT_SIZE;
+  canvas.height = AVATAR_EXPORT_SIZE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas indisponible.');
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  const scale = Math.max(AVATAR_EXPORT_SIZE / srcW, AVATAR_EXPORT_SIZE / srcH);
+  const dw = srcW * scale;
+  const dh = srcH * scale;
+  ctx.drawImage(source, (AVATAR_EXPORT_SIZE - dw) / 2, (AVATAR_EXPORT_SIZE - dh) / 2, dw, dh);
+
+  if ('close' in source && typeof source.close === 'function') {
+    source.close();
+  }
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((next) => {
+      if (next) resolve(next);
+      else reject(new Error('Impossible de générer le PNG.'));
+    }, 'image/png');
+  });
+
+  return new File([blob], 'avatar.png', { type: 'image/png' });
 }
 
 export async function stashPendingAvatar(email: string, file: File): Promise<void> {
@@ -63,11 +113,18 @@ export async function uploadAccountAvatar(
   userId: string,
   file: File
 ): Promise<string> {
-  const ext = fileExtension(file);
-  const path = `${userId}/avatar.${ext}`;
-  const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, {
+  let prepared = file;
+  try {
+    prepared = await normalizeAvatarPng(file);
+  } catch {
+    prepared = file;
+  }
+
+  const isPng = prepared.type === 'image/png';
+  const path = `${userId}/avatar.${isPng ? 'png' : 'jpg'}`;
+  const { error: uploadError } = await supabase.storage.from('avatars').upload(path, prepared, {
     upsert: true,
-    contentType: file.type || 'image/jpeg',
+    contentType: prepared.type || (isPng ? 'image/png' : 'image/jpeg'),
     cacheControl: '3600',
   });
 
