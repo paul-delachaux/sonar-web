@@ -144,7 +144,7 @@
 
 <script>
   import { getBrowserSupabase, getCurrentAccount, saveArticlePrefs, type Account, type ArticleFont, type ArticleFontSize } from '../utils/supabase-browser';
-  import { avatarInitial } from '../utils/avatar';
+  import { avatarInitial, avatarImgHtml } from '../utils/avatar';
 
   const FONT_KEY = 'sonar_article_font';
   const FONT_SIZE_KEY = 'sonar_article_font_size';
@@ -157,7 +157,7 @@
   function fillAvatar(el: HTMLElement, account: Account) {
     el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
     if (account.avatar_url) {
-      el.innerHTML = `<img src="${account.avatar_url.replace(/"/g, '&quot;')}" alt="" />`;
+      el.innerHTML = avatarImgHtml(account.avatar_url);
     } else {
       el.textContent = avatarInitial(account.username);
     }
@@ -379,7 +379,7 @@
   }
   .account-drawer.is-open,
   .account-subdrawer.is-open {
-    transform: translateX(0);
+    transform: none;
   }
   .account-subdrawer {
     z-index: 1130;
@@ -431,11 +431,12 @@
     width: auto;
     margin-right: calc(-1 * var(--page-pad, 20px));
     padding: 12px calc(20px + var(--page-pad, 20px)) 16px 20px;
-    background: #02001d;
+    background: #0b092b;
     border-bottom: 1px solid rgba(255, 255, 255, 0.28);
     box-sizing: border-box;
     flex-shrink: 0;
-    transform: translateX(15px) translateY(20px);
+    top: 20px;
+    left: 15px;
   }
   .account-drawer-profile .sonar-avatar,
   .account-drawer-profile .sonar-avatar-lg {
@@ -472,7 +473,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    transform: translateY(20px);
+    margin-top: 20px;
   }
 
   .account-drawer-item {
@@ -517,11 +518,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 16px 16px 12px;
+    padding: 16px 16px 12px 23px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.28);
     box-sizing: border-box;
     max-width: 150%;
-    transform: translateX(7px);
   }
   .account-subdrawer-header h2 {
     margin: 0;

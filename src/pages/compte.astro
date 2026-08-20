@@ -136,7 +136,7 @@ import MainLayout from '../layouts/Layout.astro';
 
 <script>
   import { getBrowserSupabase, getCurrentAccount, type Account } from '../utils/supabase-browser';
-  import { avatarInitial, uploadAccountAvatar } from '../utils/avatar';
+  import { avatarInitial, avatarImgHtml, uploadAccountAvatar } from '../utils/avatar';
 
   const page = document.getElementById('account-page');
   const photoForm = document.getElementById('photo-form') as HTMLFormElement | null;
@@ -166,7 +166,7 @@ import MainLayout from '../layouts/Layout.astro';
     }
     if (avatarUrl) {
       previewEl.style.backgroundColor = 'transparent';
-      previewEl.innerHTML = `<img src="${avatarUrl.replace(/"/g, '&quot;')}" alt="" />`;
+      previewEl.innerHTML = avatarImgHtml(avatarUrl);
       return;
     }
     previewEl.style.backgroundColor = avatarColor || '#ea580c';
@@ -181,7 +181,7 @@ import MainLayout from '../layouts/Layout.astro';
     document.querySelectorAll<HTMLElement>('[data-auth-avatar]').forEach((el) => {
       el.style.backgroundColor = next.avatar_url ? 'transparent' : (next.avatar_color || '#ea580c');
       if (next.avatar_url) {
-        el.innerHTML = `<img src="${next.avatar_url.replace(/"/g, '&quot;')}" alt="" />`;
+        el.innerHTML = avatarImgHtml(next.avatar_url);
       } else {
         el.textContent = avatarInitial(next.username);
       }

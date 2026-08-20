@@ -24,7 +24,7 @@ const initial = avatarInitial(username);
   aria-hidden="true"
 >
   {avatarUrl ? (
-    <img src={avatarUrl} alt="" />
+    <img src={avatarUrl} srcset={`${avatarUrl} 3x`} alt="" width="80" height="80" decoding="async" />
   ) : (
     initial
   )}

@@ -22,6 +22,11 @@ export function avatarInitial(username: string): string {
   return (trimmed.charAt(0) || '?').toUpperCase();
 }
 
+export function avatarImgHtml(url: string): string {
+  const src = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return `<img src="${src}" srcset="${src} 3x" alt="" width="80" height="80" decoding="async" />`;
+}
+
 export const PENDING_AVATAR_KEY = 'sonar_pending_avatar';
 const AVATAR_MAX_SIZE = 512;
 

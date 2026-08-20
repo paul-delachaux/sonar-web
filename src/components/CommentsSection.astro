@@ -180,7 +180,7 @@ const commentCount = comments?.length || 0;
 
 <script>
   import { getBrowserSupabase, getCurrentAccount, type Account } from '../utils/supabase-browser';
-  import { avatarInitial } from '../utils/avatar';
+  import { avatarInitial, avatarImgHtml } from '../utils/avatar';
 
   const form = document.getElementById('comment-form') as HTMLFormElement | null;
   const loginPrompt = document.getElementById('comment-login-prompt');
@@ -196,7 +196,7 @@ const commentCount = comments?.length || 0;
   function fillAvatar(el: HTMLElement, account: Account) {
     el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
     if (account.avatar_url) {
-      el.innerHTML = `<img src="${account.avatar_url.replace(/"/g, '&quot;')}" alt="" />`;
+      el.innerHTML = avatarImgHtml(account.avatar_url);
     } else {
       el.textContent = avatarInitial(account.username);
     }
@@ -208,7 +208,7 @@ const commentCount = comments?.length || 0;
 
   function avatarMarkup(username: string, avatarUrl: string | null, avatarColor: string) {
     if (avatarUrl) {
-      return `<span class="sonar-avatar"><img src="${escapeHtml(avatarUrl)}" alt="" /></span>`;
+      return `<span class="sonar-avatar">${avatarImgHtml(avatarUrl)}</span>`;
     }
     return `<span class="sonar-avatar" style="background-color:${escapeHtml(avatarColor)}">${escapeHtml(avatarInitial(username))}</span>`;
   }
@@ -545,7 +545,7 @@ const commentCount = comments?.length || 0;
     flex-wrap: wrap;
     align-items: center;
     gap: 2px;
-    padding: 1px 3px;
+    padding: 2px 3px;
     background: #1a1a4a;
     border-radius: 999px;
     width: fit-content;
@@ -558,7 +558,7 @@ const commentCount = comments?.length || 0;
     font: inherit;
     font-size: 0.85rem;
     font-weight: 600;
-    padding: 1px 12px;
+    padding: 4px 12px;
     border-radius: 999px;
     cursor: pointer;
     white-space: nowrap;

@@ -162,8 +162,6 @@ const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
                 font-size: 0.95rem;
                 background-color: #ea580c;
                 line-height: 1;
-                transform: translateZ(0);
-                isolation: isolate;
             }
 
             .sonar-avatar-sm {
@@ -183,9 +181,9 @@ const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
                 height: 100%;
                 object-fit: cover;
                 display: block;
+                border-radius: 50%;
                 image-rendering: auto;
-                -webkit-backface-visibility: hidden;
-                backface-visibility: hidden;
+                image-rendering: -webkit-optimize-contrast;
             }
 
             /* --- STYLE DU HEADER DE L'ACCUEIL (v2) --- */
@@ -247,10 +245,10 @@ const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
                 flex: 1;
                 /* Hauteur fixe (= taille des boutons ronds) pour que le centrage ci-dessous
                    soit exact même si le contenu (ex. bouton FR/EN) est naturellement plus bas. */
-                height: 38px;
+                height: 40px;
                 /* Recentre les contrôles sur le milieu du logo (--hv2-logo-size),
                    pas sur le milieu du bloc logo + titre. */
-                margin-top: calc((var(--hv2-logo-size) - 38px) / 2);
+                margin-top: calc((var(--hv2-logo-size) - 40px) / 2);
             }
             .header-v2-right {
                 justify-content: flex-end;
