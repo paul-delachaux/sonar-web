@@ -1,0 +1,150 @@
+---
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+---
+
+<button
+  type="button"
+  class="favorite-star"
+  data-article-slug={slug}
+  aria-pressed="false"
+  aria-label="Ajouter aux favoris"
+  title="Ajouter aux favoris"
+>
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 3.75h12A1.25 1.25 0 0 1 19.25 5v16.15l-7.25-3.9-7.25 3.9V5A1.25 1.25 0 0 1 6 3.75z"></path>
+  </svg>
+</button>
+
+<script>
+  import { getBrowserSupabase, isArticleFavorite, setArticleFavorite } from '../utils/supabase-browser';
+
+  const LABELS = {
+    FR: { add: 'Ajouter aux favoris', remove: 'Retirer des favoris' },
+    EN: { add: 'Add to favorites', remove: 'Remove from favorites' },
+  };
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function applyStarState(btn: HTMLButtonElement, on: boolean) {
+    const lang = currentLang();
+    const label = on ? LABELS[lang].remove : LABELS[lang].add;
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', label);
+  }
+
+  function loginRedirect(slug: string) {
+    window.location.href = `/connexion?redirect=${encodeURIComponent(`/articles/${slug}`)}`;
+  }
+
+  async function initStar(btn: HTMLButtonElement) {
+    const slug = btn.getAttribute('data-article-slug');
+    if (!slug) return;
+
+    try {
+      applyStarState(btn, await isArticleFavorite(slug));
+    } catch {
+      applyStarState(btn, false);
+    }
+
+    btn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (btn.disabled) return;
+
+      try {
+        const supabase = getBrowserSupabase();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          loginRedirect(slug);
+          return;
+        }
+      } catch {
+        loginRedirect(slug);
+        return;
+      }
+
+      const next = !btn.classList.contains('is-on');
+      applyStarState(btn, next);
+      btn.disabled = true;
+
+      try {
+        const saved = await setArticleFavorite(slug, next);
+        applyStarState(btn, saved);
+      } catch (err) {
+        applyStarState(btn, !next);
+        if (err instanceof Error && (err.name === 'AuthRequired' || err.message === 'AUTH_REQUIRED')) {
+          loginRedirect(slug);
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.favorite-star').forEach((btn) => {
+    if (btn.dataset.bound === 'true') return;
+    btn.dataset.bound = 'true';
+    void initStar(btn);
+  });
+
+  window.addEventListener('languageChanged', () => {
+    document.querySelectorAll<HTMLButtonElement>('.favorite-star').forEach((btn) => {
+      applyStarState(btn, btn.classList.contains('is-on'));
+    });
+  });
+</script>
+
+<style>
+  .favorite-star {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 50;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 999px;
+    background: rgba(2, 0, 29, 0.45);
+    cursor: pointer;
+    color: #ffffff;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .favorite-star:hover,
+  .favorite-star:focus-visible {
+    transform: scale(1.08);
+    background: rgba(2, 0, 29, 0.7);
+    outline: none;
+  }
+
+  .favorite-star:disabled {
+    cursor: wait;
+  }
+
+  .favorite-star svg {
+    width: 22px;
+    height: 22px;
+    stroke: #ffffff;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+    fill: transparent;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+    transition: fill 0.18s ease, stroke 0.18s ease;
+  }
+
+  .favorite-star.is-on svg {
+    fill: #ea580c;
+    stroke: #ea580c;
+  }
+</style>

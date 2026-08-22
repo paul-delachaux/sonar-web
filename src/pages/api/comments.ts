@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const data = await request.json();
-    const { article_slug, content } = data;
+    const { article_slug, content, parent_id, reply_to_id } = data;
 
     if (!article_slug || !content || !String(content).trim()) {
       return new Response(
@@ -35,6 +35,36 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const userClient = createSupabaseWithAuth(token);
+
+    let rootParentId: string | number | null = null;
+    let replyToId: string | number | null = null;
+    if (parent_id) {
+      const { data: parent, error: parentError } = await userClient
+        .from('comments')
+        .select('id, parent_id, article_slug')
+        .eq('id', parent_id)
+        .maybeSingle();
+
+      if (parentError || !parent || parent.article_slug !== article_slug) {
+        return new Response(
+          JSON.stringify({ message: 'Commentaire parent introuvable.' }),
+          { status: 400 }
+        );
+      }
+      rootParentId = parent.parent_id || parent.id;
+      replyToId = reply_to_id || parent.id;
+
+      if (reply_to_id && String(reply_to_id) !== String(parent.id)) {
+        const { data: replyTarget } = await userClient
+          .from('comments')
+          .select('id, article_slug')
+          .eq('id', reply_to_id)
+          .maybeSingle();
+        if (replyTarget && replyTarget.article_slug === article_slug) {
+          replyToId = replyTarget.id;
+        }
+      }
+    }
 
     const { data: account, error: accountError } = await userClient
       .from('accounts')
@@ -63,17 +93,26 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const { data: newComment, error } = await userClient
+    const insertRow: Record<string, unknown> = {
+      article_slug,
+      author_name: account.username,
+      content: String(content).trim(),
+      account_id: account.id,
+    };
+    if (rootParentId) insertRow.parent_id = rootParentId;
+    if (replyToId) insertRow.reply_to_id = replyToId;
+
+    let { data: newComment, error } = await userClient
       .from('comments')
-      .insert([
-        {
-          article_slug,
-          author_name: account.username,
-          content: String(content).trim(),
-          account_id: account.id,
-        },
-      ])
+      .insert([insertRow])
       .select();
+
+    if (error && insertRow.reply_to_id) {
+      const { reply_to_id: _ignored, ...withoutReplyTo } = insertRow;
+      const retry = await userClient.from('comments').insert([withoutReplyTo]).select();
+      newComment = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       return new Response(JSON.stringify({ message: error.message }), {

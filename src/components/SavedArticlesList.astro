@@ -1,0 +1,412 @@
+---
+import { getCollection } from 'astro:content';
+
+interface Props {
+  kind: 'favorites' | 'read-later';
+}
+
+const { kind } = Astro.props;
+
+const articles = (await getCollection('articles'))
+  .filter((art) => art.data.isVisible !== false)
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+const checkHasEn = (art: any) =>
+  Boolean(art?.data?.title_en && String(art.data.title_en).trim() !== '');
+
+const overlayGradient = (raw: unknown) => {
+  const n = Number(raw);
+  const intensity =
+    raw === undefined || raw === null || raw === '' || Number.isNaN(n)
+      ? 70
+      : Math.max(0, Math.min(100, n));
+  const left = intensity / 100;
+  const mid = left * (0.4 / 0.75);
+  const right = left * (0.1 / 0.75);
+  return `linear-gradient(to right, rgba(0, 0, 0, ${left}) 0%, rgba(0, 0, 0, ${mid}) 60%, rgba(0, 0, 0, ${right}) 100%)`;
+};
+
+const isReadLater = kind === 'read-later';
+const titleKey = isReadLater ? 'account_read_later_title' : 'account_favorites_title';
+const titleFR = isReadLater ? 'À lire plus tard' : 'Mes favoris';
+const emptyKey = isReadLater ? 'account_read_later_empty' : 'account_favorites_empty';
+const emptyFR = isReadLater
+  ? 'Vous n’avez pas encore d’articles à lire plus tard. Cliquez sur l’horloge en haut d’un article pour l’ajouter.'
+  : 'Vous n’avez pas encore d’articles en favoris. Cliquez sur le signet en haut d’un article pour l’ajouter.';
+const sortLabel = isReadLater ? 'Trier les articles à lire plus tard' : 'Trier les favoris';
+const loginRedirect = isReadLater ? '/lire-plus-tard' : '/favoris';
+const sortStorageKey = isReadLater ? 'sonar_read_later_sort' : 'sonar_favorites_sort';
+---
+
+<div class="favorites-page" data-saved-kind={kind} data-login-redirect={loginRedirect} data-sort-key={sortStorageKey}>
+  <header class="favorites-header">
+    <div class="favorites-header-text">
+      <h1 class="favorites-title" data-i18n={titleKey}>{titleFR}</h1>
+      <div class="favorites-accent"></div>
+    </div>
+
+    <div class="favorites-toolbar" role="group" aria-label={sortLabel} hidden>
+      <span class="favorites-sort-label" data-i18n="favorites_sort_by">Trier par</span>
+      <button type="button" class="favorites-sort-btn is-active" data-sort="date" data-i18n="favorites_sort_date">
+        Date
+      </button>
+      <button type="button" class="favorites-sort-btn" data-sort="category" data-i18n="favorites_sort_category">
+        Catégorie
+      </button>
+    </div>
+  </header>
+
+  <p id="favorites-empty" class="favorites-empty" hidden data-i18n={emptyKey}>
+    {emptyFR}
+  </p>
+
+  <div id="favorites-list" class="favorites-list">
+    {articles.map((art) => {
+      const hasEn = checkHasEn(art);
+      const bg = art.data.image || art.data.article_image || '';
+      const title = art.data.title;
+      const titleEN = hasEn ? String(art.data.title_en) : title;
+      const descFR = art.data.description || '';
+      const descEN = hasEn && art.data.description_en ? String(art.data.description_en) : descFR;
+      const bgStyle = bg ? `background-image: url(${JSON.stringify(bg)});` : '';
+
+      return (
+        <a
+          href={`/articles/${art.id}`}
+          class="favorite-banner"
+          hidden
+          data-slug={art.id}
+          data-category={art.data.category}
+          data-date={new Date(art.data.date).toISOString()}
+          data-has-en={hasEn ? 'true' : 'false'}
+        >
+          <div class="favorite-banner__bg" style={bgStyle}></div>
+          <div class="favorite-banner__overlay" style={`background: ${overlayGradient(art.data.overlay_opacity)};`}></div>
+          <div class="favorite-banner__text">
+            <h2 class="favorite-banner__title" data-fr={title} data-en={titleEN}>
+              {title}
+            </h2>
+            {descFR && (
+              <p class="favorite-banner__desc" data-fr={descFR} data-en={descEN}>
+                {descFR}
+              </p>
+            )}
+          </div>
+          <div class="favorite-banner__unavailable" aria-hidden="true">
+            <span data-i18n="favorites_unavailable">Article not available in english</span>
+          </div>
+        </a>
+      );
+    })}
+  </div>
+</div>
+
+<script>
+  import { getCurrentAccount, listFavoriteSlugs, listReadLaterItems } from '../utils/supabase-browser';
+
+  const CATEGORY_ORDER = ['politique', 'culture', 'societe', 'technologie'];
+  const page = document.querySelector<HTMLElement>('.favorites-page');
+  const kind = page?.dataset.savedKind || 'favorites';
+  const loginRedirect = page?.dataset.loginRedirect || '/favoris';
+  const SORT_KEY = page?.dataset.sortKey || 'sonar_favorites_sort';
+
+  const listEl = document.getElementById('favorites-list');
+  const emptyEl = document.getElementById('favorites-empty');
+  const sortButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('.favorites-sort-btn'));
+
+  let savedSlugs = new Set<string>();
+  let currentSort: 'date' | 'category' =
+    localStorage.getItem(SORT_KEY) === 'category' ? 'category' : 'date';
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function banners(): HTMLAnchorElement[] {
+    if (!listEl) return [];
+    return Array.from(listEl.querySelectorAll<HTMLAnchorElement>('.favorite-banner'));
+  }
+
+  function setSortButtons() {
+    sortButtons.forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.sort === currentSort);
+    });
+  }
+
+  function renderList() {
+    if (!listEl) return;
+    const lang = currentLang();
+    const visible = banners().filter((banner) => savedSlugs.has(banner.dataset.slug || ''));
+
+    banners().forEach((banner) => {
+      const isSaved = savedSlugs.has(banner.dataset.slug || '');
+      banner.hidden = !isSaved;
+      const unavailable = lang === 'EN' && banner.dataset.hasEn !== 'true';
+      banner.classList.toggle('is-unavailable-en', isSaved && unavailable);
+    });
+
+    const available = visible.filter((banner) => lang !== 'EN' || banner.dataset.hasEn === 'true');
+    const unavailable = visible.filter((banner) => lang === 'EN' && banner.dataset.hasEn !== 'true');
+
+    const compare = (a: HTMLAnchorElement, b: HTMLAnchorElement) => {
+      if (currentSort === 'category') {
+        const catA = CATEGORY_ORDER.indexOf(a.dataset.category || '');
+        const catB = CATEGORY_ORDER.indexOf(b.dataset.category || '');
+        const orderA = catA === -1 ? CATEGORY_ORDER.length : catA;
+        const orderB = catB === -1 ? CATEGORY_ORDER.length : catB;
+        if (orderA !== orderB) return orderA - orderB;
+      }
+      return new Date(b.dataset.date || 0).getTime() - new Date(a.dataset.date || 0).getTime();
+    };
+
+    [...available.sort(compare), ...unavailable.sort(compare)].forEach((banner) => {
+      listEl.appendChild(banner);
+    });
+
+    if (emptyEl) emptyEl.hidden = visible.length > 0;
+    const toolbar = document.querySelector('.favorites-toolbar');
+    if (toolbar instanceof HTMLElement) toolbar.hidden = visible.length === 0;
+  }
+
+  sortButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.sort === 'category' ? 'category' : 'date';
+      currentSort = next;
+      localStorage.setItem(SORT_KEY, next);
+      setSortButtons();
+      renderList();
+    });
+  });
+
+  window.addEventListener('languageChanged', () => {
+    renderList();
+  });
+
+  try {
+    const account = await getCurrentAccount();
+    if (!account) {
+      window.location.replace(`/connexion?redirect=${encodeURIComponent(loginRedirect)}`);
+    } else {
+      try {
+        if (kind === 'read-later') {
+          const rows = await listReadLaterItems();
+          savedSlugs = new Set(rows.map((row) => row.article_slug));
+        } else {
+          const rows = await listFavoriteSlugs();
+          savedSlugs = new Set(rows.map((row) => row.article_slug));
+        }
+      } catch {
+        savedSlugs = new Set();
+      }
+      setSortButtons();
+      renderList();
+    }
+  } catch {
+    window.location.replace(`/connexion?redirect=${encodeURIComponent(loginRedirect)}`);
+  }
+</script>
+
+<style is:global>
+  .favorites-page {
+    max-width: 1100px;
+    margin: 40px auto 80px;
+    padding: 0 20px;
+  }
+
+  .favorites-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .favorites-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+    transform: translateX(10px);
+  }
+
+  .favorites-accent {
+    width: 80px;
+    height: 4px;
+    background-color: #ea580c;
+    border-radius: 2px;
+    transform: translateX(10px);
+  }
+
+  .favorites-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    transform: translateX(-10px);
+  }
+
+  .favorites-toolbar[hidden] {
+    display: none !important;
+  }
+
+  .favorites-sort-label {
+    color: #d1d5db;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .favorites-sort-btn {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(2, 0, 29, 0.65);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .favorites-sort-btn:hover,
+  .favorites-sort-btn:focus-visible {
+    border-color: #ea580c;
+    outline: none;
+  }
+
+  .favorites-sort-btn.is-active {
+    background: #ea580c;
+    border-color: #ea580c;
+    color: #ffffff;
+  }
+
+  .favorites-empty {
+    color: #ffffff;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    border-left: 3px solid #ea580c;
+    padding-left: 20px;
+    margin: 10px 0 0;
+  }
+
+  .favorites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .favorite-banner {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 200px;
+    border-radius: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    background: #0a0a18;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .favorite-banner[hidden] {
+    display: none !important;
+  }
+
+  .favorite-banner:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.55);
+  }
+
+  .favorite-banner__bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: #0a0a18;
+    transition: transform 0.5s ease;
+  }
+
+  .favorite-banner:hover .favorite-banner__bg {
+    transform: scale(1.03);
+  }
+
+  .favorite-banner__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .favorite-banner__text {
+    position: relative;
+    z-index: 2;
+    padding: 22px 24px;
+    max-width: 78%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-sizing: border-box;
+  }
+
+  .favorite-banner__title {
+    margin: 0 0 8px 0;
+    color: #ffffff;
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+
+  .favorite-banner__desc {
+    margin: 0;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .favorite-banner__unavailable {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(2, 0, 29, 0.62);
+    color: #ffffff;
+    font-size: 1.15rem;
+    text-align: center;
+    pointer-events: none;
+    font-weight: 700;
+  }
+
+  .favorite-banner.is-unavailable-en .favorite-banner__unavailable {
+    display: flex;
+  }
+
+  @media (max-width: 768px) {
+    .favorites-page {
+      margin: 20px auto 50px;
+      padding: 0 14px;
+    }
+    .favorites-title {
+      font-size: 1.6rem;
+    }
+    .favorite-banner {
+      height: 170px;
+    }
+    .favorite-banner__text {
+      max-width: 100%;
+      padding: 16px 18px;
+    }
+    .favorite-banner__title {
+      font-size: 1.15rem;
+    }
+    .favorite-banner__desc {
+      font-size: 0.85rem;
+    }
+  }
+</style>

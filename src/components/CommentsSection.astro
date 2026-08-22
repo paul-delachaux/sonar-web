@@ -1,6 +1,7 @@
 ---
 import { supabase } from '../utils/supabase';
 import UserAvatar from './UserAvatar.astro';
+import { formatCommentBody } from '../utils/comment-text';
 
 interface Props {
   articleSlug: string;
@@ -14,9 +15,27 @@ const { data: comments } = await supabase
   .from('comments')
   .select('*')
   .eq('article_slug', articleSlug)
-  .order('created_at', { ascending: false });
+  .order('created_at', { ascending: true });
 
-const accountIds = [...new Set((comments || []).map((c: any) => c.account_id).filter(Boolean))];
+const allComments = comments || [];
+const commentIds = allComments.map((c: any) => c.id).filter(Boolean);
+
+let likeCountById: Record<string, number> = {};
+if (commentIds.length > 0) {
+  const { data: likes, error: likesError } = await supabase
+    .from('comment_likes')
+    .select('comment_id')
+    .in('comment_id', commentIds);
+
+  if (!likesError) {
+    for (const row of likes || []) {
+      const id = String(row.comment_id);
+      likeCountById[id] = (likeCountById[id] || 0) + 1;
+    }
+  }
+}
+
+const accountIds = [...new Set(allComments.map((c: any) => c.account_id).filter(Boolean))];
 
 let accountsById: Record<string, { username: string; avatar_url: string | null; avatar_color: string }> = {};
 
@@ -62,7 +81,22 @@ function formatCommentStamp(iso: string) {
   };
 }
 
-const commentCount = comments?.length || 0;
+const roots = allComments.filter((c: any) => !c.parent_id).reverse();
+const repliesByParent = new Map<string, any[]>();
+for (const comment of allComments) {
+  if (!comment.parent_id) continue;
+  const key = String(comment.parent_id);
+  const list = repliesByParent.get(key) || [];
+  list.push(comment);
+  repliesByParent.set(key, list);
+}
+
+function repliesLabel(count: number, lang: 'FR' | 'EN') {
+  if (lang === 'EN') return count === 1 ? '1 reply' : `${count} replies`;
+  return count === 1 ? '1 réponse' : `${count} réponses`;
+}
+
+const commentCount = allComments.length;
 ---
 
 <section class="comments-section">
@@ -92,7 +126,7 @@ const commentCount = comments?.length || 0;
           les plus likes
         </button>
         <button type="button" class="comments-filter" data-sort="debate" data-i18n="comments_filter_debate">
-          les plus controversés
+          les plus débattus
         </button>
       </div>
 
@@ -144,30 +178,94 @@ const commentCount = comments?.length || 0;
     </form>
 
     <div class="comments-list" data-count={commentCount}>
-      {comments && comments.length > 0 ? (
-        comments.map((comment: any) => {
+      {roots.length > 0 ? (
+        roots.map((comment: any) => {
           const author = commentAuthor(comment);
           const stamp = formatCommentStamp(comment.created_at);
+          const replies = repliesByParent.get(String(comment.id)) || [];
+          const likes = likeCountById[String(comment.id)] || 0;
 
           return (
             <article
-              class="comment-card"
+              class="comment-thread"
+              data-id={comment.id}
               data-created-at={stamp.ts}
-              data-likes={comment.likes_count ?? 0}
-              data-replies={comment.replies_count ?? 0}
+              data-likes={likes}
+              data-replies={replies.length}
             >
-              <div class="comment-header">
-                <UserAvatar
-                  username={author.username}
-                  avatarUrl={author.avatarUrl}
-                  avatarColor={author.avatarColor}
-                />
-                <strong class="author">{author.username}</strong>
-                <time class="date" datetime={comment.created_at} data-fr={stamp.dateFR} data-en={stamp.dateEN}>
-                  {stamp.dateFR}
-                </time>
+              <div class="comment-card" id={`comment-${comment.id}`} data-comment-id={comment.id} data-author={author.username}>
+                <div class="comment-header">
+                  <UserAvatar
+                    username={author.username}
+                    avatarUrl={author.avatarUrl}
+                    avatarColor={author.avatarColor}
+                  />
+                  <strong class="author">{author.username}</strong>
+                  <time class="date" datetime={comment.created_at} data-fr={stamp.dateFR} data-en={stamp.dateEN}>
+                    {stamp.dateFR}
+                  </time>
+                </div>
+                <p class="comment-body" set:html={formatCommentBody(comment.content)} />
+                <div class="comment-actions">
+                  <button type="button" class="comment-like" data-comment-id={comment.id} aria-pressed="false" title="J'aime">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <span class="comment-like-count">{likes}</span>
+                  </button>
+                  <button type="button" class="comment-reply-btn" data-i18n="comments_reply">Répondre</button>
+                </div>
               </div>
-              <p class="comment-body">{comment.content}</p>
+
+              <button
+                type="button"
+                class="comment-replies-toggle"
+                aria-expanded="false"
+                hidden={replies.length === 0}
+              >
+                <span class="comment-replies-caret" aria-hidden="true"></span>
+                <span
+                  class="comment-replies-label"
+                  data-fr={repliesLabel(replies.length, 'FR')}
+                  data-en={repliesLabel(replies.length, 'EN')}
+                >
+                  {repliesLabel(replies.length, 'FR')}
+                </span>
+              </button>
+
+              <div class="comment-replies" hidden>
+                {replies.map((reply: any) => {
+                  const replyAuthor = commentAuthor(reply);
+                  const replyStamp = formatCommentStamp(reply.created_at);
+                  const replyLikes = likeCountById[String(reply.id)] || 0;
+                  return (
+                    <div class="comment-card comment-card--reply" id={`comment-${reply.id}`} data-comment-id={reply.id} data-author={replyAuthor.username}>
+                      <div class="comment-header">
+                        <UserAvatar
+                          username={replyAuthor.username}
+                          avatarUrl={replyAuthor.avatarUrl}
+                          avatarColor={replyAuthor.avatarColor}
+                          size="sm"
+                        />
+                        <strong class="author">{replyAuthor.username}</strong>
+                        <time class="date" datetime={reply.created_at} data-fr={replyStamp.dateFR} data-en={replyStamp.dateEN}>
+                          {replyStamp.dateFR}
+                        </time>
+                      </div>
+                      <p class="comment-body" set:html={formatCommentBody(reply.content)} />
+                      <div class="comment-actions">
+                        <button type="button" class="comment-like" data-comment-id={reply.id} aria-pressed="false" title="J'aime">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                          </svg>
+                          <span class="comment-like-count">{replyLikes}</span>
+                        </button>
+                        <button type="button" class="comment-reply-btn" data-i18n="comments_reply">Répondre</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </article>
           );
         })
@@ -179,8 +277,10 @@ const commentCount = comments?.length || 0;
 </aside>
 
 <script>
-  import { getBrowserSupabase, getCurrentAccount, type Account } from '../utils/supabase-browser';
+  import { getBrowserSupabase, getCurrentAccount, listMyCommentLikes, setCommentLiked, type Account } from '../utils/supabase-browser';
   import { avatarInitial, avatarImgHtml } from '../utils/avatar';
+  import { t as translate } from '../utils/i18n.js';
+  import { escapeHtml, formatCommentBody } from '../utils/comment-text';
 
   const form = document.getElementById('comment-form') as HTMLFormElement | null;
   const loginPrompt = document.getElementById('comment-login-prompt');
@@ -192,6 +292,20 @@ const commentCount = comments?.length || 0;
   const overlay = document.getElementById('comments-overlay');
   const drawer = document.getElementById('comments-drawer');
   const listEl = document.querySelector('.comments-list');
+  const redirectTo = `/articles/${form?.dataset.slug || ''}`;
+  let currentAccount: Account | null = null;
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function t(key: string) {
+    return translate(key, currentLang());
+  }
+
+  function loginRedirect() {
+    window.location.href = `/connexion?redirect=${encodeURIComponent(redirectTo)}`;
+  }
 
   function fillAvatar(el: HTMLElement, account: Account) {
     el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
@@ -202,15 +316,12 @@ const commentCount = comments?.length || 0;
     }
   }
 
-  function escapeHtml(value: string) {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function avatarMarkup(username: string, avatarUrl: string | null, avatarColor: string) {
+  function avatarMarkup(username: string, avatarUrl: string | null, avatarColor: string, small = false) {
+    const sizeClass = small ? ' sonar-avatar-sm' : '';
     if (avatarUrl) {
-      return `<span class="sonar-avatar">${avatarImgHtml(avatarUrl)}</span>`;
+      return `<span class="sonar-avatar${sizeClass}">${avatarImgHtml(avatarUrl)}</span>`;
     }
-    return `<span class="sonar-avatar" style="background-color:${escapeHtml(avatarColor)}">${escapeHtml(avatarInitial(username))}</span>`;
+    return `<span class="sonar-avatar${sizeClass}" style="background-color:${escapeHtml(avatarColor)}">${escapeHtml(avatarInitial(username))}</span>`;
   }
 
   function formatStamp(iso: string) {
@@ -272,8 +383,8 @@ const commentCount = comments?.length || 0;
 
   function sortComments(mode: string) {
     if (!listEl) return;
-    const cards = Array.from(listEl.querySelectorAll('.comment-card'));
-    cards.sort((a, b) => {
+    const threads = Array.from(listEl.querySelectorAll('.comment-thread'));
+    threads.sort((a, b) => {
       const elA = a as HTMLElement;
       const elB = b as HTMLElement;
       if (mode === 'popular') {
@@ -286,7 +397,7 @@ const commentCount = comments?.length || 0;
       }
       return Number(elB.dataset.createdAt || 0) - Number(elA.dataset.createdAt || 0);
     });
-    cards.forEach((card) => listEl.appendChild(card));
+    threads.forEach((thread) => listEl.appendChild(thread));
   }
 
   toggleBtn?.addEventListener('click', () => {
@@ -307,9 +418,110 @@ const commentCount = comments?.length || 0;
     });
   });
 
+  const HEART_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
+
+  function repliesLabel(count: number, lang: 'FR' | 'EN' = currentLang()) {
+    if (lang === 'EN') return count === 1 ? '1 reply' : `${count} replies`;
+    return count === 1 ? '1 réponse' : `${count} réponses`;
+  }
+
+  function applyLikeState(btn: HTMLButtonElement, liked: boolean) {
+    btn.classList.toggle('is-liked', liked);
+    btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+  }
+
+  async function markLikedComments() {
+    if (!listEl || !currentAccount) return;
+    const ids = Array.from(listEl.querySelectorAll<HTMLElement>('[data-comment-id]'))
+      .map((el) => el.dataset.commentId || '')
+      .filter(Boolean);
+    try {
+      const liked = await listMyCommentLikes(ids);
+      listEl.querySelectorAll<HTMLButtonElement>('.comment-like').forEach((btn) => {
+        applyLikeState(btn, liked.has(btn.dataset.commentId || ''));
+      });
+    } catch {
+      /* table absente ou hors ligne */
+    }
+  }
+
+  function commentCardHtml(opts: {
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+    avatarColor: string;
+    content: string;
+    rawDate: string;
+    likes?: number;
+    isReply?: boolean;
+  }) {
+    const stamp = formatStamp(opts.rawDate);
+    const dateToDisplay = currentLang() === 'EN' ? stamp.dateEN : stamp.dateFR;
+    return `
+      <div class="comment-card${opts.isReply ? ' comment-card--reply' : ''}" id="comment-${escapeHtml(opts.id)}" data-comment-id="${escapeHtml(opts.id)}" data-author="${escapeHtml(opts.username)}">
+        <div class="comment-header">
+          ${avatarMarkup(opts.username, opts.avatarUrl, opts.avatarColor, opts.isReply)}
+          <strong class="author">${escapeHtml(opts.username)}</strong>
+          <time class="date" datetime="${escapeHtml(opts.rawDate)}" data-fr="${escapeHtml(stamp.dateFR)}" data-en="${escapeHtml(stamp.dateEN)}">${escapeHtml(dateToDisplay)}</time>
+        </div>
+        <p class="comment-body">${formatCommentBody(opts.content)}</p>
+        <div class="comment-actions">
+          <button type="button" class="comment-like" data-comment-id="${escapeHtml(opts.id)}" aria-pressed="false" title="${escapeHtml(t('comments_like'))}">
+            ${HEART_SVG}
+            <span class="comment-like-count">${opts.likes || 0}</span>
+          </button>
+          <button type="button" class="comment-reply-btn" data-i18n="comments_reply">${escapeHtml(t('comments_reply'))}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function setThreadReplyCount(thread: HTMLElement, count: number) {
+    thread.dataset.replies = String(count);
+    const toggle = thread.querySelector<HTMLButtonElement>('.comment-replies-toggle');
+    const label = thread.querySelector<HTMLElement>('.comment-replies-label');
+    if (toggle) toggle.hidden = count === 0;
+    if (label) {
+      label.setAttribute('data-fr', repliesLabel(count, 'FR'));
+      label.setAttribute('data-en', repliesLabel(count, 'EN'));
+      label.textContent = repliesLabel(count);
+    }
+  }
+
+  function closeReplyForms(except?: HTMLElement | null) {
+    listEl?.querySelectorAll<HTMLElement>('.comment-reply-form').forEach((formEl) => {
+      if (formEl !== except) formEl.remove();
+    });
+  }
+
+  function openReplyForm(card: HTMLElement) {
+    if (!currentAccount) {
+      loginRedirect();
+      return;
+    }
+    const existing = card.querySelector<HTMLElement>('.comment-reply-form');
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    closeReplyForms();
+    const author = card.dataset.author || '';
+    const formEl = document.createElement('form');
+    formEl.className = 'comment-reply-form';
+    formEl.innerHTML = `
+      <textarea name="content" rows="3" required placeholder="${escapeHtml(t('comments_reply_placeholder'))}">${author ? `@${escapeHtml(author)} ` : ''}</textarea>
+      <div class="comment-reply-form-actions">
+        <button type="submit">${escapeHtml(t('comments_reply'))}</button>
+        <p class="comment-reply-message"></p>
+      </div>
+    `;
+    card.appendChild(formEl);
+    formEl.querySelector('textarea')?.focus();
+  }
+
   async function setupCommentsAuth() {
-    const account = await getCurrentAccount();
-    if (!account) {
+    currentAccount = await getCurrentAccount();
+    if (!currentAccount) {
       loginPrompt?.removeAttribute('hidden');
       form?.setAttribute('hidden', '');
       return null;
@@ -317,9 +529,10 @@ const commentCount = comments?.length || 0;
 
     loginPrompt?.setAttribute('hidden', '');
     form?.removeAttribute('hidden');
-    if (usernameEl) usernameEl.textContent = account.username;
-    if (avatarEl) fillAvatar(avatarEl, account);
-    return account;
+    if (usernameEl) usernameEl.textContent = currentAccount.username;
+    if (avatarEl) fillAvatar(avatarEl, currentAccount);
+    await markLikedComments();
+    return currentAccount;
   }
 
   const currentAccountPromise = setupCommentsAuth();
@@ -328,7 +541,7 @@ const commentCount = comments?.length || 0;
     e.preventDefault();
     if (!messageEl || !form) return;
 
-    const account = await currentAccountPromise;
+    const account = currentAccount || await currentAccountPromise;
     if (!account) {
       messageEl.textContent = 'Vous devez être connecté pour commenter.';
       messageEl.style.color = '#ef4444';
@@ -379,30 +592,35 @@ const commentCount = comments?.length || 0;
           const rawDate = insertedComment && insertedComment.created_at
             ? insertedComment.created_at
             : new Date().toISOString();
-
           const stamp = formatStamp(rawDate);
-          const currentLang = (localStorage.getItem('site_lang') || 'FR').toUpperCase();
-          const dateToDisplay = currentLang === 'EN' ? stamp.dateEN : stamp.dateFR;
-
           const username = insertedComment?.username || account.username;
           const avatarUrl = insertedComment?.avatar_url ?? account.avatar_url;
           const avatarColor = insertedComment?.avatar_color || account.avatar_color;
+          const commentId = String(insertedComment?.id || `tmp-${Date.now()}`);
 
-          const newCommentCard = document.createElement('article');
-          newCommentCard.className = 'comment-card';
-          newCommentCard.dataset.createdAt = String(stamp.ts);
-          newCommentCard.dataset.likes = '0';
-          newCommentCard.dataset.replies = '0';
-          newCommentCard.innerHTML = `
-            <div class="comment-header">
-              ${avatarMarkup(username, avatarUrl, avatarColor)}
-              <strong class="author">${escapeHtml(username)}</strong>
-              <time class="date" datetime="${escapeHtml(rawDate)}" data-fr="${escapeHtml(stamp.dateFR)}" data-en="${escapeHtml(stamp.dateEN)}">${escapeHtml(dateToDisplay)}</time>
-            </div>
-            <p class="comment-body">${escapeHtml(content)}</p>
+          const thread = document.createElement('article');
+          thread.className = 'comment-thread';
+          thread.dataset.id = commentId;
+          thread.dataset.createdAt = String(stamp.ts);
+          thread.dataset.likes = '0';
+          thread.dataset.replies = '0';
+          thread.innerHTML = `
+            ${commentCardHtml({
+              id: commentId,
+              username,
+              avatarUrl,
+              avatarColor,
+              content,
+              rawDate,
+            })}
+            <button type="button" class="comment-replies-toggle" aria-expanded="false" hidden>
+              <span class="comment-replies-caret" aria-hidden="true"></span>
+              <span class="comment-replies-label" data-fr="${escapeHtml(repliesLabel(0, 'FR'))}" data-en="${escapeHtml(repliesLabel(0, 'EN'))}">${escapeHtml(repliesLabel(0))}</span>
+            </button>
+            <div class="comment-replies" hidden></div>
           `;
 
-          listEl.prepend(newCommentCard);
+          listEl.prepend(thread);
           sortComments(currentSort());
         }
 
@@ -416,6 +634,206 @@ const commentCount = comments?.length || 0;
       messageEl.style.color = '#ef4444';
     }
   });
+
+  listEl?.addEventListener('click', async (event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const likeBtn = target.closest<HTMLButtonElement>('.comment-like');
+    if (likeBtn) {
+      if (!currentAccount) {
+        loginRedirect();
+        return;
+      }
+      const commentId = likeBtn.dataset.commentId;
+      if (!commentId || likeBtn.dataset.busy === '1') return;
+      likeBtn.dataset.busy = '1';
+      const nextLiked = !likeBtn.classList.contains('is-liked');
+      const countEl = likeBtn.querySelector('.comment-like-count');
+      const currentCount = Number(countEl?.textContent || 0);
+      applyLikeState(likeBtn, nextLiked);
+      if (countEl) countEl.textContent = String(Math.max(0, currentCount + (nextLiked ? 1 : -1)));
+
+      const thread = likeBtn.closest<HTMLElement>('.comment-thread');
+      if (thread && thread.dataset.id === commentId) {
+        thread.dataset.likes = countEl?.textContent || '0';
+      }
+
+      try {
+        await setCommentLiked(commentId, nextLiked);
+        sortComments(currentSort());
+      } catch (err) {
+        applyLikeState(likeBtn, !nextLiked);
+        if (countEl) countEl.textContent = String(currentCount);
+        if (thread && thread.dataset.id === commentId) thread.dataset.likes = String(currentCount);
+        if (err instanceof Error && (err.name === 'AuthRequired' || err.message === 'AUTH_REQUIRED')) {
+          loginRedirect();
+        }
+      } finally {
+        delete likeBtn.dataset.busy;
+      }
+      return;
+    }
+
+    const replyBtn = target.closest<HTMLElement>('.comment-reply-btn');
+    if (replyBtn) {
+      const card = replyBtn.closest<HTMLElement>('.comment-card');
+      if (card) openReplyForm(card);
+      return;
+    }
+
+    const toggleReplies = target.closest<HTMLButtonElement>('.comment-replies-toggle');
+    if (toggleReplies) {
+      const thread = toggleReplies.closest<HTMLElement>('.comment-thread');
+      const replies = thread?.querySelector<HTMLElement>('.comment-replies');
+      if (!replies) return;
+      const open = toggleReplies.getAttribute('aria-expanded') === 'true';
+      toggleReplies.setAttribute('aria-expanded', open ? 'false' : 'true');
+      replies.hidden = open;
+    }
+  });
+
+  listEl?.addEventListener('submit', async (event) => {
+    const replyForm = (event.target as HTMLElement | null)?.closest<HTMLFormElement>('.comment-reply-form');
+    if (!replyForm) return;
+    event.preventDefault();
+
+    const account = currentAccount;
+    const messageBox = replyForm.querySelector<HTMLElement>('.comment-reply-message');
+    if (!account) {
+      loginRedirect();
+      return;
+    }
+
+    const card = replyForm.closest<HTMLElement>('.comment-card');
+    const thread = replyForm.closest<HTMLElement>('.comment-thread');
+    const parentId = thread?.dataset.id || card?.dataset.commentId;
+    const textarea = replyForm.querySelector<HTMLTextAreaElement>('textarea');
+    const content = String(textarea?.value || '').trim();
+    if (!content || !parentId || !form || replyForm.dataset.busy === '1') return;
+    replyForm.dataset.busy = '1';
+
+    if (messageBox) {
+      messageBox.textContent = '...';
+      messageBox.style.color = '#9ca3af';
+    }
+
+    try {
+      const supabase = getBrowserSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        loginRedirect();
+        return;
+      }
+
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          article_slug: form.dataset.slug,
+          content,
+          parent_id: parentId,
+          reply_to_id: card?.dataset.commentId || parentId,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        if (messageBox) {
+          messageBox.textContent = result.message || 'Erreur';
+          messageBox.style.color = '#ef4444';
+        }
+        delete replyForm.dataset.busy;
+        return;
+      }
+
+      const inserted = result.data || {};
+      const rawDate = inserted.created_at || new Date().toISOString();
+      const repliesBox = thread?.querySelector<HTMLElement>('.comment-replies');
+      if (thread && repliesBox) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = commentCardHtml({
+          id: String(inserted.id || `tmp-${Date.now()}`),
+          username: inserted.username || account.username,
+          avatarUrl: inserted.avatar_url ?? account.avatar_url,
+          avatarColor: inserted.avatar_color || account.avatar_color,
+          content,
+          rawDate,
+          isReply: true,
+        });
+        const node = wrap.firstElementChild;
+        if (node) repliesBox.appendChild(node);
+        repliesBox.hidden = false;
+        const toggle = thread.querySelector<HTMLButtonElement>('.comment-replies-toggle');
+        toggle?.setAttribute('aria-expanded', 'true');
+        setThreadReplyCount(thread, Number(thread.dataset.replies || 0) + 1);
+        sortComments(currentSort());
+      }
+      replyForm.remove();
+    } catch {
+      delete replyForm.dataset.busy;
+      if (messageBox) {
+        messageBox.textContent = 'Erreur de connexion au serveur.';
+        messageBox.style.color = '#ef4444';
+      }
+    }
+  });
+
+  window.addEventListener('languageChanged', () => {
+    document.querySelectorAll<HTMLElement>('.comment-replies-label').forEach((label) => {
+      const count = Number(label.closest('.comment-thread')?.getAttribute('data-replies') || 0);
+      label.setAttribute('data-fr', repliesLabel(count, 'FR'));
+      label.setAttribute('data-en', repliesLabel(count, 'EN'));
+      label.textContent = repliesLabel(count);
+    });
+    document.querySelectorAll<HTMLElement>('.comment-reply-btn').forEach((btn) => {
+      btn.textContent = t('comments_reply');
+    });
+    document.querySelectorAll<HTMLButtonElement>('.comment-like').forEach((btn) => {
+      btn.title = t('comments_like');
+    });
+  });
+
+  function commentIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get('comment');
+    if (fromQuery) return fromQuery;
+    const hash = window.location.hash;
+    if (hash.startsWith('#comment-')) return hash.slice('#comment-'.length);
+    return '';
+  }
+
+  function focusComment(commentId: string) {
+    const card = listEl?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(commentId)}"]`);
+    if (!card) return false;
+    const thread = card.closest<HTMLElement>('.comment-thread');
+    if (card.classList.contains('comment-card--reply') && thread) {
+      const toggle = thread.querySelector<HTMLButtonElement>('.comment-replies-toggle');
+      const replies = thread.querySelector<HTMLElement>('.comment-replies');
+      if (toggle && replies) {
+        toggle.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        replies.hidden = false;
+      }
+    }
+    card.classList.remove('is-highlighted');
+    void card.offsetWidth;
+    card.classList.add('is-highlighted');
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return true;
+  }
+
+  const focusId = commentIdFromUrl();
+  if (focusId) {
+    openDrawer();
+    window.setTimeout(() => {
+      if (!focusComment(focusId)) {
+        window.setTimeout(() => focusComment(focusId), 400);
+      }
+    }, 320);
+  }
 </script>
 
 <style is:global>
@@ -686,9 +1104,16 @@ const commentCount = comments?.length || 0;
     border-top: 1px solid rgba(255, 255, 255, 0.28);
   }
 
-  .comment-card {
+  .comment-thread {
     padding: 18px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  }
+
+  .comment-card {
+    padding: 8px 10px;
+    margin: 0 -10px;
+    border: none;
+    border-radius: 8px;
   }
 
   .comment-header {
@@ -719,6 +1144,191 @@ const commentCount = comments?.length || 0;
     color: #ffffff;
     line-height: 1.55;
   }
+  .comment-mention {
+    color: #ea580c;
+    font-weight: 700;
+  }
+  .comment-card.is-highlighted {
+    border-radius: 8px;
+    animation: comment-highlight 2.8s ease;
+  }
+  @keyframes comment-highlight {
+    0%, 40% {
+      background: rgba(234, 88, 12, 0.2);
+      box-shadow: 0 0 0 2px #ea580c;
+    }
+    100% {
+      background: transparent;
+      box-shadow: none;
+    }
+  }
+
+  .comment-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 10px 0 0 48px;
+  }
+
+  .comment-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #d1d5db;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .comment-like svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    transition: fill 0.15s ease, stroke 0.15s ease, transform 0.15s ease, color 0.15s ease;
+  }
+  .comment-like:hover svg {
+    transform: scale(1.08);
+    color: #ea580c;
+  }
+  .comment-like.is-liked {
+    color: #ea580c;
+  }
+  .comment-like.is-liked svg {
+    fill: #ea580c;
+    stroke: #ea580c;
+  }
+  .comment-like-count {
+    min-width: 0.7em;
+    color: inherit;
+  }
+
+  .comment-reply-btn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0;
+  }
+  .comment-reply-btn:hover {
+    color: #ffffff;
+  }
+
+  .comment-replies-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 0 48px;
+    padding: 4px 0;
+    background: transparent;
+    border: none;
+    color: #ea580c;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+  .comment-replies-toggle:hover {
+    color: #ff7a2e;
+  }
+  .comment-replies-toggle[hidden] {
+    display: none;
+  }
+  .comment-replies-caret {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid currentColor;
+    transform: rotate(-90deg);
+    transition: transform 0.15s ease;
+  }
+  .comment-replies-toggle[aria-expanded="true"] .comment-replies-caret {
+    transform: rotate(0deg);
+  }
+
+  .comment-replies {
+    margin: 4px 0 0 48px;
+    padding-left: 16px;
+    border-left: 2px solid rgba(255, 255, 255, 0.16);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .comment-replies[hidden] {
+    display: none;
+  }
+
+  .comment-card--reply .comment-body,
+  .comment-card--reply .comment-actions {
+    margin-left: 40px;
+  }
+  .comment-card--reply .comment-header .sonar-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .comment-reply-form {
+    margin: 12px 0 0 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .comment-card--reply .comment-reply-form {
+    margin-left: 40px;
+  }
+  .comment-reply-form textarea {
+    background-color: #0b092b;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    width: 100%;
+    min-height: 72px;
+    max-height: 200px;
+    box-sizing: border-box;
+  }
+  .comment-reply-form textarea:focus {
+    outline: none;
+    border-color: #ea580c;
+  }
+  .comment-reply-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .comment-reply-form-actions button {
+    background-color: #ea580c;
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .comment-reply-form-actions button:hover {
+    background-color: #d4510b;
+  }
+  .comment-reply-message {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+
   .no-comments {
     color: #9ca3af;
     font-style: italic;
@@ -757,8 +1367,18 @@ const commentCount = comments?.length || 0;
       grid-column: 1 / -1;
       grid-row: 3;
     }
-    .comment-body {
+    .comment-body,
+    .comment-actions,
+    .comment-replies-toggle,
+    .comment-reply-form,
+    .comment-card--reply .comment-body,
+    .comment-card--reply .comment-actions,
+    .comment-card--reply .comment-reply-form {
       margin-left: 0;
+    }
+    .comment-replies {
+      margin-left: 12px;
+      padding-left: 12px;
     }
   }
 </style>

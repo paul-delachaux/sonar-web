@@ -25,9 +25,16 @@
       </a>
       <a href="/favoris" class="account-drawer-item">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
         </svg>
         <span data-i18n="account_favorites">Mes favoris</span>
+      </a>
+      <a href="/lire-plus-tard" class="account-drawer-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <polyline points="12 7 12 12 16 14"></polyline>
+        </svg>
+        <span data-i18n="account_read_later">À lire plus tard</span>
       </a>
       <button type="button" class="account-drawer-item" id="account-open-notifications">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -35,6 +42,7 @@
           <polyline points="22,6 12,13 2,6"></polyline>
         </svg>
         <span data-i18n="account_notifications">Notifications</span>
+        <span class="account-notif-badge" data-unread-count hidden>0</span>
         <svg class="account-drawer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <polyline points="9 6 15 12 9 18"></polyline>
         </svg>
@@ -72,10 +80,26 @@
       </svg>
     </button>
     <h2 data-i18n="account_notifications">Notifications</h2>
+    <button type="button" class="account-mark-all-read" id="account-mark-all-read" data-i18n="account_notifications_mark_all">
+      Tout lire
+    </button>
+    <button type="button" class="account-mark-all-read" id="account-notif-clear" data-i18n="notif_clear_all">
+      Tout supprimer
+    </button>
   </header>
-  <p class="account-subdrawer-empty" data-i18n="account_notifications_empty">
-    Aucune notification pour le moment. Les réponses et likes sur vos commentaires apparaîtront ici.
+  <div class="account-notif-toolbar" id="notifications-toolbar">
+    <label class="account-notif-select-all">
+      <input type="checkbox" id="account-notif-select-all" />
+      <span data-i18n="notif_select_all">Tout sélectionner</span>
+    </label>
+    <button type="button" class="account-notif-delete-selected" id="account-notif-delete-selected" disabled data-i18n="notif_delete_selected">
+      Supprimer la sélection
+    </button>
+  </div>
+  <p id="notifications-empty" class="account-subdrawer-empty" data-i18n="account_notifications_empty">
+    Aucune notification pour le moment.
   </p>
+  <div id="notifications-list" class="account-notif-list" hidden></div>
 </aside>
 
 <aside class="account-subdrawer" id="settings-drawer" aria-label="Paramètres" aria-hidden="true">
@@ -143,8 +167,27 @@
 </aside>
 
 <script>
-  import { getBrowserSupabase, getCurrentAccount, saveArticlePrefs, type Account, type ArticleFont, type ArticleFontSize } from '../utils/supabase-browser';
+  import {
+    getBrowserSupabase,
+    getCurrentAccount,
+    saveArticlePrefs,
+    listNotifications,
+    setNotificationRead,
+    markAllNotificationsRead,
+    snoozeReadLater,
+    snoozeReadLaterMany,
+    syncReadLaterReminders,
+    deleteNotifications,
+    deleteAllNotifications,
+    type Account,
+    type ArticleFont,
+    type ArticleFontSize,
+    type AppNotification,
+  } from '../utils/supabase-browser';
   import { avatarInitial, avatarImgHtml } from '../utils/avatar';
+  import { t as translate } from '../utils/i18n.js';
+  import { formatCommentBody, formatLikeActors, formatReplyActor, commentPermalink } from '../utils/comment-text';
+  import { READ_LATER_DEFAULT_REMIND_DAYS, READ_LATER_SNOOZE_DAYS, remindAtFromDays } from '../data/read-later';
 
   const FONT_KEY = 'sonar_article_font';
   const FONT_SIZE_KEY = 'sonar_article_font_size';
@@ -188,6 +231,7 @@
     drawer.setAttribute('aria-hidden', 'true');
     overlay.classList.remove('is-open');
     syncUserButtons(false);
+    stopNotifPoll();
   }
 
   async function openDrawer() {
@@ -206,6 +250,8 @@
     drawer.setAttribute('aria-hidden', 'false');
     overlay.classList.add('is-open');
     syncUserButtons(true);
+    void refreshNotifications();
+    startNotifPoll();
   }
 
   function openSubdrawer(panel: HTMLElement | null) {
@@ -213,6 +259,239 @@
     if (!panel) return;
     panel.classList.add('is-open');
     panel.setAttribute('aria-hidden', 'false');
+  }
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function t(key: string): string {
+    return translate(key, currentLang());
+  }
+
+  function escapeHtml(value: string) {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function snoozeLabel(days: number) {
+    const unit = days <= 1 ? t('notif_day') : t('notif_days');
+    return `${days} ${unit}`;
+  }
+
+  function updateUnreadBadge(count: number) {
+    document.querySelectorAll<HTMLElement>('[data-unread-count]').forEach((el) => {
+      if (count > 0) {
+        el.hidden = false;
+        el.textContent = count > 99 ? '99+' : String(count);
+      } else {
+        el.hidden = true;
+      }
+    });
+  }
+
+  const notifListEl = document.getElementById('notifications-list');
+  const notifEmptyEl = document.getElementById('notifications-empty');
+  const markAllBtn = document.getElementById('account-mark-all-read') as HTMLButtonElement | null;
+  const clearAllBtn = document.getElementById('account-notif-clear') as HTMLButtonElement | null;
+  const selectAllInput = document.getElementById('account-notif-select-all') as HTMLInputElement | null;
+  const deleteSelectedBtn = document.getElementById('account-notif-delete-selected') as HTMLButtonElement | null;
+  let notificationsCache: AppNotification[] = [];
+
+  function defaultRemindAt() {
+    return remindAtFromDays(READ_LATER_DEFAULT_REMIND_DAYS);
+  }
+
+  function formatNotifDate(iso: string) {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    if (currentLang() === 'EN') {
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    }
+    return date.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  function selectedNotifIds() {
+    if (!notifListEl) return [];
+    return Array.from(notifListEl.querySelectorAll<HTMLInputElement>('.account-notif-select:checked'))
+      .map((input) => input.closest<HTMLElement>('.account-notif-item')?.dataset.notifId)
+      .filter((id): id is string => Boolean(id));
+  }
+
+  function selectedNotifSlugs() {
+    if (!notifListEl) return [];
+    return Array.from(notifListEl.querySelectorAll<HTMLInputElement>('.account-notif-select:checked'))
+      .map((input) => input.closest<HTMLElement>('.account-notif-item'))
+      .filter((item) => item?.dataset.type === 'read_later')
+      .map((item) => item?.dataset.slug || '')
+      .filter(Boolean);
+  }
+
+  function readLaterSlugsFrom(items: AppNotification[]) {
+    return items
+      .filter((item) => item.type === 'read_later' || !item.type)
+      .map((item) => item.article_slug || '')
+      .filter(Boolean);
+  }
+
+  function notifKindKey(type: string) {
+    if (type === 'comment_reply') return 'notif_comment_reply_prefix';
+    if (type === 'comment_like') return 'notif_comment_like_prefix';
+    return 'notif_read_later_prefix';
+  }
+
+  function notifHeadline(item: AppNotification, lang: 'FR' | 'EN') {
+    if (item.type === 'comment_like') {
+      return formatLikeActors(item.actor_usernames || [], lang);
+    }
+    if (item.type === 'comment_reply') {
+      return formatReplyActor(item.actor_usernames?.[0], lang);
+    }
+    return lang === 'EN' && item.title_en ? item.title_en : item.title;
+  }
+
+  function updateSelectionUi() {
+    if (!notifListEl) return;
+    const boxes = Array.from(notifListEl.querySelectorAll<HTMLInputElement>('.account-notif-select'));
+    const checked = boxes.filter((box) => box.checked).length;
+    if (selectAllInput) {
+      selectAllInput.checked = boxes.length > 0 && checked === boxes.length;
+      selectAllInput.indeterminate = checked > 0 && checked < boxes.length;
+    }
+    if (deleteSelectedBtn) deleteSelectedBtn.disabled = checked === 0;
+  }
+
+  function renderNotifications() {
+    if (!notifListEl) return;
+    const lang = currentLang();
+    const unread = notificationsCache.filter((item) => !item.read_at).length;
+    updateUnreadBadge(unread);
+
+    if (markAllBtn) markAllBtn.disabled = unread === 0;
+    if (clearAllBtn) clearAllBtn.disabled = notificationsCache.length === 0;
+    if (selectAllInput) {
+      selectAllInput.disabled = notificationsCache.length === 0;
+      if (notificationsCache.length === 0) {
+        selectAllInput.checked = false;
+        selectAllInput.indeterminate = false;
+      }
+    }
+    if (notifEmptyEl) notifEmptyEl.hidden = notificationsCache.length > 0;
+    notifListEl.hidden = notificationsCache.length === 0;
+
+    notifListEl.innerHTML = notificationsCache.map((item) => {
+      const isRead = Boolean(item.read_at);
+      const type = item.type || 'read_later';
+      const isReadLater = type === 'read_later';
+      const title = notifHeadline(item, lang);
+      const href = item.article_slug
+        ? commentPermalink(item.article_slug, item.comment_id)
+        : '#';
+      const when = formatNotifDate(item.created_at);
+      const kindKey = notifKindKey(type);
+      const linkKey = isReadLater ? 'notif_read_article' : 'notif_see_comment';
+      const snoozeBtns = READ_LATER_SNOOZE_DAYS.map((days) => (
+        `<button type="button" class="account-notif-snooze-btn" data-snooze-days="${days}">${escapeHtml(snoozeLabel(days))}</button>`
+      )).join('');
+      const excerpt = isReadLater ? '' : item.title;
+      const body = type === 'comment_reply' ? item.body : '';
+
+      return `
+        <article class="account-notif-item${isRead ? '' : ' is-unread'}" data-notif-id="${escapeHtml(item.id)}" data-slug="${escapeHtml(item.article_slug || '')}" data-type="${escapeHtml(type)}" data-read="${isRead ? 'true' : 'false'}">
+          <div class="account-notif-top">
+            <label class="account-notif-check">
+              <input type="checkbox" class="account-notif-select" />
+            </label>
+            <p class="account-notif-kind" data-i18n="${kindKey}">${escapeHtml(t(kindKey))}</p>
+            <time class="account-notif-date" datetime="${escapeHtml(item.created_at)}">${escapeHtml(when)}</time>
+            <button type="button" class="account-notif-toggle${isRead ? ' is-read' : ''}" title="${escapeHtml(isRead ? t('notif_mark_unread') : t('notif_mark_read'))}" aria-label="${escapeHtml(isRead ? t('notif_mark_unread') : t('notif_mark_read'))}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
+            <button type="button" class="account-notif-delete" title="${escapeHtml(t('notif_delete'))}" aria-label="${escapeHtml(t('notif_delete'))}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+              </svg>
+            </button>
+          </div>
+          <p class="account-notif-title">${escapeHtml(title)}</p>
+          ${body ? `<p class="account-notif-body">${formatCommentBody(body)}</p>` : ''}
+          ${excerpt ? `<p class="account-notif-excerpt">« ${escapeHtml(excerpt)} »</p>` : ''}
+          ${item.article_slug ? `<a class="account-notif-link" href="${escapeHtml(href)}" data-i18n="${linkKey}">${escapeHtml(t(linkKey))}</a>` : ''}
+          ${isReadLater ? `<div class="account-notif-snooze">
+            <span data-i18n="notif_remind_in">${escapeHtml(t('notif_remind_in'))}</span>
+            ${snoozeBtns}
+          </div>` : ''}
+        </article>
+      `;
+    }).join('');
+
+    updateSelectionUi();
+  }
+
+  async function rescheduleSlugs(slugs: string[]) {
+    await snoozeReadLaterMany(slugs, defaultRemindAt());
+  }
+
+  async function refreshNotifications() {
+    const selected = selectedNotifIds();
+    const previous = notificationsCache.map((item) => `${item.id}:${item.read_at || ''}`).join('|');
+    try {
+      await syncReadLaterReminders(defaultRemindAt());
+      notificationsCache = await listNotifications();
+    } catch {
+      notificationsCache = [];
+    }
+    const next = notificationsCache.map((item) => `${item.id}:${item.read_at || ''}`).join('|');
+    if (next !== previous || (notificationsCache.length > 0 && notifListEl.childElementCount === 0)) {
+      renderNotifications();
+      selected.forEach((id) => {
+        const box = notifListEl?.querySelector<HTMLInputElement>(`.account-notif-item[data-notif-id="${id}"] .account-notif-select`);
+        if (box) box.checked = true;
+      });
+      updateSelectionUi();
+      return;
+    }
+    updateUnreadBadge(notificationsCache.filter((item) => !item.read_at).length);
+  }
+
+  let notifPollId = 0;
+
+  function stopNotifPoll() {
+    if (!notifPollId) return;
+    window.clearInterval(notifPollId);
+    notifPollId = 0;
+  }
+
+  function startNotifPoll() {
+    stopNotifPoll();
+    notifPollId = window.setInterval(() => {
+      if (!isDrawerOpen()) {
+        stopNotifPoll();
+        return;
+      }
+      void refreshNotifications();
+    }, 2000);
   }
 
   const FONT_VALUES = ['sans', 'serif', 'editorial'] as const;
@@ -290,7 +569,8 @@
   closeBtn?.addEventListener('click', closeDrawer);
   overlay?.addEventListener('click', closeDrawer);
 
-  document.getElementById('account-open-notifications')?.addEventListener('click', () => {
+  document.getElementById('account-open-notifications')?.addEventListener('click', async () => {
+    await refreshNotifications();
     openSubdrawer(notifDrawer);
   });
   document.getElementById('account-open-settings')?.addEventListener('click', () => {
@@ -300,6 +580,110 @@
   });
   document.querySelectorAll('[data-close-subdrawer]').forEach((btn) => {
     btn.addEventListener('click', closeSubdrawers);
+  });
+  markAllBtn?.addEventListener('click', async () => {
+    try {
+      const unreadSlugs = readLaterSlugsFrom(
+        notificationsCache.filter((item) => !item.read_at)
+      );
+      await rescheduleSlugs(unreadSlugs);
+      await markAllNotificationsRead();
+      await refreshNotifications();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  clearAllBtn?.addEventListener('click', async () => {
+    if (!confirm(t('notif_clear_confirm'))) return;
+    try {
+      await rescheduleSlugs(readLaterSlugsFrom(notificationsCache));
+      await deleteAllNotifications();
+      await refreshNotifications();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  deleteSelectedBtn?.addEventListener('click', async () => {
+    const ids = selectedNotifIds();
+    if (ids.length === 0) return;
+    try {
+      await rescheduleSlugs(selectedNotifSlugs());
+      await deleteNotifications(ids);
+      await refreshNotifications();
+    } catch {
+      /* ignore */
+    }
+  });
+
+  selectAllInput?.addEventListener('change', () => {
+    if (!notifListEl) return;
+    notifListEl.querySelectorAll<HTMLInputElement>('.account-notif-select').forEach((box) => {
+      box.checked = Boolean(selectAllInput.checked);
+    });
+    updateSelectionUi();
+  });
+
+  notifListEl?.addEventListener('click', async (event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    const item = target.closest<HTMLElement>('.account-notif-item');
+    if (!item) return;
+    const id = item.dataset.notifId;
+    const slug = item.dataset.slug;
+    if (!id) return;
+
+    if (target.closest('.account-notif-check') || target.closest('.account-notif-select')) {
+      updateSelectionUi();
+      return;
+    }
+
+    if (target.closest('.account-notif-delete')) {
+      try {
+        if (item.dataset.type === 'read_later' && slug) await rescheduleSlugs([slug]);
+        await deleteNotifications([id]);
+        await refreshNotifications();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    if (target.closest('.account-notif-link')) {
+      if (item.dataset.type === 'read_later' && slug) void rescheduleSlugs([slug]);
+      void setNotificationRead(id, true);
+      return;
+    }
+
+    if (target.closest('.account-notif-toggle')) {
+      const nextRead = item.dataset.read !== 'true';
+      try {
+        if (nextRead && item.dataset.type === 'read_later' && slug) await rescheduleSlugs([slug]);
+        await setNotificationRead(id, nextRead);
+        await refreshNotifications();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    const snoozeBtn = target.closest<HTMLButtonElement>('.account-notif-snooze-btn');
+    if (snoozeBtn && slug && item.dataset.type === 'read_later') {
+      const days = Number(snoozeBtn.dataset.snoozeDays);
+      if (!days) return;
+      try {
+        await snoozeReadLater(slug, remindAtFromDays(days));
+        await setNotificationRead(id, true);
+        await refreshNotifications();
+      } catch {
+        /* ignore */
+      }
+    }
+  });
+
+  window.addEventListener('languageChanged', () => {
+    renderNotifications();
   });
 
   document.querySelectorAll<HTMLInputElement>('input[name="article-font"]').forEach((input) => {
@@ -335,6 +719,7 @@
   applyArticleFont(currentFont());
   applyArticleFontSize(currentFontSize());
   syncPrefsFromAccount();
+  void refreshNotifications();
 </script>
 
 <style is:global>
@@ -360,7 +745,7 @@
     top: 0;
     right: 0;
     height: 100vh;
-    width: min(380px, 92vw);
+    width: min(460px, 94vw);
     margin-right: calc(-1 * var(--page-pad, 20px));
     z-index: 1120;
     background: #01002d;
@@ -522,11 +907,78 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.28);
     box-sizing: border-box;
     max-width: 150%;
+    flex-wrap: wrap;
   }
   .account-subdrawer-header h2 {
     margin: 0;
     font-size: 1.15rem;
     min-width: 0;
+    flex: 1;
+    transform: translateX(-10px);
+  }
+  .account-mark-all-read {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-family: inherit;
+    transform: translateX(-10px);
+  }
+  .account-mark-all-read:hover:not(:disabled) {
+    border-color: #ea580c;
+    color: #ea580c;
+  }
+  .account-mark-all-read:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .account-notif-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 16px 0 23px;
+  }
+  .account-notif-toolbar[hidden] {
+    display: none !important;
+  }
+  .account-notif-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #d1d5db;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .account-notif-select-all:has(input:disabled) {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .account-notif-delete-selected {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .account-notif-delete-selected:hover:not(:disabled) {
+    border-color: #ea580c;
+    color: #ea580c;
+  }
+  .account-notif-delete-selected:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
   .account-subdrawer-back {
     display: inline-flex;
@@ -554,6 +1006,167 @@
     line-height: 1.5;
     font-size: 0.95rem;
     overflow-wrap: anywhere;
+  }
+  .account-subdrawer-empty[hidden] {
+    display: none !important;
+  }
+
+  .account-notif-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #ea580c;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .account-notif-badge[hidden] {
+    display: none !important;
+  }
+
+  .account-notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 16px 24px;
+    box-sizing: border-box;
+  }
+  .account-notif-list[hidden] {
+    display: none !important;
+  }
+  .account-notif-item {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: rgba(2, 0, 29, 0.4);
+  }
+  .account-notif-item.is-unread {
+    border-color: rgba(234, 88, 12, 0.55);
+    box-shadow: inset 3px 0 0 #ea580c;
+  }
+  .account-notif-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .account-notif-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .account-notif-kind {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .account-notif-title {
+    margin: 8px 0 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #ffffff;
+  }
+  .account-notif-body {
+    margin: 6px 0 0;
+    font-size: 0.88rem;
+    font-weight: 400;
+    color: #d1d5db;
+    line-height: 1.45;
+  }
+  .account-notif-excerpt {
+    margin: 6px 0 0;
+    font-size: 0.82rem;
+    font-style: italic;
+    color: #9ca3af;
+    line-height: 1.4;
+  }
+  .comment-mention {
+    color: #ea580c;
+    font-weight: 700;
+  }
+  .account-notif-date {
+    font-style: italic;
+    color: #9ca3af;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .account-notif-delete,
+  .account-notif-toggle {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .account-notif-delete svg,
+  .account-notif-toggle svg {
+    width: 15px;
+    height: 15px;
+  }
+  .account-notif-delete:hover,
+  .account-notif-toggle:hover {
+    color: #ea580c;
+    background: rgba(234, 88, 12, 0.12);
+  }
+  .account-notif-toggle.is-read {
+    color: #ea580c;
+  }
+  .account-notif-link {
+    display: inline-block;
+    margin: 10px 0 12px;
+    color: #ea580c;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .account-notif-link:hover {
+    text-decoration: underline;
+  }
+  .account-notif-snooze {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 0.78rem;
+  }
+  .account-notif-snooze-btn {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: transparent;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .account-notif-snooze-btn:hover {
+    border-color: #ea580c;
+    color: #ea580c;
   }
 
   .account-font-fieldset {

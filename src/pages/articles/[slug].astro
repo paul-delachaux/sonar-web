@@ -5,6 +5,8 @@ import { Tweet } from 'astro-embed';
 import { t, categoryLabel } from '../../utils/i18n.js';
 import CommentsSection from '../../components/CommentsSection.astro';
 import DefinitionTooltips from '../../components/DefinitionTooltips.astro';
+import FavoriteStar from '../../components/FavoriteStar.astro';
+import ReadLaterClock from '../../components/ReadLaterClock.astro';
 import { supabase } from '../../utils/supabase';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
@@ -157,6 +159,8 @@ const descEN = hasEn && article.data.description_en
 <MainLayout title={article.data.title}>
   {isBreve ? (
     <div class="breve-wrapper">
+      <FavoriteStar slug={article.id} />
+      <ReadLaterClock slug={article.id} title={titleFR} titleEn={titleEN} />
       <article class="breve-layout-container">
         <header class="breve-header">
           <div class="breve-theme" data-fr={categoryFR} data-en={categoryEN}>
@@ -283,6 +287,8 @@ const descEN = hasEn && article.data.description_en
     </div>
   ) : (
     <div class="article-wrapper">
+      <FavoriteStar slug={article.id} />
+      <ReadLaterClock slug={article.id} title={titleFR} titleEn={titleEN} />
       <div class="article-container">
 
         <header class="article-header">
@@ -595,7 +601,7 @@ const descEN = hasEn && article.data.description_en
   }
 
   /* 1. STYLES POUR LES BRÈVES */
-  .breve-wrapper { background-color: #02001d; max-width: 1200px; margin: 40px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .breve-wrapper { position: relative; background-color: #02001d; max-width: 1200px; margin: 40px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .breve-layout-container { padding: 50px 40px; color: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .breve-header { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; border-bottom: none; }
   .breve-theme { color: #ea580c; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin-left: 25px; }
@@ -627,9 +633,9 @@ const descEN = hasEn && article.data.description_en
   .breve-source-text { color: #ea580c; font-weight: 600; }
 
   /* 2. STYLES CLASSIQUES */
-  .article-wrapper { background-color: #02001d; max-width: 1200px; margin: 40px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .article-wrapper { position: relative; background-color: #02001d; max-width: 1200px; margin: 40px auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .article-container { padding: 50px 40px; }
-  .article-header { border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; text-align: left; }
+  header.article-header { position: relative; z-index: 1; border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; text-align: left; }
   .main-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.8rem; font-weight: 800; color: #ffffff; line-height: 1.3; margin: 0 0 15px 0; }
   .main-description { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: 500; color: #ffffff; line-height: 1.5; margin: 0 0 30px 0; }
   .author-meta-block { display: flex; align-items: center; gap: 20px; text-decoration: none; color: inherit; cursor: pointer; width: fit-content; }
