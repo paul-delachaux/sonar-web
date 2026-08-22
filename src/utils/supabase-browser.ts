@@ -314,6 +314,37 @@ export async function listNotifications(): Promise<AppNotification[]> {
   })) as AppNotification[];
 }
 
+export type AccountPreview = {
+  username: string;
+  avatar_url: string | null;
+  avatar_color: string;
+};
+
+export async function listAccountPreviewsByUsernames(
+  usernames: string[]
+): Promise<Map<string, AccountPreview>> {
+  const unique = [...new Set(usernames.map((name) => String(name || '').trim()).filter(Boolean))];
+  const result = new Map<string, AccountPreview>();
+  if (unique.length === 0) return result;
+
+  const supabase = getBrowserSupabase();
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('username, avatar_url, avatar_color')
+    .in('username', unique);
+
+  if (error) throw error;
+  for (const row of data || []) {
+    const preview: AccountPreview = {
+      username: row.username,
+      avatar_url: row.avatar_url ?? null,
+      avatar_color: row.avatar_color || '#ea580c',
+    };
+    result.set(String(row.username).toLowerCase(), preview);
+  }
+  return result;
+}
+
 export async function setNotificationRead(id: string, read: boolean): Promise<void> {
   const supabase = getBrowserSupabase();
   const {
@@ -464,6 +495,26 @@ export async function setCommentLiked(commentId: string, liked: boolean): Promis
     .from('comment_likes')
     .delete()
     .eq('comment_id', commentId)
+    .eq('account_id', session.user.id);
+
+  if (error) throw error;
+}
+
+export async function deleteOwnComment(commentId: string): Promise<void> {
+  const supabase = getBrowserSupabase();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) {
+    const err = new Error('AUTH_REQUIRED');
+    err.name = 'AuthRequired';
+    throw err;
+  }
+
+  const { error } = await supabase
+    .from('comments')
+    .delete()
+    .eq('id', commentId)
     .eq('account_id', session.user.id);
 
   if (error) throw error;

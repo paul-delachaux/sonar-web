@@ -28,6 +28,16 @@ const searchIndex = isHome
     : [];
 // Empêche une éventuelle séquence "</script>" dans un titre de casser le tag inline.
 const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
+
+const articleTitlesJson = JSON.stringify(
+    (await getCollection('articles'))
+        .filter((art) => art.data.isVisible !== false)
+        .map((art) => ({
+            slug: art.id,
+            title: art.data.title,
+            titleEn: art.data.title_en || null,
+        }))
+).replace(/</g, '\\u003c');
 ---
 
 <html lang="fr">
@@ -1262,6 +1272,7 @@ const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
             </div>
         </footer>
 
+        <script type="application/json" id="sonar-article-titles" set:html={articleTitlesJson} />
         <AccountDrawer />
 
         <!-- SCRIPT D'INTERACTION & GESTION DU DICTIONNAIRE ET DE LA LANGUE -->

@@ -179,14 +179,16 @@
     syncReadLaterReminders,
     deleteNotifications,
     deleteAllNotifications,
+    listAccountPreviewsByUsernames,
     type Account,
     type ArticleFont,
     type ArticleFontSize,
     type AppNotification,
+    type AccountPreview,
   } from '../utils/supabase-browser';
   import { avatarInitial, avatarImgHtml } from '../utils/avatar';
   import { t as translate } from '../utils/i18n.js';
-  import { formatCommentBody, formatLikeActors, formatReplyActor, commentPermalink } from '../utils/comment-text';
+  import { formatCommentBody, formatLikeActors, formatReplyActor, commentPermalink, stripLeadingMentions } from '../utils/comment-text';
   import { READ_LATER_DEFAULT_REMIND_DAYS, READ_LATER_SNOOZE_DAYS, remindAtFromDays } from '../data/read-later';
 
   const FONT_KEY = 'sonar_article_font';
@@ -300,6 +302,7 @@
   const selectAllInput = document.getElementById('account-notif-select-all') as HTMLInputElement | null;
   const deleteSelectedBtn = document.getElementById('account-notif-delete-selected') as HTMLButtonElement | null;
   let notificationsCache: AppNotification[] = [];
+  const actorProfiles = new Map<string, AccountPreview>();
 
   function defaultRemindAt() {
     return remindAtFromDays(READ_LATER_DEFAULT_REMIND_DAYS);
@@ -365,6 +368,48 @@
     return lang === 'EN' && item.title_en ? item.title_en : item.title;
   }
 
+  type ArticleTitleEntry = { slug: string; title: string; titleEn?: string | null };
+  let articleTitlesCache: ArticleTitleEntry[] | null = null;
+
+  function articleTitles(): ArticleTitleEntry[] {
+    if (articleTitlesCache) return articleTitlesCache;
+    const node = document.getElementById('sonar-article-titles');
+    try {
+      articleTitlesCache = node?.textContent ? JSON.parse(node.textContent) : [];
+    } catch {
+      articleTitlesCache = [];
+    }
+    return articleTitlesCache || [];
+  }
+
+  function articleTitleForSlug(slug: string | null | undefined, lang: 'FR' | 'EN') {
+    if (!slug) return '';
+    const entry = articleTitles().find((item) => item.slug === slug);
+    if (!entry) return '';
+    if (lang === 'EN' && entry.titleEn) return entry.titleEn;
+    return entry.title || '';
+  }
+
+  function actorPreview(username: string) {
+    return actorProfiles.get(username.trim().toLowerCase()) || null;
+  }
+
+  function notifAvatarHtml(username: string) {
+    const profile = actorPreview(username);
+    const color = profile?.avatar_color || '#ea580c';
+    const url = profile?.avatar_url || null;
+    if (url) {
+      return `<span class="sonar-avatar account-notif-avatar" title="${escapeHtml(username)}">${avatarImgHtml(url)}</span>`;
+    }
+    return `<span class="sonar-avatar account-notif-avatar" title="${escapeHtml(username)}" style="background-color:${escapeHtml(color)}">${escapeHtml(avatarInitial(username || '?'))}</span>`;
+  }
+
+  function notifAvatarsHtml(item: AppNotification) {
+    const names = (item.actor_usernames || []).map((name) => String(name || '').trim()).filter(Boolean).slice(0, 3);
+    if (names.length === 0) return '';
+    return `<div class="account-notif-avatars" aria-hidden="true">${names.map(notifAvatarHtml).join('')}</div>`;
+  }
+
   function updateSelectionUi() {
     if (!notifListEl) return;
     const boxes = Array.from(notifListEl.querySelectorAll<HTMLInputElement>('.account-notif-select'));
@@ -408,16 +453,34 @@
       const snoozeBtns = READ_LATER_SNOOZE_DAYS.map((days) => (
         `<button type="button" class="account-notif-snooze-btn" data-snooze-days="${days}">${escapeHtml(snoozeLabel(days))}</button>`
       )).join('');
+      const isLikeOnReply = type === 'comment_like' && Boolean(item.body);
       const excerpt = isReadLater ? '' : item.title;
-      const body = type === 'comment_reply' ? item.body : '';
+      const body = type === 'comment_reply'
+        ? stripLeadingMentions(item.body || '')
+        : isLikeOnReply
+          ? String(item.body || '')
+          : '';
+      const articleTitle = isReadLater ? '' : articleTitleForSlug(item.article_slug, lang);
+      const kindIcon = type === 'comment_like'
+        ? `<svg class="account-notif-kind-icon account-notif-kind-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`
+        : type === 'comment_reply'
+          ? `<svg class="account-notif-kind-icon account-notif-kind-reply" viewBox="0 0 24 24" fill="none" aria-hidden="true"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>`
+          : '';
+      const replyArrow = `<svg class="account-notif-reply-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>`;
+
+      const avatars = isReadLater ? '' : notifAvatarsHtml(item);
 
       return `
-        <article class="account-notif-item${isRead ? '' : ' is-unread'}" data-notif-id="${escapeHtml(item.id)}" data-slug="${escapeHtml(item.article_slug || '')}" data-type="${escapeHtml(type)}" data-read="${isRead ? 'true' : 'false'}">
+        <article class="account-notif-item${isRead ? '' : ' is-unread'}${avatars ? ' has-avatars' : ''}" data-notif-id="${escapeHtml(item.id)}" data-slug="${escapeHtml(item.article_slug || '')}" data-type="${escapeHtml(type)}" data-read="${isRead ? 'true' : 'false'}">
+          <label class="account-notif-check">
+            <input type="checkbox" class="account-notif-select" />
+          </label>
+          ${avatars}
           <div class="account-notif-top">
-            <label class="account-notif-check">
-              <input type="checkbox" class="account-notif-select" />
-            </label>
-            <p class="account-notif-kind" data-i18n="${kindKey}">${escapeHtml(t(kindKey))}</p>
+            <p class="account-notif-kind${type === 'comment_like' ? ' account-notif-kind--like' : ''}${type === 'comment_reply' ? ' account-notif-kind--reply' : ''}">
+              ${kindIcon}
+              <span data-i18n="${kindKey}">${escapeHtml(t(kindKey))}</span>
+            </p>
             <time class="account-notif-date" datetime="${escapeHtml(item.created_at)}">${escapeHtml(when)}</time>
             <button type="button" class="account-notif-toggle${isRead ? ' is-read' : ''}" title="${escapeHtml(isRead ? t('notif_mark_unread') : t('notif_mark_read'))}" aria-label="${escapeHtml(isRead ? t('notif_mark_unread') : t('notif_mark_read'))}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -434,19 +497,64 @@
               </svg>
             </button>
           </div>
-          <p class="account-notif-title">${escapeHtml(title)}</p>
-          ${body ? `<p class="account-notif-body">${formatCommentBody(body)}</p>` : ''}
-          ${excerpt ? `<p class="account-notif-excerpt">« ${escapeHtml(excerpt)} »</p>` : ''}
-          ${item.article_slug ? `<a class="account-notif-link" href="${escapeHtml(href)}" data-i18n="${linkKey}">${escapeHtml(t(linkKey))}</a>` : ''}
-          ${isReadLater ? `<div class="account-notif-snooze">
-            <span data-i18n="notif_remind_in">${escapeHtml(t('notif_remind_in'))}</span>
-            ${snoozeBtns}
-          </div>` : ''}
+          <div class="account-notif-copy">
+            <p class="account-notif-title">${escapeHtml(title)}</p>
+            ${articleTitle ? `<p class="account-notif-article"><span class="account-notif-article-prep" data-i18n="notif_on_article">${escapeHtml(t('notif_on_article'))}</span> <span class="account-notif-article-title">${escapeHtml(articleTitle)}</span></p>` : ''}
+            ${excerpt ? `<p class="account-notif-excerpt">« ${escapeHtml(excerpt)} »</p>` : ''}
+            ${body ? `<p class="account-notif-body account-notif-body--reply">${replyArrow}<span>${isLikeOnReply ? formatCommentBody(body) : escapeHtml(body)}</span></p>` : ''}
+            ${item.article_slug ? `<a class="account-notif-link" href="${escapeHtml(href)}" data-i18n="${linkKey}">${escapeHtml(t(linkKey))}</a>` : ''}
+            ${isReadLater ? `<div class="account-notif-snooze">
+              <span data-i18n="notif_remind_in">${escapeHtml(t('notif_remind_in'))}</span>
+              ${snoozeBtns}
+            </div>` : ''}
+          </div>
         </article>
       `;
     }).join('');
 
     updateSelectionUi();
+  }
+
+  async function enrichLikeReplyContext(items: AppNotification[]): Promise<AppNotification[]> {
+    const likeIds = items
+      .filter((item) => item.type === 'comment_like' && item.comment_id && !item.body)
+      .map((item) => item.comment_id)
+      .filter(Boolean);
+    if (likeIds.length === 0) return items;
+
+    try {
+      const supabase = getBrowserSupabase();
+      const { data: comments, error } = await supabase
+        .from('comments')
+        .select('id, content, parent_id, reply_to_id')
+        .in('id', likeIds);
+      const rows = error
+        ? (await supabase.from('comments').select('id, content, parent_id').in('id', likeIds)).data
+        : comments;
+      const list = rows || [];
+      const parentIds = [...new Set(list.map((row: any) => row.reply_to_id || row.parent_id).filter(Boolean))];
+      let parents: { id: any; content: string }[] = [];
+      if (parentIds.length > 0) {
+        const { data } = await supabase.from('comments').select('id, content').in('id', parentIds);
+        parents = data || [];
+      }
+      const byId = Object.fromEntries(list.map((row: any) => [String(row.id), row]));
+      const parentById = Object.fromEntries(parents.map((row) => [String(row.id), row]));
+
+      return items.map((item) => {
+        if (item.type !== 'comment_like' || item.body) return item;
+        const comment = byId[String(item.comment_id)];
+        if (!comment || !(comment.parent_id || comment.reply_to_id)) return item;
+        const parent = parentById[String(comment.reply_to_id || comment.parent_id)];
+        return {
+          ...item,
+          title: parent?.content ? String(parent.content).slice(0, 140) : item.title,
+          body: comment.content || item.title,
+        };
+      });
+    } catch {
+      return items;
+    }
   }
 
   async function rescheduleSlugs(slugs: string[]) {
@@ -455,14 +563,21 @@
 
   async function refreshNotifications() {
     const selected = selectedNotifIds();
-    const previous = notificationsCache.map((item) => `${item.id}:${item.read_at || ''}`).join('|');
+    const previous = notificationsCache.map((item) => `${item.id}:${item.read_at || ''}:${(item.actor_usernames || []).join(',')}:${item.body || ''}`).join('|');
     try {
       await syncReadLaterReminders(defaultRemindAt());
       notificationsCache = await listNotifications();
+      notificationsCache = await enrichLikeReplyContext(notificationsCache);
+      const names = notificationsCache.flatMap((item) => item.actor_usernames || []);
+      const missing = names.filter((name) => name && !actorProfiles.has(name.trim().toLowerCase()));
+      if (missing.length > 0) {
+        const found = await listAccountPreviewsByUsernames(missing);
+        found.forEach((preview, key) => actorProfiles.set(key, preview));
+      }
     } catch {
       notificationsCache = [];
     }
-    const next = notificationsCache.map((item) => `${item.id}:${item.read_at || ''}`).join('|');
+    const next = notificationsCache.map((item) => `${item.id}:${item.read_at || ''}:${(item.actor_usernames || []).join(',')}:${item.body || ''}`).join('|');
     if (next !== previous || (notificationsCache.length > 0 && notifListEl.childElementCount === 0)) {
       renderNotifications();
       selected.forEach((id) => {
@@ -651,8 +766,16 @@
     }
 
     if (target.closest('.account-notif-link')) {
-      if (item.dataset.type === 'read_later' && slug) void rescheduleSlugs([slug]);
-      void setNotificationRead(id, true);
+      event.preventDefault();
+      const link = target.closest<HTMLAnchorElement>('.account-notif-link');
+      const href = link?.getAttribute('href') || '';
+      try {
+        if (item.dataset.type === 'read_later' && slug) await rescheduleSlugs([slug]);
+        await setNotificationRead(id, true);
+      } catch {
+        /* on navigue quand même */
+      }
+      if (href && href !== '#') window.location.href = href;
       return;
     }
 
@@ -745,7 +868,7 @@
     top: 0;
     right: 0;
     height: 100vh;
-    width: min(460px, 94vw);
+    width: min(580px, 96vw);
     margin-right: calc(-1 * var(--page-pad, 20px));
     z-index: 1120;
     background: #01002d;
@@ -1040,44 +1163,129 @@
     display: none !important;
   }
   .account-notif-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "check top"
+      "check copy";
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: start;
     border: 1px solid rgba(255, 255, 255, 0.12);
+    border-left-width: 3px;
     border-radius: 10px;
     padding: 12px 14px;
     background: rgba(2, 0, 29, 0.4);
   }
+  .account-notif-item.has-avatars {
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+      "check avatars top"
+      "check copy copy";
+  }
   .account-notif-item.is-unread {
     border-color: rgba(234, 88, 12, 0.55);
-    box-shadow: inset 3px 0 0 #ea580c;
-  }
-  .account-notif-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    border-left-color: #ea580c;
+    background: rgba(234, 88, 12, 0.08);
   }
   .account-notif-check {
+    grid-area: check;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     cursor: pointer;
+    padding-top: 2px;
   }
+  .account-notif-avatars {
+    grid-area: avatars;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+  .account-notif-top {
+    grid-area: top;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .account-notif-copy {
+    grid-area: copy;
+    min-width: 0;
+  }
+  .account-notif-avatars .account-notif-avatar {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    font-size: 0.8rem;
+    border: 2px solid #01002d;
+    margin-left: -12px;
+    box-sizing: border-box;
+  }
+  .account-notif-avatars .account-notif-avatar:first-child {
+    margin-left: 0;
+  }
+  .account-notif-avatars .account-notif-avatar:nth-child(1) { z-index: 3; }
+  .account-notif-avatars .account-notif-avatar:nth-child(2) { z-index: 2; }
+  .account-notif-avatars .account-notif-avatar:nth-child(3) { z-index: 1; }
   .account-notif-kind {
     margin: 0;
     flex: 1;
     min-width: 0;
-    font-size: 0.82rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
+    font-size: 0.92rem;
     font-weight: 700;
     color: #ffffff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .account-notif-kind--like,
+  .account-notif-kind--reply {
+    color: #ffffff;
+  }
+  .account-notif-kind-heart {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    fill: #ea580c;
+    stroke: #ea580c;
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+  }
+  .account-notif-kind-reply {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    stroke: #ea580c;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   .account-notif-title {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     font-size: 0.95rem;
     font-weight: 700;
     line-height: 1.4;
     color: #ffffff;
+  }
+  .account-notif-article {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .account-notif-article-prep {
+    color: #9ca3af;
+    font-weight: 500;
+  }
+  .account-notif-article-title {
+    color: #ea580c;
+    font-weight: 600;
   }
   .account-notif-body {
     margin: 6px 0 0;
@@ -1085,6 +1293,24 @@
     font-weight: 400;
     color: #d1d5db;
     line-height: 1.45;
+  }
+  .account-notif-body--reply {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-left: 14px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(255, 255, 255, 0.16);
+  }
+  .account-notif-reply-arrow {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    stroke: #ea580c;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .account-notif-excerpt {
     margin: 6px 0 0;

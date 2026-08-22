@@ -14,6 +14,11 @@ export function formatCommentBody(value: string) {
   );
 }
 
+/** Retire les @pseudos en tête (inutiles dans une notif de réponse). */
+export function stripLeadingMentions(value: string) {
+  return String(value || '').replace(/^(?:\s*@[A-Za-zÀ-ÿ0-9_]+\s*)+/, '').trim();
+}
+
 export function commentPermalink(slug: string, commentId: string | number | null | undefined) {
   const base = `/articles/${slug}`;
   if (commentId == null || commentId === '') return base;
@@ -30,14 +35,14 @@ export function formatLikeActors(names: string[], lang: 'FR' | 'EN') {
     if (shown.length === 1) return `${shown[0]} liked your comment`;
     if (shown.length === 2) return `${shown[0]} and ${shown[1]} liked your comment`;
     if (others === 0) return `${shown[0]}, ${shown[1]} and ${shown[2]} liked your comment`;
-    return `${shown[0]}, ${shown[1]}, ${shown[2]} and ${others} other${others > 1 ? 's' : ''} liked your comment`;
+    return `${shown[0]}, ${shown[1]}, ${shown[2]} and others liked your comment`;
   }
 
   if (shown.length === 0) return 'Quelqu’un a liké votre commentaire';
   if (shown.length === 1) return `${shown[0]} a liké votre commentaire`;
   if (shown.length === 2) return `${shown[0]} et ${shown[1]} ont liké votre commentaire`;
   if (others === 0) return `${shown[0]}, ${shown[1]} et ${shown[2]} ont liké votre commentaire`;
-  return `${shown[0]}, ${shown[1]}, ${shown[2]} et ${others} autres ont liké votre commentaire`;
+  return `${shown[0]}, ${shown[1]}, ${shown[2]} et d’autres ont liké votre commentaire`;
 }
 
 export function formatReplyActor(name: string | null | undefined, lang: 'FR' | 'EN') {
