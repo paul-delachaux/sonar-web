@@ -273,8 +273,72 @@
       color: #ffffff !important;
     }
     .sonar-mod-body { padding: 18px 24px 0; }
-    .sonar-mod-status { color: #334155; margin: 0 0 16px; }
+    .sonar-mod-status { color: #334155; margin: 0 0 12px; }
     .sonar-mod-status[data-kind="err"] { color: #c93a3f; }
+    .sonar-mod-sort {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .sonar-mod-sort[hidden] { display: none !important; }
+    .sonar-mod-sort button {
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      color: #334155;
+    }
+    .sonar-mod-sort button.is-active {
+      background: #01002b;
+      border-color: #01002b;
+      color: #fff;
+    }
+    .cms-moderation-item.is-active { color: #ff7900; font-weight: 700; }
+    #sonar-mod-published-tools {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .sonar-mod-published-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .sonar-mod-article-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      font-weight: 700;
+      color: #334155;
+    }
+    .sonar-mod-article-label select {
+      max-width: min(320px, 100%);
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .sonar-mod-reply {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 800;
+    }
     .sonar-mod-empty { color: #475569; font-style: italic; }
     .sonar-mod-card {
       border: 1px solid #e2e8f0;
@@ -2895,27 +2959,35 @@
         `;
         header.innerHTML = '<span>Modération</span><span class="arrow" style="font-size: 0.7rem;">▼</span>';
 
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.id = 'cms-moderation-nav';
-        item.className = 'cms-moderation-item';
-        item.style.paddingLeft = '10px';
-        item.innerHTML = '<span>Commentaires</span><span id="cms-moderation-badge" hidden>0</span>';
-        item.addEventListener('click', (event) => {
-          event.preventDefault();
-          if (window.SonarModeration) window.SonarModeration.open();
-        });
+        function makeItem(id, label, view, extraHtml) {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.id = id;
+          item.className = 'cms-moderation-item';
+          item.style.paddingLeft = '10px';
+          item.innerHTML = '<span>' + label + '</span>' + (extraHtml || '');
+          item.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (window.SonarModeration) window.SonarModeration.open(view);
+          });
+          return item;
+        }
+
+        const reported = makeItem('cms-moderation-nav', 'Commentaires signalés', 'reports', '<span id="cms-moderation-badge" hidden>0</span>');
+        const published = makeItem('cms-moderation-published', 'Commentaires publiés', 'published', '');
 
         let isCollapsed = false;
         header.addEventListener('click', () => {
           isCollapsed = !isCollapsed;
           const arrow = header.querySelector('.arrow');
           if (arrow) arrow.textContent = isCollapsed ? '►' : '▼';
-          item.style.display = isCollapsed ? 'none' : 'flex';
+          reported.style.display = isCollapsed ? 'none' : 'flex';
+          published.style.display = isCollapsed ? 'none' : 'flex';
         });
 
         sidebarContainer.appendChild(header);
-        sidebarContainer.appendChild(item);
+        sidebarContainer.appendChild(reported);
+        sidebarContainer.appendChild(published);
         if (window.SonarModeration && window.SonarModeration.refresh) {
           window.SonarModeration.refresh();
         }

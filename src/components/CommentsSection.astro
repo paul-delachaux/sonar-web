@@ -293,12 +293,13 @@ const commentCount = allComments.length;
     <h3 id="comment-report-title" data-i18n="comments_report_title">Signaler ce commentaire</h3>
     <p class="comment-report-lead" data-i18n="comments_report_lead">Confirmez le signalement. Un modérateur l’examinera.</p>
     <fieldset class="comment-report-reasons">
-      <legend data-i18n="comments_report_reason">Motif</legend>
-      <label><input type="radio" name="reason" value="insult" required /> <span data-i18n="comments_report_reason_insult">Insultes ou harcèlement</span></label>
-      <label><input type="radio" name="reason" value="spam" /> <span data-i18n="comments_report_reason_spam">Spam</span></label>
-      <label><input type="radio" name="reason" value="illegal" /> <span data-i18n="comments_report_reason_illegal">Contenu illégal ou dangereux</span></label>
-      <label><input type="radio" name="reason" value="offtopic" /> <span data-i18n="comments_report_reason_offtopic">Hors-sujet</span></label>
-      <label><input type="radio" name="reason" value="other" /> <span data-i18n="comments_report_reason_other">Autre</span></label>
+      <legend data-i18n="comments_report_reason">Motifs</legend>
+      <p class="comment-report-once" data-i18n="comments_report_once">Cochez tous les motifs concernés : un même commentaire ne peut être signalé qu’une seule fois.</p>
+      <label><input type="checkbox" name="reasons" value="insult" /> <span data-i18n="comments_report_reason_insult">Insultes ou harcèlement</span></label>
+      <label><input type="checkbox" name="reasons" value="spam" /> <span data-i18n="comments_report_reason_spam">Spam</span></label>
+      <label><input type="checkbox" name="reasons" value="illegal" /> <span data-i18n="comments_report_reason_illegal">Contenu illégal ou dangereux</span></label>
+      <label><input type="checkbox" name="reasons" value="offtopic" /> <span data-i18n="comments_report_reason_offtopic">Hors-sujet</span></label>
+      <label><input type="checkbox" name="reasons" value="other" /> <span data-i18n="comments_report_reason_other">Autre</span></label>
     </fieldset>
     <label class="comment-report-details-label" for="comment-report-details" data-i18n="comments_report_details">Précisions (optionnel)</label>
     <textarea id="comment-report-details" name="details" rows="3" maxlength="500"></textarea>
@@ -399,11 +400,16 @@ const commentCount = allComments.length;
     event.preventDefault();
     if (!reportForm || !reportTargetId) return;
     const payload = new FormData(reportForm);
-    const reason = String(payload.get('reason') || '');
+    const reasons = payload.getAll('reasons').map((value) => String(value));
     const details = String(payload.get('details') || '').trim();
     const submitBtn = reportForm.querySelector<HTMLButtonElement>('.comment-report-submit');
     if (submitBtn) submitBtn.disabled = true;
     setReportMessage('', '');
+    if (!reasons.length) {
+      setReportMessage(t('comments_report_once'), 'err');
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
     try {
       const supabase = getBrowserSupabase();
       const { data: { session } } = await supabase.auth.getSession();
@@ -419,7 +425,7 @@ const commentCount = allComments.length;
         },
         body: JSON.stringify({
           comment_id: reportTargetId,
-          reason,
+          reasons,
           details,
         }),
       });
@@ -1629,6 +1635,12 @@ const commentCount = allComments.length;
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+  }
+  .comment-report-once {
+    margin: 0 0 4px;
+    color: #fdba74;
+    font-size: 0.82rem;
+    line-height: 1.4;
   }
   .comment-report-reasons label {
     display: flex;

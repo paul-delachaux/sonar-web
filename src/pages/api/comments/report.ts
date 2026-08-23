@@ -5,6 +5,27 @@ export const prerender = false;
 
 const REPORT_REASONS = ['insult', 'spam', 'illegal', 'offtopic', 'other'] as const;
 
+async function insertReport(
+  userClient: ReturnType<typeof createSupabaseWithAuth>,
+  payload: { comment_id: string | number; reporter_id: string; reasons: string[]; details: string | null }
+) {
+  const withArray = await userClient.from('comment_reports').insert({
+    comment_id: payload.comment_id,
+    reporter_id: payload.reporter_id,
+    reason: payload.reasons[0],
+    reasons: payload.reasons,
+    details: payload.details,
+  });
+  if (!withArray.error) return withArray;
+
+  return userClient.from('comment_reports').insert({
+    comment_id: payload.comment_id,
+    reporter_id: payload.reporter_id,
+    reason: payload.reasons.join(','),
+    details: payload.details,
+  });
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const authHeader = request.headers.get('Authorization');
@@ -26,14 +47,19 @@ export const POST: APIRoute = async ({ request }) => {
 
     const body = await request.json();
     const commentId = body?.comment_id;
-    const reason = String(body?.reason || '').trim();
+    const rawReasons = Array.isArray(body?.reasons) ? body.reasons : [body?.reason];
+    const reasons = [...new Set(
+      rawReasons
+        .map((value: unknown) => String(value || '').trim())
+        .filter((value: string) => (REPORT_REASONS as readonly string[]).includes(value))
+    )];
     const details = String(body?.details || '').trim().slice(0, 500);
 
     if (commentId == null || commentId === '') {
       return new Response(JSON.stringify({ message: 'Commentaire introuvable.' }), { status: 400 });
     }
-    if (!(REPORT_REASONS as readonly string[]).includes(reason)) {
-      return new Response(JSON.stringify({ message: 'Choisissez un motif de signalement.' }), { status: 400 });
+    if (!reasons.length) {
+      return new Response(JSON.stringify({ message: 'Choisissez au moins un motif de signalement.' }), { status: 400 });
     }
 
     const userClient = createSupabaseWithAuth(token);
@@ -53,10 +79,10 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const { error } = await userClient.from('comment_reports').insert({
+    const { error } = await insertReport(userClient, {
       comment_id: comment.id,
       reporter_id: authData.user.id,
-      reason,
+      reasons,
       details: details || null,
     });
 
