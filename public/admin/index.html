@@ -311,17 +311,23 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 8px;
+      position: relative;
     }
+    .sonar-mod-published-line:first-child { z-index: 5; }
     .sonar-mod-article-label {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex: 1;
+      min-width: 240px;
       margin-left: auto;
       font-weight: 700;
       color: #334155;
+      position: relative;
     }
-    .sonar-mod-article-label select {
-      max-width: min(320px, 100%);
+    .sonar-mod-article-search { position: relative; z-index: 40; flex: 1; min-width: 220px; }
+    .sonar-mod-article-search input {
+      width: 100%;
       padding: 6px 10px;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
@@ -329,6 +335,123 @@
       color: #0f172a;
       font-weight: 600;
     }
+    .sonar-mod-article-hint {
+      margin: 4px 0 0;
+      color: #c93a3f;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .sonar-mod-article-hint[hidden],
+    .sonar-mod-article-results[hidden] { display: none !important; }
+    .sonar-mod-article-results {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      z-index: 50;
+      max-height: min(240px, 40vh);
+      overflow: auto;
+      margin: 0;
+      padding: 4px 0;
+      list-style: none;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(1, 0, 43, 0.18);
+    }
+    .sonar-mod-article-results li.is-empty {
+      padding: 8px 12px;
+      color: #64748b;
+      font-style: italic;
+      font-weight: 600;
+    }
+    .sonar-mod-sort .sonar-mod-article-results button {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: #0f172a;
+      text-align: left;
+      font-weight: 600;
+      padding: 8px 12px;
+    }
+    .sonar-mod-sort .sonar-mod-article-results button.is-active,
+    .sonar-mod-sort .sonar-mod-article-results button:hover {
+      background: #01002b;
+      color: #fff;
+    }
+    .sonar-mod-article-chip {
+      max-width: min(520px, 100%);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #01002b;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sonar-rel-search { position: relative; width: 100%; }
+    .sonar-rel-search input[type="search"],
+    .sonar-rel-search input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      text-transform: none !important;
+    }
+    .sonar-rel-hint { margin: 6px 0 0; color: #c93a3f; font-size: 12px; font-weight: 600; }
+    .sonar-rel-selected {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #01002b;
+    }
+    .sonar-rel-selected button {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 2px 8px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .sonar-rel-results {
+      position: absolute;
+      z-index: 40;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      max-height: 260px;
+      overflow: auto;
+      margin: 0;
+      padding: 4px 0;
+      list-style: none;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(1, 0, 43, 0.16);
+    }
+    .sonar-rel-results button {
+      display: block;
+      width: 100%;
+      background: transparent;
+      border: none;
+      text-align: left;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      text-transform: none !important;
+    }
+    .sonar-rel-results button:hover,
+    .sonar-rel-results button.is-active { background: #01002b; color: #fff; }
+    .sonar-rel-empty { padding: 8px 12px; color: #64748b; font-style: italic; }
     .sonar-mod-reply {
       display: inline-block;
       margin-left: 8px;
@@ -366,6 +489,7 @@
 </head>
 <body>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <script src="/admin/article-search.js"></script>
   <script src="/admin/moderation.js"></script>
 
   <script type="text/javascript">
@@ -642,43 +766,89 @@
       }
     }));
 
-    // 🧙‍♂️ Widget Relation Filtré (Uniquement isVisible)
-    const NativeRelationWidget = CMS.getWidget('relation');
+    // 🧙‍♂️ Widget Relation : recherche regex locale, sans casser l’aperçu
+    try {
+      const NativeRelationWidget = CMS.getWidget('relation');
+      const NativeRelationControl = (NativeRelationWidget && NativeRelationWidget.control) || NativeRelationWidget;
+      const NativeRelationPreview = (NativeRelationWidget && NativeRelationWidget.preview) || function () { return null; };
 
-    class FilteredRelationControl extends NativeRelationWidget.control {
-      onSearch = (searchTerm, metadata) => {
-        const { search, field } = this.props;
-        const collection = field.get('collection');
-        const searchFields = field.get('search_fields').toJS();
-        search(collection, searchFields, searchTerm, metadata);
-      };
+      function sonarDebounce(fn, wait) {
+        var timer;
+        return function () {
+          var ctx = this;
+          var args = arguments;
+          clearTimeout(timer);
+          timer = setTimeout(function () { fn.apply(ctx, args); }, wait);
+        };
+      }
 
-      getMatchAtIndex = (index) => {
-        return super.getMatchAtIndex(index);
-      };
-
-      render() {
-        const originalHits = this.props.queryHits;
-
-        if (originalHits) {
-          const hitsArray = originalHits.toJS ? originalHits.toJS() : originalHits;
-          
-          const visibleHits = hitsArray.filter(hit => {
-            const data = hit.data || hit;
-            return data.isVisible !== false && data.isVisible !== 'false';
-          });
-
-          this.props = {
-            ...this.props,
-            queryHits: originalHits.toJS ? Immutable.fromJS(visibleHits) : visibleHits
-          };
+      class FilteredRelationControl extends NativeRelationControl {
+        constructor(props) {
+          super(props);
+          this.loadOptions = sonarDebounce(this._loadRelationOptions.bind(this), 200);
         }
 
-        return super.render();
+        _loadRelationOptions(term, callback) {
+          const { field, query, forID } = this.props;
+          const collection = field.get('collection');
+          const searchFields = field.get('search_fields');
+          const searchFieldsArray = searchFields && searchFields.toJS ? searchFields.toJS() : ['title'];
+          const file = field.get('file');
+          const targetCategory = field.get('target_category');
+        if (typeof query !== 'function') {
+          callback([]);
+          return;
+        }
+        function extractHits(result) {
+          if (result && result.payload && Array.isArray(result.payload.hits)) return result.payload.hits;
+          if (Array.isArray(result)) return result;
+          if (this.props.queryHits) {
+            return this.props.queryHits.toJS ? this.props.queryHits.toJS() : this.props.queryHits;
+          }
+          return [];
+        }
+        const apply = (hits) => {
+          let options = this.parseHitOptions(hits || []);
+          options = options.filter((opt) => {
+            const data = opt.data || {};
+            if (data.isVisible === false || data.isVisible === 'false') return false;
+            if (targetCategory && data.category !== targetCategory) return false;
+            if (!term) return true;
+            const helper = window.SonarArticleSearch;
+            if (!helper) {
+              const hay = ((opt.label || '') + ' ' + (opt.value || '') + ' ' + (data.title || '')).toLowerCase();
+              return hay.indexOf(String(term).toLowerCase()) !== -1;
+            }
+            const compiled = helper.compileQuery(term);
+            if (!compiled.ok) return false;
+            if (compiled.empty) return true;
+            return compiled.test(opt.label) || compiled.test(opt.value) || compiled.test(data.title) || compiled.test(data.slug);
+          });
+          const optionsLength = field.get('options_length') || 80;
+          callback(options.slice(0, optionsLength));
+        };
+        Promise.resolve(query(forID, collection, searchFieldsArray, '', file))
+          .then((result) => {
+            const hits = extractHits.call(this, result);
+            if (hits.length) {
+              apply(hits);
+              return;
+            }
+            const fallback = String(term || '').replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç]+/gi, ' ').trim();
+            return Promise.resolve(query(forID, collection, searchFieldsArray, fallback || 'e', file))
+              .then((second) => apply(extractHits.call(this, second)));
+          })
+            .catch((err) => {
+              console.error('relation-filtered search failed', err);
+              callback([]);
+            });
+        }
       }
-    }
 
-    CMS.registerWidget('relation-filtered', FilteredRelationControl, NativeRelationWidget.preview);
+      CMS.registerWidget('relation-filtered', FilteredRelationControl, NativeRelationPreview);
+    } catch (err) {
+      console.error('Impossible d’enregistrer relation-filtered', err);
+    }
 
     // 🖱️ Widget "Éditeur visuel de miniature"
     // Cadre (à la une / sidebar / personnalisé) + calques image avec poignées

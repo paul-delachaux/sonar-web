@@ -79,9 +79,18 @@
             '<div class="sonar-mod-published-line">' +
               '<span>Trier par</span>' +
               '<button type="button" class="is-active" data-pub-sort="date">Date</button>' +
-              '<label class="sonar-mod-article-label">Article' +
-                '<select id="sonar-mod-article-filter"><option value="">Tous les articles</option></select>' +
-              '</label>' +
+              '<div class="sonar-mod-article-label">' +
+                '<span>Article</span>' +
+                '<div class="sonar-mod-article-search">' +
+                  '<input id="sonar-mod-article-query" type="text" autocomplete="off" spellcheck="false" placeholder="Rechercher un article (palantir ou palantir|gecko)">' +
+                  '<p class="sonar-mod-article-hint" id="sonar-mod-article-hint" hidden></p>' +
+                  '<ul class="sonar-mod-article-results" id="sonar-mod-article-results" hidden></ul>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="sonar-mod-published-line" id="sonar-mod-article-chip-row" hidden>' +
+              '<span class="sonar-mod-article-chip" id="sonar-mod-article-chip"></span>' +
+              '<button type="button" class="sonar-mod-article-clear" data-article-clear="1">Tous les articles</button>' +
             '</div>' +
             '<div class="sonar-mod-published-line">' +
               '<span>Période</span>' +
@@ -110,6 +119,16 @@
         setSort(sortBtn.getAttribute('data-sort'));
         return;
       }
+      var clearBtn = event.target.closest ? event.target.closest('[data-article-clear]') : null;
+      if (clearBtn) {
+        selectPublishedArticle('', '');
+        return;
+      }
+      var pick = event.target.closest ? event.target.closest('[data-article-slug]') : null;
+      if (pick) {
+        selectPublishedArticle(pick.getAttribute('data-article-slug') || '', pick.getAttribute('data-article-title') || '');
+        return;
+      }
       var periodBtn = event.target.closest ? event.target.closest('[data-period]') : null;
       if (periodBtn && periodBtn.closest && periodBtn.closest('#sonar-mod-published-tools')) {
         var nextPeriod = periodBtn.getAttribute('data-period') || 'all';
@@ -123,7 +142,7 @@
       if (pubSort) {
         pubSortDir = pubSortDir === 'desc' ? 'asc' : 'desc';
         showTools();
-        renderPublished(sortPublished(loadedPublished));
+        refreshPublishedList();
         return;
       }
       var btn = event.target.closest ? event.target.closest('[data-mod-action]') : null;
@@ -133,10 +152,41 @@
       if (!action || !commentId) return;
       handleAction(commentId, action, btn);
     });
-    root.addEventListener('change', function (event) {
-      if (event.target && event.target.id === 'sonar-mod-article-filter') {
-        loadPublished(event.target.value);
+    root.addEventListener('input', function (event) {
+      if (event.target && event.target.id === 'sonar-mod-article-query') {
+        if (selectedArticle) {
+          selectedArticle = '';
+          selectedArticleTitle = '';
+          updateArticleChip();
+        }
+        renderArticleResults(event.target.value, true);
+        refreshPublishedList();
       }
+    });
+    root.addEventListener('focusin', function (event) {
+      if (event.target && event.target.id === 'sonar-mod-article-query') {
+        renderArticleResults(event.target.value, true);
+      }
+    });
+    root.addEventListener('keydown', function (event) {
+      if (!event.target || event.target.id !== 'sonar-mod-article-query') return;
+      if (event.key === 'Escape') {
+        hideArticleResults();
+        event.target.blur();
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        pickHighlightedArticle();
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveArticleHighlight(event.key === 'ArrowDown' ? 1 : -1);
+      }
+    });
+    document.addEventListener('mousedown', function (event) {
+      var box = document.querySelector('.sonar-mod-article-search');
+      if (box && !box.contains(event.target)) hideArticleResults();
     });
 
     return root;
@@ -156,6 +206,9 @@
   var sortDir = 'desc';
   var pubSortDir = 'desc';
   var selectedArticle = '';
+  var selectedArticleTitle = '';
+  var loadedArticles = [];
+  var articleHighlight = 0;
   var selectedPeriod = 'all';
   var PERIOD_LABELS = {
     today: 'aujourd’hui',
@@ -229,6 +282,7 @@
     document.querySelectorAll('#sonar-mod-published-tools [data-period]').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.getAttribute('data-period') === selectedPeriod);
     });
+    updateArticleChip();
   }
 
   function sortPublished(items) {
@@ -242,15 +296,227 @@
     return copy;
   }
 
-  function fillArticleSelect(articles) {
-    var sel = document.getElementById('sonar-mod-article-filter');
-    if (!sel) return;
-    var opts = '<option value="">Tous les articles</option>';
-    (articles || []).forEach(function (art) {
-      opts += '<option value="' + escapeHtml(art.slug) + '">' + escapeHtml(art.title) + '</option>';
+  function foldText(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
+  function compileArticleQuery(raw) {
+    var text = String(raw || '').trim();
+    if (!text) return { ok: true, empty: true, test: function () { return true; } };
+    var wrapped = text.match(/^\/([\s\S]+)\/([gimsuy]*)$/);
+    var source;
+    var flags = 'i';
+    if (wrapped) {
+      source = wrapped[1];
+      flags = (wrapped[2] || 'i').replace(/g/g, '');
+      if (flags.indexOf('i') === -1) flags += 'i';
+    } else if (/[|.*+?^${}()\[\]\\]/.test(text)) {
+      source = text;
+    } else {
+      source = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    try {
+      var re = new RegExp(source, flags);
+      return {
+        ok: true,
+        empty: false,
+        test: function (value) {
+          re.lastIndex = 0;
+          var str = String(value || '');
+          return re.test(str) || re.test(foldText(str));
+        }
+      };
+    } catch (e) {
+      var needle = foldText(text);
+      return {
+        ok: true,
+        empty: false,
+        test: function (value) {
+          return foldText(value).indexOf(needle) !== -1;
+        }
+      };
+    }
+  }
+
+  function rememberArticlesFromComments(items) {
+    var seen = {};
+    loadedArticles.forEach(function (art) {
+      if (art && art.slug) seen[art.slug] = true;
     });
-    sel.innerHTML = opts;
-    sel.value = selectedArticle;
+    (items || []).forEach(function (item) {
+      var slug = String(item.article_slug || '');
+      if (!slug || seen[slug]) return;
+      seen[slug] = true;
+      loadedArticles.push({
+        slug: slug,
+        title: item.article_title || slug,
+        title_en: ''
+      });
+    });
+  }
+
+  function articleCatalog() {
+    var map = {};
+    loadedArticles.forEach(function (art) {
+      if (!art || !art.slug) return;
+      map[art.slug] = {
+        slug: art.slug,
+        title: art.title || art.slug,
+        title_en: art.title_en || ''
+      };
+    });
+    loadedPublished.forEach(function (item) {
+      var slug = String(item.article_slug || '');
+      if (!slug) return;
+      if (!map[slug]) {
+        map[slug] = { slug: slug, title: item.article_title || slug, title_en: '' };
+      } else if (!map[slug].title || map[slug].title === slug) {
+        map[slug].title = item.article_title || map[slug].title;
+      }
+    });
+    return Object.keys(map)
+      .map(function (slug) { return map[slug]; })
+      .sort(function (a, b) { return String(a.title).localeCompare(String(b.title), 'fr'); });
+  }
+
+  function commentsForCurrentQuery() {
+    var input = document.getElementById('sonar-mod-article-query');
+    var raw = input ? input.value : '';
+    var compiled = compileArticleQuery(raw);
+    return loadedPublished.filter(function (item) {
+      if (selectedArticle && item.article_slug !== selectedArticle) return false;
+      if (compiled.empty) return true;
+      return compiled.test(item.article_title) || compiled.test(item.article_slug);
+    });
+  }
+
+  function refreshPublishedList() {
+    var items = sortPublished(commentsForCurrentQuery());
+    renderPublished(items);
+    var input = document.getElementById('sonar-mod-article-query');
+    var raw = input ? String(input.value || '').trim() : '';
+    var suffix = items.length >= 500 ? ' (500 plus récents)' : '';
+    var periodBit = selectedPeriod !== 'all' && PERIOD_LABELS[selectedPeriod] ? ' ' + PERIOD_LABELS[selectedPeriod] : '';
+    var queryBit = !selectedArticle && raw ? ' pour « ' + raw + ' »' : '';
+    if (!items.length) {
+      var emptyMsg = selectedArticle ? 'Aucun commentaire pour cet article' : 'Aucun commentaire publié';
+      if (selectedPeriod !== 'all' && PERIOD_LABELS[selectedPeriod]) emptyMsg += ' ' + PERIOD_LABELS[selectedPeriod];
+      if (!selectedArticle && raw) emptyMsg += ' pour « ' + raw + ' »';
+      setStatus(emptyMsg + '.', '');
+      return;
+    }
+    setStatus(items.length + ' commentaire' + (items.length > 1 ? 's' : '') + ' publié' + (items.length > 1 ? 's' : '') + queryBit + periodBit + suffix + '.', '');
+  }
+
+  function hideArticleResults() {
+    var list = document.getElementById('sonar-mod-article-results');
+    if (list) list.hidden = true;
+  }
+
+  function updateArticleChip() {
+    var row = document.getElementById('sonar-mod-article-chip-row');
+    var chip = document.getElementById('sonar-mod-article-chip');
+    if (!row || !chip) return;
+    if (!selectedArticle) {
+      row.hidden = true;
+      chip.textContent = '';
+      return;
+    }
+    row.hidden = false;
+    chip.textContent = selectedArticleTitle || selectedArticle;
+  }
+
+  function matchArticleRecord(article, compiled) {
+    if (!compiled || compiled.empty) return true;
+    return compiled.test(article.title) || compiled.test(article.slug) || compiled.test(article.title_en);
+  }
+
+  function currentArticleMatches() {
+    var input = document.getElementById('sonar-mod-article-query');
+    var raw = input ? input.value : '';
+    var compiled = compileArticleQuery(raw);
+    var items = articleCatalog().filter(function (article) {
+      return matchArticleRecord(article, compiled);
+    });
+    if (compiled.empty) items = items.slice(0, 40);
+    return { compiled: compiled, items: items };
+  }
+
+  function renderArticleResults(raw, open) {
+    var list = document.getElementById('sonar-mod-article-results');
+    var hint = document.getElementById('sonar-mod-article-hint');
+    if (!list) return;
+    var result = currentArticleMatches();
+    if (hint) {
+      hint.hidden = result.compiled.ok;
+      hint.textContent = result.compiled.ok ? '' : (result.compiled.error || 'Expression régulière invalide');
+    }
+    if (!open) {
+      list.hidden = true;
+      return;
+    }
+    if (!result.compiled.ok) {
+      list.hidden = true;
+      return;
+    }
+    if (!result.items.length) {
+      list.innerHTML = '<li class="is-empty">Aucun article correspondant</li>';
+      list.hidden = false;
+      return;
+    }
+    if (articleHighlight >= result.items.length) articleHighlight = 0;
+    list.innerHTML = result.items.map(function (art, index) {
+      return (
+        '<li>' +
+          '<button type="button" data-article-slug="' + escapeHtml(art.slug) + '" data-article-title="' + escapeHtml(art.title) + '"' +
+            (index === articleHighlight ? ' class="is-active"' : '') + '>' +
+            escapeHtml(art.title) +
+          '</button>' +
+        '</li>'
+      );
+    }).join('');
+    list.hidden = false;
+  }
+
+  function moveArticleHighlight(delta) {
+    var result = currentArticleMatches();
+    if (!result.items.length) return;
+    articleHighlight = (articleHighlight + delta + result.items.length) % result.items.length;
+    renderArticleResults(document.getElementById('sonar-mod-article-query').value, true);
+  }
+
+  function pickHighlightedArticle() {
+    var result = currentArticleMatches();
+    if (!result.items.length) return;
+    var art = result.items[articleHighlight] || result.items[0];
+    selectPublishedArticle(art.slug, art.title);
+  }
+
+  function selectPublishedArticle(slug, title) {
+    selectedArticle = slug || '';
+    selectedArticleTitle = title || '';
+    var input = document.getElementById('sonar-mod-article-query');
+    if (input) input.value = '';
+    hideArticleResults();
+    updateArticleChip();
+    loadPublished(selectedArticle);
+  }
+
+  async function ensureArticles() {
+    if (loadedArticles.length) return;
+    try {
+      var headers = authHeaders();
+      headers.Accept = 'application/json';
+      var res = await fetch('/api/admin/articles', { headers: headers });
+      var data = await res.json().catch(function () { return {}; });
+      if (res.ok && Array.isArray(data.articles)) {
+        loadedArticles = data.articles;
+      }
+    } catch (e) {}
+    rememberArticlesFromComments(loadedPublished);
   }
 
   function renderPublished(items) {
@@ -378,6 +644,7 @@
     setActiveNav();
     showTools();
     setStatus('Chargement…', '');
+    await ensureArticles();
     try {
       var params = [];
       if (selectedArticle) params.push('article=' + encodeURIComponent(selectedArticle));
@@ -395,23 +662,10 @@
         renderPublished([]);
         return;
       }
-      fillArticleSelect(data.articles || []);
       loadedPublished = data.items || [];
+      rememberArticlesFromComments(loadedPublished);
       showTools();
-      if (!loadedPublished.length) {
-        var emptyMsg = selectedArticle ? 'Aucun commentaire pour cet article' : 'Aucun commentaire publié';
-        if (selectedPeriod !== 'all' && PERIOD_LABELS[selectedPeriod]) {
-          emptyMsg += ' ' + PERIOD_LABELS[selectedPeriod];
-        }
-        setStatus(emptyMsg + '.', '');
-        renderPublished([]);
-      } else {
-        var count = loadedPublished.length;
-        var suffix = count >= 500 ? ' (500 plus récents)' : '';
-        var periodBit = selectedPeriod !== 'all' && PERIOD_LABELS[selectedPeriod] ? ' ' + PERIOD_LABELS[selectedPeriod] : '';
-        setStatus(count + ' commentaire' + (count > 1 ? 's' : '') + ' publié' + (count > 1 ? 's' : '') + periodBit + suffix + '.', '');
-        renderPublished(sortPublished(loadedPublished));
-      }
+      refreshPublishedList();
       refreshBadge();
     } catch (e) {
       setStatus('Erreur de connexion au serveur.', 'err');

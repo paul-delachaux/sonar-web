@@ -14,29 +14,23 @@ import { getCollection } from 'astro:content';
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
 
-// Index de recherche du header de l'accueil : uniquement les articles visibles
-// (repris ici plutôt qu'importé depuis index.astro pour garder Layout.astro autonome).
-const searchIndex = isHome
-    ? (await getCollection('articles'))
-        .filter((art) => art.data.isVisible !== false)
-        .map((art) => ({
-            slug: art.id,
-            title: art.data.title,
-            titleEn: art.data.title_en || null,
-            category: art.data.category,
-        }))
-    : [];
-// Empêche une éventuelle séquence "</script>" dans un titre de casser le tag inline.
+const visibleArticles = (await getCollection('articles'))
+    .filter((art) => art.data.isVisible !== false);
+
+const searchIndex = visibleArticles.map((art) => ({
+    slug: art.id,
+    title: art.data.title,
+    titleEn: art.data.title_en || null,
+    category: art.data.category,
+}));
 const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
 
 const articleTitlesJson = JSON.stringify(
-    (await getCollection('articles'))
-        .filter((art) => art.data.isVisible !== false)
-        .map((art) => ({
-            slug: art.id,
-            title: art.data.title,
-            titleEn: art.data.title_en || null,
-        }))
+    visibleArticles.map((art) => ({
+        slug: art.id,
+        title: art.data.title,
+        titleEn: art.data.title_en || null,
+    }))
 ).replace(/</g, '\\u003c');
 ---
 
@@ -526,24 +520,46 @@ const articleTitlesJson = JSON.stringify(
                 position: absolute;
                 top: 100%;
                 left: 0;
-                margin-top: 8px;
-                min-width: 240px;
+                margin: 8px 0 0 0;
+                min-width: 280px;
+                width: max-content;
+                max-width: min(420px, 70vw);
                 background-color: #02001d;
                 border: 1px solid #1f2937;
                 border-radius: 10px;
                 box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
                 list-style: none;
-                padding: 6px 0;
-                max-height: 320px;
+                padding: 4px 0;
+                max-height: 280px;
                 overflow-y: auto;
+                text-align: left;
+                line-height: 1.35;
                 z-index: 41;
+                scrollbar-width: thin;
+                scrollbar-color: #3a4a60 transparent;
+            }
+            .hv2-search-results::-webkit-scrollbar {
+                width: 6px;
+            }
+            .hv2-search-results::-webkit-scrollbar-thumb {
+                background: #3a4a60;
+                border-radius: 4px;
+            }
+            .hv2-search-results li {
+                margin: 0;
+                padding: 0;
+                line-height: inherit;
+                text-align: left;
             }
             .hv2-search-results li a {
                 display: block;
-                padding: 9px 14px;
+                padding: 7px 14px;
                 color: #ffffff;
                 text-decoration: none;
-                font-size: 0.9rem;
+                font-size: 0.85rem;
+                font-weight: 400;
+                line-height: 1.35;
+                text-align: left;
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
             .hv2-search-results li a:hover {
@@ -551,19 +567,24 @@ const articleTitlesJson = JSON.stringify(
                 color: #ff8826;
             }
             .hv2-search-empty {
-                padding: 9px 14px;
+                padding: 7px 14px;
                 color: #8fa0b5;
                 font-size: 0.85rem;
+                line-height: 1.35;
+                text-align: left;
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
 
             /* --- STYLE DE LA BARRE COMPACTE DE NAVIGATION (HORS ACCUEIL) --- */
             .header-inner {
                 position: relative;
-                z-index: 40;
+                z-index: 200;
+                overflow: visible;
                 display: flex;
                 align-items: center;
-                justify-content: space-between; 
+                justify-content: space-between;
+                text-align: left;
+                line-height: normal;
                 padding: 15px 30px;
                 background-color: #02001d; 
                 border-bottom: 1px solid #102136;
@@ -572,6 +593,14 @@ const articleTitlesJson = JSON.stringify(
                 margin-top: calc(-1 * var(--page-pad));
                 margin-bottom: 30px;
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            }
+
+            .header-inner-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 0;
+                flex: 1;
             }
 
             .header-inner-logo {
@@ -628,6 +657,7 @@ const articleTitlesJson = JSON.stringify(
                 right: 0;
                 height: min(50px, 92vw);
                 margin: 0 auto;
+                overflow: visible;
                 z-index: 900;
                 transform: translateY(-100%);
                 opacity: 0;
@@ -931,6 +961,9 @@ const articleTitlesJson = JSON.stringify(
                 .header-inner-logo {
                     width: 105px;
                 }
+                .header-inner .hv2-search-wrap.is-open .hv2-search-inline {
+                    width: clamp(120px, 28vw, 200px);
+                }
                 .header-right-group {
                     flex-direction: row;
                     flex-wrap: wrap;
@@ -1157,8 +1190,6 @@ const articleTitlesJson = JSON.stringify(
                         <a href="/societe" data-i18n="nav_societe">Société</a>
                         <a href="/technologie" data-i18n="nav_tech">Technologie</a>
                     </nav>
-
-                    <script type="application/json" id="hv2-search-data" set:html={searchIndexJson} />
                 </header>
 
                 {/* En dehors du header : le "backdrop-filter" du header en ferait sinon le
@@ -1272,6 +1303,7 @@ const articleTitlesJson = JSON.stringify(
             </div>
         </footer>
 
+        <script type="application/json" id="hv2-search-data" set:html={searchIndexJson} />
         <script type="application/json" id="sonar-article-titles" set:html={articleTitlesJson} />
         <AccountDrawer />
 
@@ -1279,49 +1311,26 @@ const articleTitlesJson = JSON.stringify(
         <script>
             import { dictionary } from '../data/dictionary.js';
 
-            // --- HEADER ACCUEIL (v2) : menu catégories + recherche d'articles ---
-            function setupHeaderV2() {
-                const header = document.querySelector('.header-v2');
-                if (!header) return; // Header v2 uniquement présent sur la page d'accueil
+            // --- RECHERCHE D'ARTICLES (header accueil + header compact) ---
+            function loadSearchIndex() {
+                try {
+                    const raw = document.getElementById('hv2-search-data');
+                    return raw && raw.textContent ? JSON.parse(raw.textContent) : [];
+                } catch {
+                    return [];
+                }
+            }
 
-                // Le menu latéral et son voile sombre sont rendus hors du header (voir
-                // Layout.astro) pour rester positionnés par rapport à la fenêtre, pas au
-                // header (qui a un backdrop-filter, cf. commentaire dans le markup).
-                const overlay = document.getElementById('hv2-overlay');
-                const menuPanel = document.getElementById('hv2-menu-panel');
-                const menuCloseBtn = menuPanel ? menuPanel.querySelector('.hv2-menu-close') : null;
-                const burgerBtn = header.querySelector('.hv2-burger');
-
+            function setupHeaderSearch(header, hooks = {}) {
                 const searchBtn = header.querySelector('.hv2-search-toggle');
-                const searchWrap = header.querySelector('#hv2-search-panel');
+                const searchWrap = header.querySelector('.hv2-search-wrap');
                 const searchInput = searchWrap ? searchWrap.querySelector('.hv2-search-input') : null;
                 const resultsList = searchWrap ? searchWrap.querySelector('[data-search-results]') : null;
+                const searchIndex = loadSearchIndex();
 
-                function isMenuOpen() {
-                    return Boolean(menuPanel && menuPanel.classList.contains('is-open'));
-                }
                 function isSearchOpen() {
                     return Boolean(searchWrap && searchWrap.classList.contains('is-open'));
                 }
-
-                function closeMenu() {
-                    if (!menuPanel || !isMenuOpen()) return;
-                    menuPanel.classList.remove('is-open');
-                    if (overlay) overlay.classList.remove('is-open');
-                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'false');
-                }
-                function openMenu() {
-                    if (!menuPanel) return;
-                    closeSearch();
-                    menuPanel.classList.add('is-open');
-                    if (overlay) overlay.classList.add('is-open');
-                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'true');
-                }
-                function toggleMenu() {
-                    if (isMenuOpen()) closeMenu();
-                    else openMenu();
-                }
-
                 function closeSearch() {
                     if (!searchWrap || !isSearchOpen()) return;
                     searchWrap.classList.remove('is-open');
@@ -1334,7 +1343,7 @@ const articleTitlesJson = JSON.stringify(
                 }
                 function openSearch() {
                     if (!searchWrap) return;
-                    closeMenu();
+                    if (typeof hooks.onOpen === 'function') hooks.onOpen();
                     searchWrap.classList.add('is-open');
                     if (searchBtn) searchBtn.setAttribute('aria-expanded', 'true');
                     if (searchInput) searchInput.focus();
@@ -1344,59 +1353,22 @@ const articleTitlesJson = JSON.stringify(
                     else openSearch();
                 }
 
-                if (burgerBtn) {
-                    burgerBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        toggleMenu();
-                    });
-                }
-                if (menuCloseBtn) {
-                    menuCloseBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        closeMenu();
-                    });
-                }
-                if (overlay) {
-                    overlay.addEventListener('click', closeMenu);
-                }
-                if (menuPanel) {
-                    menuPanel.querySelectorAll('.hv2-menu-links a').forEach((link) => {
-                        link.addEventListener('click', closeMenu);
-                    });
-                }
                 if (searchBtn) {
                     searchBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         toggleSearch();
                     });
                 }
-
                 document.addEventListener('click', (e) => {
                     const insideHeader = header.contains(e.target);
-                    const insideMenu = menuPanel && menuPanel.contains(e.target);
-                    if (!insideHeader && !insideMenu) {
-                        closeMenu();
-                        closeSearch();
-                    }
+                    const insideExtra = typeof hooks.isInside === 'function' && hooks.isInside(e.target);
+                    if (!insideHeader && !insideExtra) closeSearch();
                 });
                 document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        closeMenu();
-                        closeSearch();
-                    }
+                    if (e.key === 'Escape') closeSearch();
                 });
-                // Empêche la fermeture immédiate quand on clique à l'intérieur des panneaux
-                [menuPanel, searchWrap].forEach((panel) => {
-                    if (panel) panel.addEventListener('click', (e) => e.stopPropagation());
-                });
-
-                // --- Recherche d'articles (regex insensible aux accents/casse) ---
-                let searchIndex = [];
-                try {
-                    const raw = document.getElementById('hv2-search-data');
-                    searchIndex = raw && raw.textContent ? JSON.parse(raw.textContent) : [];
-                } catch {
-                    searchIndex = [];
+                if (searchWrap) {
+                    searchWrap.addEventListener('click', (e) => e.stopPropagation());
                 }
 
                 const normalize = (str) => String(str || '')
@@ -1456,6 +1428,87 @@ const articleTitlesJson = JSON.stringify(
                         if (isSearchOpen()) renderResults(searchInput.value);
                     });
                 }
+
+                return { closeSearch, isSearchOpen };
+            }
+
+            // --- HEADER ACCUEIL (v2) : menu catégories + recherche d'articles ---
+            function setupHeaderV2() {
+                const header = document.querySelector('.header-v2');
+                if (!header) return; // Header v2 uniquement présent sur la page d'accueil
+
+                // Le menu latéral et son voile sombre sont rendus hors du header (voir
+                // Layout.astro) pour rester positionnés par rapport à la fenêtre, pas au
+                // header (qui a un backdrop-filter, cf. commentaire dans le markup).
+                const overlay = document.getElementById('hv2-overlay');
+                const menuPanel = document.getElementById('hv2-menu-panel');
+                const menuCloseBtn = menuPanel ? menuPanel.querySelector('.hv2-menu-close') : null;
+                const burgerBtn = header.querySelector('.hv2-burger');
+
+                function isMenuOpen() {
+                    return Boolean(menuPanel && menuPanel.classList.contains('is-open'));
+                }
+
+                function closeMenu() {
+                    if (!menuPanel || !isMenuOpen()) return;
+                    menuPanel.classList.remove('is-open');
+                    if (overlay) overlay.classList.remove('is-open');
+                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'false');
+                }
+
+                const searchApi = setupHeaderSearch(header, {
+                    onOpen: closeMenu,
+                    isInside: (target) => Boolean(menuPanel && menuPanel.contains(target)),
+                });
+
+                function openMenu() {
+                    if (!menuPanel) return;
+                    searchApi.closeSearch();
+                    menuPanel.classList.add('is-open');
+                    if (overlay) overlay.classList.add('is-open');
+                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'true');
+                }
+                function toggleMenu() {
+                    if (isMenuOpen()) closeMenu();
+                    else openMenu();
+                }
+
+                if (burgerBtn) {
+                    burgerBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleMenu();
+                    });
+                }
+                if (menuCloseBtn) {
+                    menuCloseBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        closeMenu();
+                    });
+                }
+                if (overlay) {
+                    overlay.addEventListener('click', closeMenu);
+                }
+                if (menuPanel) {
+                    menuPanel.querySelectorAll('.hv2-menu-links a').forEach((link) => {
+                        link.addEventListener('click', closeMenu);
+                    });
+                    menuPanel.addEventListener('click', (e) => e.stopPropagation());
+                }
+
+                document.addEventListener('click', (e) => {
+                    const insideHeader = header.contains(e.target);
+                    const insideMenu = menuPanel && menuPanel.contains(e.target);
+                    if (!insideHeader && !insideMenu) closeMenu();
+                });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') closeMenu();
+                });
+            }
+
+            function setupInnerHeaderSearch() {
+                document.querySelectorAll('.header-inner').forEach((header) => {
+                    setupHeaderSearch(header);
+                });
             }
 
             // Accueil uniquement : remplace en douceur le grand header par le bandeau
@@ -1568,6 +1621,7 @@ const articleTitlesJson = JSON.stringify(
                 const savedLang = localStorage.getItem('site_lang') || 'FR';
                 applyLanguage(savedLang);
                 setupHeaderV2();
+                setupInnerHeaderSearch();
                 setupStickyHeader();
 
                 // Sélecteur FR / EN à deux boutons séparés (header accueil + header compact)

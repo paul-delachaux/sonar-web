@@ -7,16 +7,44 @@ interface Props {
     fixedClone?: boolean;
 }
 const { fixedClone = false } = Astro.props;
+const searchPanelId = fixedClone ? 'header-inner-search-panel-clone' : 'header-inner-search-panel';
 
 import logoSonar from './LogoSonarVdef.png';
 import AuthNav from './AuthNav.astro';
 ---
 
 <header class:list={['header-inner', fixedClone && 'header-fixed-clone']}>
-    <div class="header-inner-logo">
-        <a href="/" aria-label="Retour au menu principal">
-            <img src={logoSonar.src} alt="Logo Sonar" style="width: 100%; height: auto; display: block;" />
-        </a>
+    <div class="header-inner-left">
+        <div class="header-inner-logo">
+            <a href="/" aria-label="Retour au menu principal">
+                <img src={logoSonar.src} alt="Logo Sonar" style="width: 100%; height: auto; display: block;" />
+            </a>
+        </div>
+
+        <button
+            type="button"
+            class="hv2-icon-btn hv2-search-toggle"
+            aria-label="Rechercher un article"
+            aria-expanded="false"
+            aria-controls={searchPanelId}
+        >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </button>
+        <div id={searchPanelId} class="hv2-search-wrap">
+            <div class="hv2-search-inline">
+                <input
+                    type="search"
+                    class="hv2-search-input"
+                    placeholder="Rechercher un article…"
+                    data-i18n-placeholder="search_placeholder"
+                    aria-label="Rechercher un article"
+                />
+            </div>
+            <ul class="hv2-search-results" data-search-results hidden></ul>
+        </div>
     </div>
 
     <div class="header-right-group">

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { getCollection } from 'astro:content';
 import { requireCmsAdmin } from '../../../utils/admin-github';
+import { listAdminArticles } from '../../../utils/admin-articles';
 import { createServiceClient } from '../../../utils/service-client';
 import { serverEnv } from '../../../utils/server-env';
 import { supabase } from '../../../utils/supabase';
@@ -130,20 +130,14 @@ export const GET: APIRoute = async ({ request }) => {
       }
     }
 
+    const catalog = await listAdminArticles();
     const titleBySlug: Record<string, string> = {};
-    try {
-      const posts = await getCollection('articles');
-      for (const post of posts) {
-        titleBySlug[post.id] = String(post.data.title || post.id);
-      }
-    } catch {
-      /* le dropdown utilisera les slugs des commentaires */
+    for (const article of catalog) {
+      titleBySlug[article.slug] = article.title;
     }
 
-    const slugSet = new Set<string>(Object.keys(titleBySlug));
     const items = rows.map((row) => {
       const slug = String(row.article_slug || '');
-      if (slug) slugSet.add(slug);
       return {
         comment_id: row.id,
         content: row.content,
@@ -156,12 +150,7 @@ export const GET: APIRoute = async ({ request }) => {
       };
     });
 
-    const articles = [...slugSet]
-      .filter(Boolean)
-      .map((slug) => ({ slug, title: titleBySlug[slug] || slug }))
-      .sort((a, b) => a.title.localeCompare(b.title, 'fr'));
-
-    return json({ items, articles, count: items.length, period });
+    return json({ items, count: items.length, period });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Impossible de charger les commentaires.';
     return json({ message }, 500);
