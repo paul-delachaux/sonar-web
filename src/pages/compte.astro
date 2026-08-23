@@ -93,7 +93,12 @@ import MainLayout from '../layouts/Layout.astro';
         <div class="form-group">
           <label for="new_password" data-i18n="account_password_new">Nouveau mot de passe</label>
           <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password" />
-          <small data-i18n="auth_password_hint">8 caractères minimum.</small>
+          <ul class="password-checks" id="password-checks" aria-live="polite">
+            <li data-check="minLength" data-i18n="auth_password_rule_length">8 caractères minimum</li>
+            <li data-check="lower" data-i18n="auth_password_rule_lower">Une minuscule</li>
+            <li data-check="upper" data-i18n="auth_password_rule_upper">Une majuscule</li>
+            <li data-check="digit" data-i18n="auth_password_rule_digit">Un chiffre</li>
+          </ul>
         </div>
         <div class="form-group">
           <label for="new_password_confirm" data-i18n="account_password_confirm">Confirmer le nouveau mot de passe</label>
@@ -137,6 +142,16 @@ import MainLayout from '../layouts/Layout.astro';
 <script>
   import { getBrowserSupabase, getCurrentAccount, getAuthRedirectUrl, type Account } from '../utils/supabase-browser';
   import { avatarInitial, avatarImgHtml, uploadAccountAvatar } from '../utils/avatar';
+  import { isValidEmail, isStrongPassword, bindPasswordChecklist } from '../utils/auth-validation';
+  import { t as translate } from '../utils/i18n.js';
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function t(key: string) {
+    return translate(key, currentLang());
+  }
 
   const page = document.getElementById('account-page');
   const photoForm = document.getElementById('photo-form') as HTMLFormElement | null;
@@ -146,6 +161,11 @@ import MainLayout from '../layouts/Layout.astro';
   const previewEl = document.getElementById('photo-preview') as HTMLElement | null;
   const avatarInput = document.getElementById('avatar') as HTMLInputElement | null;
   const removeBtn = document.getElementById('photo-remove') as HTMLButtonElement | null;
+
+  bindPasswordChecklist(
+    document.getElementById('new_password') as HTMLInputElement | null,
+    document.getElementById('password-checks')
+  );
 
   let account: Account | null = null;
   let previewObjectUrl: string | null = null;
@@ -340,6 +360,10 @@ import MainLayout from '../layouts/Layout.astro';
 
     const nextEmail = String(new FormData(emailForm).get('email') || '').trim();
     if (!nextEmail) return;
+    if (!isValidEmail(nextEmail)) {
+      setMessage('[data-email-message]', t('auth_email_invalid'), false);
+      return;
+    }
     if (nextEmail.toLowerCase() === account.email.toLowerCase()) {
       setMessage('[data-email-message]', 'C’est déjà votre adresse actuelle.', false);
       return;
@@ -403,8 +427,8 @@ import MainLayout from '../layouts/Layout.astro';
     const newPassword = String(formData.get('new_password') || '');
     const confirmPassword = String(formData.get('new_password_confirm') || '');
 
-    if (newPassword.length < 8) {
-      setMessage('[data-password-message]', 'Le nouveau mot de passe doit faire au moins 8 caractères.', false);
+    if (!isStrongPassword(newPassword)) {
+      setMessage('[data-password-message]', t('auth_password_hint'), false);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -551,6 +575,36 @@ import MainLayout from '../layouts/Layout.astro';
   .avatar-actions small {
     color: #6b7280;
     font-size: 0.8rem;
+  }
+
+  .password-checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+  }
+
+  .password-checks li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .password-checks li::before {
+    content: '○';
+    color: #6b7280;
+  }
+
+  .password-checks li.is-met {
+    color: #22c55e;
+  }
+
+  .password-checks li.is-met::before {
+    content: '✓';
+    color: #22c55e;
   }
 
   .form-group input[type="text"],

@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabase, createSupabaseWithAuth } from '../../utils/supabase';
-import { BANNED_WORDS } from '../../utils/bannedWords';
+import { moderateComment } from '../../utils/comment-moderation';
+import { detectCommentLang } from '../../utils/comment-translate';
 
 export const prerender = false;
 
@@ -79,12 +80,9 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const textToCheck = `${account.username} ${content}`.toLowerCase();
-    const containsBannedWord = BANNED_WORDS.some((word) =>
-      textToCheck.includes(word.toLowerCase())
-    );
-
-    if (containsBannedWord) {
+    const textToCheck = `${account.username} ${content}`;
+    const moderation = await moderateComment(textToCheck);
+    if (moderation.blocked) {
       return new Response(
         JSON.stringify({
           message: 'Votre commentaire contient du vocabulaire inapproprié.',
@@ -98,6 +96,7 @@ export const POST: APIRoute = async ({ request }) => {
       author_name: account.username,
       content: String(content).trim(),
       account_id: account.id,
+      source_lang: detectCommentLang(String(content)),
     };
     if (rootParentId) insertRow.parent_id = rootParentId;
     if (replyToId) insertRow.reply_to_id = replyToId;
@@ -110,6 +109,19 @@ export const POST: APIRoute = async ({ request }) => {
     if (error && insertRow.reply_to_id) {
       const { reply_to_id: _ignored, ...withoutReplyTo } = insertRow;
       const retry = await userClient.from('comments').insert([withoutReplyTo]).select();
+      newComment = retry.data;
+      error = retry.error;
+    }
+
+    if (error) {
+      const fallback: Record<string, unknown> = {
+        article_slug,
+        author_name: account.username,
+        content: String(content).trim(),
+        account_id: account.id,
+      };
+      if (rootParentId) fallback.parent_id = rootParentId;
+      const retry = await userClient.from('comments').insert([fallback]).select();
       newComment = retry.data;
       error = retry.error;
     }

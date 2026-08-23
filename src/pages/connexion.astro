@@ -38,6 +38,16 @@ import MainLayout from '../layouts/Layout.astro';
 <script>
   import { getBrowserSupabase, getCurrentAccount, safeRedirectPath } from '../utils/supabase-browser';
   import { flushPendingAvatar } from '../utils/avatar';
+  import { isValidEmail, isEmailNotConfirmedError } from '../utils/auth-validation';
+  import { t as translate } from '../utils/i18n.js';
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function t(key: string) {
+    return translate(key, currentLang());
+  }
 
   const params = new URLSearchParams(window.location.search);
   const redirect = safeRedirectPath(params.get('redirect'));
@@ -64,6 +74,12 @@ import MainLayout from '../layouts/Layout.astro';
   const messageEl = document.getElementById('form-message');
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
 
+  function setFormMessage(text: string, tone: 'ok' | 'error' | 'wait') {
+    if (!messageEl) return;
+    messageEl.textContent = text;
+    messageEl.style.color = tone === 'ok' ? '#22c55e' : tone === 'wait' ? '#9ca3af' : '#ef4444';
+  }
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!messageEl || !form) return;
@@ -76,13 +92,23 @@ import MainLayout from '../layouts/Layout.astro';
     const email = String(formData.get('email') || '').trim();
     const password = String(formData.get('password') || '');
 
+    if (!isValidEmail(email)) {
+      setFormMessage(t('auth_email_invalid'), 'error');
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
     try {
       const supabase = getBrowserSupabase();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        messageEl.textContent = 'E-mail ou mot de passe incorrect.';
-        messageEl.style.color = '#ef4444';
+        if (isEmailNotConfirmedError(error.message)) {
+          setFormMessage(t('auth_email_not_confirmed'), 'error');
+        } else {
+          messageEl.textContent = 'E-mail ou mot de passe incorrect.';
+          messageEl.style.color = '#ef4444';
+        }
         if (submitBtn) submitBtn.disabled = false;
         return;
       }

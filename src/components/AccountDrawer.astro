@@ -444,9 +444,10 @@
       const type = item.type || 'read_later';
       const isReadLater = type === 'read_later';
       const title = notifHeadline(item, lang);
-      const href = item.article_slug
+      const commentHref = item.article_slug
         ? commentPermalink(item.article_slug, item.comment_id)
         : '#';
+      const articleHref = item.article_slug ? `/articles/${item.article_slug}` : '#';
       const when = formatNotifDate(item.created_at);
       const kindKey = notifKindKey(type);
       const linkKey = isReadLater ? 'notif_read_article' : 'notif_see_comment';
@@ -499,10 +500,10 @@
           </div>
           <div class="account-notif-copy">
             <p class="account-notif-title">${escapeHtml(title)}</p>
-            ${articleTitle ? `<p class="account-notif-article"><span class="account-notif-article-prep" data-i18n="notif_on_article">${escapeHtml(t('notif_on_article'))}</span> <span class="account-notif-article-title">${escapeHtml(articleTitle)}</span></p>` : ''}
+            ${articleTitle && item.article_slug ? `<p class="account-notif-article"><span class="account-notif-article-prep" data-i18n="notif_on_article">${escapeHtml(t('notif_on_article'))}</span> <a class="account-notif-article-title" href="${escapeHtml(articleHref)}">${escapeHtml(articleTitle)}</a></p>` : ''}
             ${excerpt ? `<p class="account-notif-excerpt">« ${escapeHtml(excerpt)} »</p>` : ''}
             ${body ? `<p class="account-notif-body account-notif-body--reply">${replyArrow}<span>${isLikeOnReply ? formatCommentBody(body) : escapeHtml(body)}</span></p>` : ''}
-            ${item.article_slug ? `<a class="account-notif-link" href="${escapeHtml(href)}" data-i18n="${linkKey}">${escapeHtml(t(linkKey))}</a>` : ''}
+            ${item.article_slug ? `<a class="account-notif-link" href="${escapeHtml(commentHref)}" data-i18n="${linkKey}">${escapeHtml(t(linkKey))}</a>` : ''}
             ${isReadLater ? `<div class="account-notif-snooze">
               <span data-i18n="notif_remind_in">${escapeHtml(t('notif_remind_in'))}</span>
               ${snoozeBtns}
@@ -765,9 +766,9 @@
       return;
     }
 
-    if (target.closest('.account-notif-link')) {
+    if (target.closest('.account-notif-link') || target.closest('.account-notif-article-title')) {
       event.preventDefault();
-      const link = target.closest<HTMLAnchorElement>('.account-notif-link');
+      const link = target.closest<HTMLAnchorElement>('a');
       const href = link?.getAttribute('href') || '';
       try {
         if (item.dataset.type === 'read_later' && slug) await rescheduleSlugs([slug]);
@@ -1284,8 +1285,14 @@
     font-weight: 500;
   }
   .account-notif-article-title {
-    color: #ea580c;
+    color: #FFD166;
+    text-decoration: underline;
+    text-underline-offset: 2px;
     font-weight: 600;
+    cursor: pointer;
+  }
+  .account-notif-article-title:hover {
+    color: #ffe08a;
   }
   .account-notif-body {
     margin: 6px 0 0;

@@ -2,6 +2,7 @@
 import { supabase } from '../utils/supabase';
 import UserAvatar from './UserAvatar.astro';
 import { formatCommentBody } from '../utils/comment-text';
+import { detectCommentLang } from '../utils/comment-translate';
 
 interface Props {
   articleSlug: string;
@@ -94,6 +95,11 @@ for (const comment of allComments) {
 function repliesLabel(count: number, lang: 'FR' | 'EN') {
   if (lang === 'EN') return count === 1 ? '1 reply' : `${count} replies`;
   return count === 1 ? '1 réponse' : `${count} réponses`;
+}
+
+function sourceLangOf(comment: any) {
+  if (comment.source_lang === 'en' || comment.source_lang === 'fr') return comment.source_lang;
+  return detectCommentLang(String(comment.content || ''));
 }
 
 const commentCount = allComments.length;
@@ -193,7 +199,7 @@ const commentCount = allComments.length;
               data-likes={likes}
               data-replies={replies.length}
             >
-              <div class="comment-card" id={`comment-${comment.id}`} data-comment-id={comment.id} data-author={author.username} data-account-id={comment.account_id || ''}>
+              <div class="comment-card" id={`comment-${comment.id}`} data-comment-id={comment.id} data-author={author.username} data-account-id={comment.account_id || ''} data-source-lang={sourceLangOf(comment)}>
                 <div class="comment-header">
                   <UserAvatar
                     username={author.username}
@@ -205,7 +211,7 @@ const commentCount = allComments.length;
                     {stamp.dateFR}
                   </time>
                 </div>
-                <p class="comment-body" set:html={formatCommentBody(comment.content)} />
+                <p class="comment-body" data-original={comment.content} set:html={formatCommentBody(comment.content)} />
                 <div class="comment-actions">
                   <button type="button" class="comment-like" data-comment-id={comment.id} aria-pressed="false" title="J'aime">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -214,6 +220,8 @@ const commentCount = allComments.length;
                     <span class="comment-like-count">{likes}</span>
                   </button>
                   <button type="button" class="comment-reply-btn" data-i18n="comments_reply">Répondre</button>
+                  <button type="button" class="comment-translate-btn" data-i18n="comments_translate" hidden>Traduire</button>
+                  <button type="button" class="comment-report-btn" data-i18n="comments_report">Signaler</button>
                   <button type="button" class="comment-delete-btn" hidden data-i18n="comments_delete">Supprimer</button>
                 </div>
               </div>
@@ -240,7 +248,7 @@ const commentCount = allComments.length;
                   const replyStamp = formatCommentStamp(reply.created_at);
                   const replyLikes = likeCountById[String(reply.id)] || 0;
                   return (
-                    <div class="comment-card comment-card--reply" id={`comment-${reply.id}`} data-comment-id={reply.id} data-author={replyAuthor.username} data-account-id={reply.account_id || ''}>
+                    <div class="comment-card comment-card--reply" id={`comment-${reply.id}`} data-comment-id={reply.id} data-author={replyAuthor.username} data-account-id={reply.account_id || ''} data-source-lang={sourceLangOf(reply)}>
                       <div class="comment-header">
                         <UserAvatar
                           username={replyAuthor.username}
@@ -253,7 +261,7 @@ const commentCount = allComments.length;
                           {replyStamp.dateFR}
                         </time>
                       </div>
-                      <p class="comment-body" set:html={formatCommentBody(reply.content)} />
+                      <p class="comment-body" data-original={reply.content} set:html={formatCommentBody(reply.content)} />
                       <div class="comment-actions">
                         <button type="button" class="comment-like" data-comment-id={reply.id} aria-pressed="false" title="J'aime">
                           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -262,6 +270,8 @@ const commentCount = allComments.length;
                           <span class="comment-like-count">{replyLikes}</span>
                         </button>
                         <button type="button" class="comment-reply-btn" data-i18n="comments_reply">Répondre</button>
+                        <button type="button" class="comment-translate-btn" data-i18n="comments_translate" hidden>Traduire</button>
+                        <button type="button" class="comment-report-btn" data-i18n="comments_report">Signaler</button>
                         <button type="button" class="comment-delete-btn" hidden data-i18n="comments_delete">Supprimer</button>
                       </div>
                     </div>
@@ -278,11 +288,34 @@ const commentCount = allComments.length;
   </div>
 </aside>
 
+<dialog class="comment-report-dialog" id="comment-report-dialog" aria-labelledby="comment-report-title">
+  <form id="comment-report-form">
+    <h3 id="comment-report-title" data-i18n="comments_report_title">Signaler ce commentaire</h3>
+    <p class="comment-report-lead" data-i18n="comments_report_lead">Confirmez le signalement. Un modérateur l’examinera.</p>
+    <fieldset class="comment-report-reasons">
+      <legend data-i18n="comments_report_reason">Motif</legend>
+      <label><input type="radio" name="reason" value="insult" required /> <span data-i18n="comments_report_reason_insult">Insultes ou harcèlement</span></label>
+      <label><input type="radio" name="reason" value="spam" /> <span data-i18n="comments_report_reason_spam">Spam</span></label>
+      <label><input type="radio" name="reason" value="illegal" /> <span data-i18n="comments_report_reason_illegal">Contenu illégal ou dangereux</span></label>
+      <label><input type="radio" name="reason" value="offtopic" /> <span data-i18n="comments_report_reason_offtopic">Hors-sujet</span></label>
+      <label><input type="radio" name="reason" value="other" /> <span data-i18n="comments_report_reason_other">Autre</span></label>
+    </fieldset>
+    <label class="comment-report-details-label" for="comment-report-details" data-i18n="comments_report_details">Précisions (optionnel)</label>
+    <textarea id="comment-report-details" name="details" rows="3" maxlength="500"></textarea>
+    <p class="comment-report-message" id="comment-report-message" hidden></p>
+    <div class="comment-report-actions">
+      <button type="submit" class="comment-report-submit" data-i18n="comments_report_submit">Envoyer le signalement</button>
+      <button type="button" class="comment-report-cancel" id="comment-report-cancel" data-i18n="comments_report_cancel">Annuler</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
   import { getBrowserSupabase, getCurrentAccount, listMyCommentLikes, setCommentLiked, deleteOwnComment, type Account } from '../utils/supabase-browser';
   import { avatarInitial, avatarImgHtml } from '../utils/avatar';
   import { t as translate } from '../utils/i18n.js';
   import { escapeHtml, formatCommentBody } from '../utils/comment-text';
+  import { detectCommentLang } from '../utils/comment-translate';
 
   const form = document.getElementById('comment-form') as HTMLFormElement | null;
   const loginPrompt = document.getElementById('comment-login-prompt');
@@ -294,8 +327,13 @@ const commentCount = allComments.length;
   const overlay = document.getElementById('comments-overlay');
   const drawer = document.getElementById('comments-drawer');
   const listEl = document.querySelector('.comments-list');
+  const reportDialog = document.getElementById('comment-report-dialog') as HTMLDialogElement | null;
+  const reportForm = document.getElementById('comment-report-form') as HTMLFormElement | null;
+  const reportMessageEl = document.getElementById('comment-report-message');
   const redirectTo = `/articles/${form?.dataset.slug || ''}`;
   let currentAccount: Account | null = null;
+  let reportTargetId = '';
+  let reportTargetBtn: HTMLButtonElement | null = null;
 
   function currentLang(): 'FR' | 'EN' {
     return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
@@ -308,6 +346,98 @@ const commentCount = allComments.length;
   function loginRedirect() {
     window.location.href = `/connexion?redirect=${encodeURIComponent(redirectTo)}`;
   }
+
+  function closeReportDialog() {
+    reportDialog?.close();
+    reportTargetId = '';
+    reportTargetBtn = null;
+  }
+
+  function setReportMessage(text: string, kind: 'ok' | 'err' | '') {
+    if (!reportMessageEl) return;
+    if (!text) {
+      reportMessageEl.hidden = true;
+      reportMessageEl.textContent = '';
+      return;
+    }
+    reportMessageEl.hidden = false;
+    reportMessageEl.textContent = text;
+    reportMessageEl.style.color = kind === 'ok' ? '#4ade80' : '#ef4444';
+  }
+
+  function markReported(btn: HTMLButtonElement | null) {
+    if (!btn) return;
+    btn.dataset.reported = '1';
+    btn.disabled = true;
+    btn.textContent = t('comments_reported');
+  }
+
+  function openReportDialog(commentId: string, btn: HTMLButtonElement) {
+    if (!reportDialog || !reportForm) return;
+    reportTargetId = commentId;
+    reportTargetBtn = btn;
+    reportForm.reset();
+    setReportMessage('', '');
+    const submitBtn = reportForm.querySelector<HTMLButtonElement>('.comment-report-submit');
+    if (submitBtn) submitBtn.disabled = false;
+    if (typeof reportDialog.showModal === 'function') reportDialog.showModal();
+    else reportDialog.setAttribute('open', '');
+  }
+
+  if (reportDialog && reportDialog.parentElement !== document.body) {
+    document.body.appendChild(reportDialog);
+  }
+
+  document.getElementById('comment-report-cancel')?.addEventListener('click', () => {
+    closeReportDialog();
+  });
+  reportDialog?.addEventListener('click', (event) => {
+    if (event.target === reportDialog) closeReportDialog();
+  });
+
+  reportForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!reportForm || !reportTargetId) return;
+    const payload = new FormData(reportForm);
+    const reason = String(payload.get('reason') || '');
+    const details = String(payload.get('details') || '').trim();
+    const submitBtn = reportForm.querySelector<HTMLButtonElement>('.comment-report-submit');
+    if (submitBtn) submitBtn.disabled = true;
+    setReportMessage('', '');
+    try {
+      const supabase = getBrowserSupabase();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        loginRedirect();
+        return;
+      }
+      const res = await fetch('/api/comments/report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          comment_id: reportTargetId,
+          reason,
+          details,
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setReportMessage(result.message || t('comments_report_error'), 'err');
+        if (submitBtn) submitBtn.disabled = false;
+        if (res.status === 409) markReported(reportTargetBtn);
+        return;
+      }
+      markReported(reportTargetBtn);
+      setReportMessage(t('comments_report_thanks'), 'ok');
+      window.setTimeout(() => closeReportDialog(), 1200);
+    } catch {
+      setReportMessage(t('comments_report_error'), 'err');
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
 
   function fillAvatar(el: HTMLElement, account: Account) {
     el.style.backgroundColor = account.avatar_url ? 'transparent' : (account.avatar_color || '#ea580c');
@@ -409,7 +539,11 @@ const commentCount = allComments.length;
   closeBtn?.addEventListener('click', closeDrawer);
   overlay?.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeDrawer();
+    if (e.key === 'Escape') {
+      const reportDialog = document.getElementById('comment-report-dialog') as HTMLDialogElement | null;
+      if (reportDialog?.open) return;
+      closeDrawer();
+    }
   });
 
   document.querySelectorAll('.comments-filter').forEach((btn) => {
@@ -457,28 +591,46 @@ const commentCount = allComments.length;
     likes?: number;
     isReply?: boolean;
     accountId?: string | null;
+    sourceLang?: string | null;
   }) {
     const stamp = formatStamp(opts.rawDate);
     const dateToDisplay = currentLang() === 'EN' ? stamp.dateEN : stamp.dateFR;
     const isOwn = Boolean(currentAccount && opts.accountId && currentAccount.id === opts.accountId);
+    const sourceLang = opts.sourceLang === 'en' || opts.sourceLang === 'fr' ? opts.sourceLang : detectCommentLang(opts.content);
     return `
-      <div class="comment-card${opts.isReply ? ' comment-card--reply' : ''}" id="comment-${escapeHtml(opts.id)}" data-comment-id="${escapeHtml(opts.id)}" data-author="${escapeHtml(opts.username)}" data-account-id="${escapeHtml(opts.accountId || '')}">
+      <div class="comment-card${opts.isReply ? ' comment-card--reply' : ''}" id="comment-${escapeHtml(opts.id)}" data-comment-id="${escapeHtml(opts.id)}" data-author="${escapeHtml(opts.username)}" data-account-id="${escapeHtml(opts.accountId || '')}" data-source-lang="${sourceLang}">
         <div class="comment-header">
           ${avatarMarkup(opts.username, opts.avatarUrl, opts.avatarColor, opts.isReply)}
           <strong class="author">${escapeHtml(opts.username)}</strong>
           <time class="date" datetime="${escapeHtml(opts.rawDate)}" data-fr="${escapeHtml(stamp.dateFR)}" data-en="${escapeHtml(stamp.dateEN)}">${escapeHtml(dateToDisplay)}</time>
         </div>
-        <p class="comment-body">${formatCommentBody(opts.content)}</p>
+        <p class="comment-body" data-original="${escapeHtml(opts.content)}">${formatCommentBody(opts.content)}</p>
         <div class="comment-actions">
           <button type="button" class="comment-like" data-comment-id="${escapeHtml(opts.id)}" aria-pressed="false" title="${escapeHtml(t('comments_like'))}">
             ${HEART_SVG}
             <span class="comment-like-count">${opts.likes || 0}</span>
           </button>
           <button type="button" class="comment-reply-btn" data-i18n="comments_reply">${escapeHtml(t('comments_reply'))}</button>
+          <button type="button" class="comment-translate-btn" data-i18n="comments_translate" hidden>${escapeHtml(t('comments_translate'))}</button>
+          <button type="button" class="comment-report-btn" data-i18n="comments_report"${isOwn ? ' hidden' : ''}>${escapeHtml(t('comments_report'))}</button>
           <button type="button" class="comment-delete-btn" data-i18n="comments_delete"${isOwn ? '' : ' hidden'}>${escapeHtml(t('comments_delete'))}</button>
         </div>
       </div>
     `;
+  }
+
+  function syncTranslateButtons() {
+    const lang = currentLang() === 'EN' ? 'en' : 'fr';
+    listEl?.querySelectorAll<HTMLElement>('.comment-card').forEach((card) => {
+      const btn = card.querySelector<HTMLButtonElement>('.comment-translate-btn');
+      const body = card.querySelector<HTMLElement>('.comment-body');
+      if (!btn || !body) return;
+      const source = (card.dataset.sourceLang || detectCommentLang(body.dataset.original || body.textContent || '')).toLowerCase();
+      const showingTranslated = body.dataset.showing === 'translated';
+      const needsTranslate = source !== lang;
+      btn.hidden = !needsTranslate && !showingTranslated;
+      btn.textContent = showingTranslated ? t('comments_show_original') : t('comments_translate');
+    });
   }
 
   function setThreadReplyCount(thread: HTMLElement, count: number) {
@@ -496,10 +648,11 @@ const commentCount = allComments.length;
   function revealOwnDeleteButtons() {
     if (!listEl) return;
     listEl.querySelectorAll<HTMLElement>('.comment-card').forEach((card) => {
-      const btn = card.querySelector<HTMLButtonElement>('.comment-delete-btn');
-      if (!btn) return;
       const isOwn = Boolean(currentAccount && card.dataset.accountId && card.dataset.accountId === currentAccount.id);
-      btn.hidden = !isOwn;
+      const deleteBtn = card.querySelector<HTMLButtonElement>('.comment-delete-btn');
+      const reportBtn = card.querySelector<HTMLButtonElement>('.comment-report-btn');
+      if (deleteBtn) deleteBtn.hidden = !isOwn;
+      if (reportBtn && reportBtn.dataset.reported !== '1') reportBtn.hidden = isOwn;
     });
   }
 
@@ -549,10 +702,12 @@ const commentCount = allComments.length;
     if (avatarEl) fillAvatar(avatarEl, currentAccount);
     await markLikedComments();
     revealOwnDeleteButtons();
+    syncTranslateButtons();
     return currentAccount;
   }
 
   const currentAccountPromise = setupCommentsAuth();
+  syncTranslateButtons();
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -630,6 +785,7 @@ const commentCount = allComments.length;
               content,
               rawDate,
               accountId: account.id,
+              sourceLang: insertedComment?.source_lang || detectCommentLang(content),
             })}
             <button type="button" class="comment-replies-toggle" aria-expanded="false" hidden>
               <span class="comment-replies-caret" aria-hidden="true"></span>
@@ -640,6 +796,7 @@ const commentCount = allComments.length;
 
           listEl.prepend(thread);
           sortComments(currentSort());
+          syncTranslateButtons();
         }
 
         form.reset();
@@ -700,9 +857,78 @@ const commentCount = allComments.length;
       return;
     }
 
+    const translateBtn = target.closest<HTMLButtonElement>('.comment-translate-btn');
+    if (translateBtn) {
+      const card = translateBtn.closest<HTMLElement>('.comment-card');
+      const body = card?.querySelector<HTMLElement>('.comment-body');
+      const commentId = card?.dataset.commentId;
+      if (!card || !body || !commentId) return;
+      if (body.dataset.showing === 'translated') {
+        body.innerHTML = formatCommentBody(body.dataset.original || '');
+        delete body.dataset.showing;
+        translateBtn.textContent = t('comments_translate');
+        return;
+      }
+      if (body.dataset.translated) {
+        body.innerHTML = formatCommentBody(body.dataset.translated);
+        body.dataset.showing = 'translated';
+        translateBtn.textContent = t('comments_show_original');
+        return;
+      }
+      const previous = translateBtn.textContent;
+      translateBtn.disabled = true;
+      translateBtn.textContent = currentLang() === 'EN' ? 'Translating…' : 'Traduction…';
+      try {
+        const res = await fetch('/api/comments/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: commentId,
+            target: currentLang() === 'EN' ? 'en' : 'fr',
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok || !result.translated) {
+          translateBtn.textContent = result.message || t('comments_translate_error');
+          window.setTimeout(() => {
+            translateBtn.textContent = previous || t('comments_translate');
+            translateBtn.disabled = false;
+          }, 2200);
+          return;
+        }
+        body.dataset.translated = result.translated;
+        if (result.source_lang) card.dataset.sourceLang = result.source_lang;
+        body.innerHTML = formatCommentBody(result.translated);
+        body.dataset.showing = 'translated';
+        translateBtn.textContent = t('comments_show_original');
+        translateBtn.disabled = false;
+      } catch {
+        translateBtn.textContent = t('comments_translate_error');
+        window.setTimeout(() => {
+          translateBtn.textContent = previous || t('comments_translate');
+          translateBtn.disabled = false;
+        }, 2200);
+      }
+      return;
+    }
+
     const cancelBtn = target.closest<HTMLElement>('.comment-reply-cancel');
     if (cancelBtn) {
       cancelBtn.closest('.comment-reply-form')?.remove();
+      return;
+    }
+
+    const reportBtn = target.closest<HTMLButtonElement>('.comment-report-btn');
+    if (reportBtn) {
+      if (reportBtn.dataset.reported === '1') return;
+      const card = reportBtn.closest<HTMLElement>('.comment-card');
+      const commentId = card?.dataset.commentId;
+      if (!commentId) return;
+      if (!currentAccount) {
+        loginRedirect();
+        return;
+      }
+      openReportDialog(commentId, reportBtn);
       return;
     }
 
@@ -822,6 +1048,7 @@ const commentCount = allComments.length;
           rawDate,
           isReply: true,
           accountId: account.id,
+          sourceLang: inserted.source_lang || detectCommentLang(content),
         });
         const node = wrap.firstElementChild;
         if (node) repliesBox.appendChild(node);
@@ -830,6 +1057,7 @@ const commentCount = allComments.length;
         toggle?.setAttribute('aria-expanded', 'true');
         setThreadReplyCount(thread, Number(thread.dataset.replies || 0) + 1);
         sortComments(currentSort());
+        syncTranslateButtons();
       }
       replyForm.remove();
     } catch {
@@ -854,6 +1082,15 @@ const commentCount = allComments.length;
     document.querySelectorAll<HTMLElement>('.comment-delete-btn').forEach((btn) => {
       btn.textContent = t('comments_delete');
     });
+    document.querySelectorAll<HTMLElement>('.comment-report-btn').forEach((btn) => {
+      btn.textContent = btn.dataset.reported === '1' ? t('comments_reported') : t('comments_report');
+    });
+    const reportDialog = document.getElementById('comment-report-dialog');
+    reportDialog?.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+      const key = el.getAttribute('data-i18n');
+      if (key) el.textContent = t(key);
+    });
+    syncTranslateButtons();
     document.querySelectorAll<HTMLElement>('.comment-reply-cancel').forEach((btn) => {
       btn.textContent = t('comments_reply_cancel');
     });
@@ -1304,6 +1541,166 @@ const commentCount = allComments.length;
   .comment-reply-btn:hover {
     color: #ffffff;
   }
+  .comment-translate-btn {
+    background: transparent;
+    border: none;
+    color: #ea580c;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0;
+  }
+  .comment-translate-btn:hover:not(:disabled) {
+    color: #ff8a3d;
+    text-decoration: underline;
+  }
+  .comment-translate-btn:disabled {
+    cursor: wait;
+    opacity: 0.75;
+  }
+  .comment-translate-btn[hidden] {
+    display: none;
+  }
+  .comment-report-btn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0;
+  }
+  .comment-report-btn:hover:not(:disabled) {
+    color: #ea580c;
+  }
+  .comment-report-btn[hidden] {
+    display: none;
+  }
+  .comment-report-btn:disabled {
+    color: #6b7280;
+    cursor: default;
+  }
+
+  .comment-report-dialog {
+    width: min(440px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    background: #01002d;
+    color: #ffffff;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  }
+  .comment-report-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+  }
+  .comment-report-dialog form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+  .comment-report-dialog h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #ffffff;
+  }
+  .comment-report-lead {
+    margin: 0;
+    color: #d1d5db;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+  .comment-report-reasons {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .comment-report-reasons legend {
+    padding: 0 6px;
+    color: #ea580c;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .comment-report-reasons label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #e5e7eb;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+  .comment-report-reasons input {
+    margin-top: 3px;
+    accent-color: #ea580c;
+  }
+  .comment-report-details-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #9ca3af;
+  }
+  .comment-report-dialog textarea {
+    background: #0b092b;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 0.7rem;
+    color: #ffffff;
+    font: inherit;
+    resize: vertical;
+    min-height: 72px;
+  }
+  .comment-report-dialog textarea:focus {
+    outline: none;
+    border-color: #ea580c;
+  }
+  .comment-report-message {
+    margin: 0;
+    font-size: 0.88rem;
+  }
+  .comment-report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .comment-report-submit {
+    background: #ea580c;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.55rem 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .comment-report-submit:hover:not(:disabled) {
+    background: #d4510b;
+  }
+  .comment-report-submit:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+  .comment-report-cancel {
+    background: transparent;
+    color: #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    padding: 0.55rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .comment-report-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
   .comment-delete-btn {
     background: transparent;
     border: none;

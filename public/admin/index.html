@@ -8,7 +8,7 @@
 
   <style>
     /* 1. BARRE SUPÉRIEURE */
-    #nc-root header, #nc-root nav[role="navigation"], header { background-color: #01002b !important; }
+    #nc-root header, #nc-root nav[role="navigation"] { background-color: #01002b !important; }
 
     /* 2. BOUTON DE CONNEXION GITHUB */
     #nc-root div[class*="LoginContainer"] button, #nc-root div[class*="login"] button, #nc-root button[class*="StyledAuthenticationPageButton"] { background-color: #ff7900 !important; color: #ffffff !important; border: none !important; box-shadow: none !important; }
@@ -179,10 +179,130 @@
     }
     .thumb-editor-layer-btns button:hover:not(:disabled) { background: #ff7900; border-color: #ff7900; color: #fff; }
     .thumb-editor-layer-btns button:disabled { opacity: 0.35; cursor: default; }
+
+    .cms-moderation-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      margin: 0;
+      padding: 8px 14px 8px 24px;
+      background: transparent;
+      border: none;
+      color: #3e4857;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+    }
+    .cms-moderation-item:hover { color: #ff7900; }
+    #cms-moderation-badge {
+      min-width: 18px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #ff7900;
+      color: #fff !important;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 18px;
+      text-align: center;
+    }
+    #sonar-moderation {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+    }
+    #sonar-moderation[hidden] { display: none !important; }
+    .sonar-mod-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(1, 0, 43, 0.55);
+    }
+    .sonar-mod-panel {
+      position: relative;
+      margin: 24px auto;
+      width: min(860px, calc(100vw - 32px));
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      padding: 0 0 28px;
+      font-family: Helvetica, Arial, sans-serif;
+    }
+    .sonar-mod-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      background: #01002b;
+      color: #ffffff;
+      padding: 18px 24px;
+      border-radius: 10px 10px 0 0;
+    }
+    .sonar-mod-kicker {
+      margin: 0 0 4px;
+      color: #ff7900;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .sonar-mod-header h2 {
+      margin: 0;
+      color: #ffffff !important;
+      font-size: 1.35rem;
+      font-weight: 800;
+    }
+    .sonar-mod-close {
+      background: transparent !important;
+      border: 1px solid rgba(255, 255, 255, 0.55) !important;
+      border-radius: 6px;
+      padding: 7px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      color: #ffffff !important;
+    }
+    .sonar-mod-close:hover {
+      background: #ff7900 !important;
+      border-color: #ff7900 !important;
+      color: #ffffff !important;
+    }
+    .sonar-mod-body { padding: 18px 24px 0; }
+    .sonar-mod-status { color: #334155; margin: 0 0 16px; }
+    .sonar-mod-status[data-kind="err"] { color: #c93a3f; }
+    .sonar-mod-empty { color: #475569; font-style: italic; }
+    .sonar-mod-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .sonar-mod-card-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .sonar-mod-article { color: #c2410c; font-weight: 700; text-decoration: none; }
+    .sonar-mod-article:hover { color: #ea580c; }
+    .sonar-mod-count { font-size: 12px; font-weight: 800; color: #01002b; }
+    .sonar-mod-meta { margin: 6px 0 10px; color: #475569; font-size: 13px; }
+    .sonar-mod-content { margin: 0 0 10px; white-space: pre-wrap; color: #0f172a; line-height: 1.45; }
+    .sonar-mod-reports { margin: 0 0 12px; padding-left: 18px; color: #334155; font-size: 13px; }
+    .sonar-mod-details { margin: 4px 0 0; color: #475569; font-style: italic; }
+    .sonar-mod-actions { display: flex; gap: 8px; }
+    .sonar-mod-keep, .sonar-mod-delete {
+      border: none; border-radius: 6px; padding: 8px 14px; font-weight: 700; cursor: pointer; color: #fff;
+    }
+    .sonar-mod-keep { background: #1D9E75; }
+    .sonar-mod-delete { background: #e5484d; }
   </style>
 </head>
 <body>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <script src="/admin/moderation.js"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -2751,6 +2871,56 @@
         }
       ];
 
+      function addModerationNav(sidebarContainer) {
+        if (sidebarContainer.querySelector('#cms-moderation-group')) return;
+
+        const header = document.createElement('div');
+        header.id = 'cms-moderation-group';
+        header.className = 'cms-sidebar-header';
+        header.style.cssText = `
+          cursor: pointer;
+          font-weight: bold;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          background: #01002b;
+          color: #ffffff;
+          padding: 10px 14px;
+          margin-top: 8px;
+          border-radius: 6px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          user-select: none;
+        `;
+        header.innerHTML = '<span>Modération</span><span class="arrow" style="font-size: 0.7rem;">▼</span>';
+
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.id = 'cms-moderation-nav';
+        item.className = 'cms-moderation-item';
+        item.style.paddingLeft = '10px';
+        item.innerHTML = '<span>Commentaires</span><span id="cms-moderation-badge" hidden>0</span>';
+        item.addEventListener('click', (event) => {
+          event.preventDefault();
+          if (window.SonarModeration) window.SonarModeration.open();
+        });
+
+        let isCollapsed = false;
+        header.addEventListener('click', () => {
+          isCollapsed = !isCollapsed;
+          const arrow = header.querySelector('.arrow');
+          if (arrow) arrow.textContent = isCollapsed ? '►' : '▼';
+          item.style.display = isCollapsed ? 'none' : 'flex';
+        });
+
+        sidebarContainer.appendChild(header);
+        sidebarContainer.appendChild(item);
+        if (window.SonarModeration && window.SonarModeration.refresh) {
+          window.SonarModeration.refresh();
+        }
+      }
+
       function organizeSidebar() {
         // 1. Cible spécifiquement la sidebar de Decap CMS pour éviter les liens d'en-tête d'édition
         // Decap entoure sa sidebar dans un élément <aside> ou un conteneur principal de navigation
@@ -2758,13 +2928,10 @@
         
         if (!sidebarContainer) return;
 
-        // Si nos en-têtes existent déjà dans la sidebar, inutile de les réinjecter
-        if (sidebarContainer.querySelector('.cms-sidebar-header')) return;
-
         // On ne récupère que les liens <a> situés À L'INTÉRIEUR de la sidebar
         const sidebarLinks = Array.from(sidebarContainer.querySelectorAll('a'));
-        if (sidebarLinks.length === 0) return;
 
+        if (!sidebarContainer.querySelector('[data-cms-group]') && sidebarLinks.length > 0) {
         SIDEBAR_GROUPS.forEach(group => {
           const itemsToGroup = [];
 
@@ -2783,6 +2950,7 @@
           if (itemsToGroup.length > 0) {
             const header = document.createElement('div');
             header.className = 'cms-sidebar-header';
+            header.setAttribute('data-cms-group', group.title);
             header.style.cssText = `
               cursor: pointer;
               font-weight: bold;
@@ -2816,6 +2984,9 @@
             });
           }
         });
+        }
+
+        addModerationNav(sidebarContainer);
       }
 
       // Observer les changements dans le DOM sans cibler l'en-tête de page

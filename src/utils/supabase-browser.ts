@@ -535,3 +535,15 @@ export function getAuthRedirectUrl(path = '/auth/confirm'): string {
   const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
   return `${isLocal ? origin : PRODUCTION_SITE_URL}${normalized}`;
 }
+
+export async function resendSignupConfirmation(email: string): Promise<{ error: Error | null }> {
+  const supabase = getBrowserSupabase();
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email.trim(),
+    options: {
+      emailRedirectTo: getAuthRedirectUrl('/auth/confirm'),
+    },
+  });
+  return { error: error ? new Error(error.message) : null };
+}

@@ -45,7 +45,12 @@ import MainLayout from '../layouts/Layout.astro';
         <div class="form-group">
           <label for="password" data-i18n="auth_password">Mot de passe</label>
           <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" />
-          <small data-i18n="auth_password_hint">8 caractères minimum.</small>
+          <ul class="password-checks" id="password-checks" aria-live="polite">
+            <li data-check="minLength" data-i18n="auth_password_rule_length">8 caractères minimum</li>
+            <li data-check="lower" data-i18n="auth_password_rule_lower">Une minuscule</li>
+            <li data-check="upper" data-i18n="auth_password_rule_upper">Une majuscule</li>
+            <li data-check="digit" data-i18n="auth_password_rule_digit">Un chiffre</li>
+          </ul>
         </div>
 
         <div class="form-group">
@@ -70,13 +75,28 @@ import MainLayout from '../layouts/Layout.astro';
         {' '}
         <a id="login-link" href="/connexion" data-i18n="auth_login">Connexion</a>
       </p>
+      <p class="auth-switch auth-resend">
+        <span data-i18n="auth_resend_prompt">Pas reçu l’e-mail de confirmation ?</span>
+        {' '}
+        <button type="button" id="resend-btn" class="auth-text-btn" data-i18n="auth_resend_submit">Renvoyer</button>
+      </p>
     </div>
   </div>
 </MainLayout>
 
 <script>
-  import { getBrowserSupabase, getCurrentAccount, safeRedirectPath, getAuthRedirectUrl } from '../utils/supabase-browser';
+  import { getBrowserSupabase, getCurrentAccount, safeRedirectPath, getAuthRedirectUrl, resendSignupConfirmation } from '../utils/supabase-browser';
   import { pickAvatarColor, avatarInitial, stashPendingAvatar, uploadAccountAvatar, clearPendingAvatar } from '../utils/avatar';
+  import { isValidEmail, isStrongPassword, bindPasswordChecklist, isAuthRateLimitError } from '../utils/auth-validation';
+  import { t as translate } from '../utils/i18n.js';
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function t(key: string) {
+    return translate(key, currentLang());
+  }
 
   const params = new URLSearchParams(window.location.search);
   const redirect = safeRedirectPath(params.get('redirect'));
@@ -101,6 +121,52 @@ import MainLayout from '../layouts/Layout.astro';
   const usernameInput = document.getElementById('username') as HTMLInputElement | null;
   const avatarInput = document.getElementById('avatar') as HTMLInputElement | null;
   const previewEl = document.getElementById('avatar-preview') as HTMLElement | null;
+  const passwordInput = document.getElementById('password') as HTMLInputElement | null;
+  const resendBtn = document.getElementById('resend-btn') as HTMLButtonElement | null;
+
+  bindPasswordChecklist(passwordInput, document.getElementById('password-checks'));
+
+  function setFormMessage(text: string, tone: 'ok' | 'error' | 'wait') {
+    if (!messageEl) return;
+    messageEl.textContent = text;
+    messageEl.style.color = tone === 'ok' ? '#22c55e' : tone === 'wait' ? '#9ca3af' : '#ef4444';
+  }
+
+  function emailFromForm(): string {
+    const input = document.getElementById('email') as HTMLInputElement | null;
+    return (input?.value || '').trim();
+  }
+
+  async function resendConfirmation() {
+    const email = emailFromForm();
+    if (!email) {
+      setFormMessage(t('auth_resend_need_email'), 'error');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setFormMessage(t('auth_email_invalid'), 'error');
+      return;
+    }
+
+    setFormMessage(currentLang() === 'EN' ? 'Sending…' : 'Envoi en cours…', 'wait');
+    if (resendBtn) resendBtn.disabled = true;
+    try {
+      const { error } = await resendSignupConfirmation(email);
+      if (error && isAuthRateLimitError(error.message)) {
+        setFormMessage(t('auth_resend_rate_limit'), 'error');
+      } else {
+        setFormMessage(t('auth_resend_sent'), 'ok');
+      }
+    } catch {
+      setFormMessage(t('auth_resend_sent'), 'ok');
+    } finally {
+      if (resendBtn) resendBtn.disabled = false;
+    }
+  }
+
+  resendBtn?.addEventListener('click', () => {
+    void resendConfirmation();
+  });
 
   const avatarColor = pickAvatarColor();
   let previewObjectUrl: string | null = null;
@@ -146,6 +212,16 @@ import MainLayout from '../layouts/Layout.astro';
       return;
     }
 
+    if (!isValidEmail(email)) {
+      setFormMessage(t('auth_email_invalid'), 'error');
+      return;
+    }
+
+    if (!isStrongPassword(password)) {
+      setFormMessage(t('auth_password_hint'), 'error');
+      return;
+    }
+
     if (avatarFile && avatarFile.size > 2 * 1024 * 1024) {
       messageEl.textContent = 'La photo de profil doit faire moins de 2 Mo.';
       messageEl.style.color = '#ef4444';
@@ -179,7 +255,7 @@ import MainLayout from '../layouts/Layout.astro';
         .maybeSingle();
 
       if (existingEmail) {
-        messageEl.textContent = 'Un compte existe déjà avec cette adresse e-mail. Connectez-vous, ou utilisez « mot de passe oublié » si besoin.';
+        messageEl.textContent = 'Un compte existe déjà avec cette adresse e-mail. Connectez-vous, utilisez « mot de passe oublié », ou renvoyez l’e-mail de confirmation si le compte n’est pas encore activé.';
         messageEl.style.color = '#ef4444';
         if (submitBtn) submitBtn.disabled = false;
         return;
@@ -330,6 +406,36 @@ import MainLayout from '../layouts/Layout.astro';
     font-size: 0.8rem;
   }
 
+  .password-checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+  }
+
+  .password-checks li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .password-checks li::before {
+    content: '○';
+    color: #6b7280;
+  }
+
+  .password-checks li.is-met {
+    color: #22c55e;
+  }
+
+  .password-checks li.is-met::before {
+    content: '✓';
+    color: #22c55e;
+  }
+
   .form-group input[type="text"],
   .form-group input[type="email"],
   .form-group input[type="password"],
@@ -400,6 +506,30 @@ import MainLayout from '../layouts/Layout.astro';
 
   .auth-switch a:hover {
     text-decoration: underline;
+  }
+
+  .auth-resend {
+    margin-top: 12px;
+  }
+
+  .auth-text-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #ea580c;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+  }
+
+  .auth-text-btn:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+
+  .auth-text-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
   }
 
   @media (max-width: 968px) {

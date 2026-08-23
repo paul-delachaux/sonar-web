@@ -30,6 +30,7 @@ import MainLayout from '../layouts/Layout.astro';
 <script>
   import { getBrowserSupabase, safeRedirectPath, getAuthRedirectUrl } from '../utils/supabase-browser';
   import { t as translate } from '../utils/i18n.js';
+  import { isValidEmail } from '../utils/auth-validation';
 
   const params = new URLSearchParams(window.location.search);
   const redirect = safeRedirectPath(params.get('redirect'));
@@ -57,6 +58,11 @@ import MainLayout from '../layouts/Layout.astro';
 
     const email = String(new FormData(form).get('email') || '').trim();
     if (!email) return;
+    if (!isValidEmail(email)) {
+      messageEl.textContent = t('auth_email_invalid');
+      messageEl.style.color = '#ef4444';
+      return;
+    }
 
     messageEl.textContent = currentLang() === 'EN' ? 'Sending…' : 'Envoi en cours…';
     messageEl.style.color = '#9ca3af';

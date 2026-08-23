@@ -14,7 +14,12 @@ import MainLayout from '../layouts/Layout.astro';
         <div class="form-group">
           <label for="password" data-i18n="account_password_new">Nouveau mot de passe</label>
           <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" />
-          <small data-i18n="auth_password_hint">8 caractères minimum.</small>
+          <ul class="password-checks" id="password-checks" aria-live="polite">
+            <li data-check="minLength" data-i18n="auth_password_rule_length">8 caractères minimum</li>
+            <li data-check="lower" data-i18n="auth_password_rule_lower">Une minuscule</li>
+            <li data-check="upper" data-i18n="auth_password_rule_upper">Une majuscule</li>
+            <li data-check="digit" data-i18n="auth_password_rule_digit">Un chiffre</li>
+          </ul>
         </div>
 
         <div class="form-group">
@@ -36,6 +41,7 @@ import MainLayout from '../layouts/Layout.astro';
 <script>
   import { getBrowserSupabase } from '../utils/supabase-browser';
   import { t as translate } from '../utils/i18n.js';
+  import { isStrongPassword, bindPasswordChecklist } from '../utils/auth-validation';
   import type { Session } from '@supabase/supabase-js';
 
   function currentLang(): 'FR' | 'EN' {
@@ -51,6 +57,9 @@ import MainLayout from '../layouts/Layout.astro';
   const subtitleEl = document.getElementById('reset-subtitle');
   const backEl = document.getElementById('reset-back');
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+  const passwordInput = document.getElementById('password') as HTMLInputElement | null;
+
+  bindPasswordChecklist(passwordInput, document.getElementById('password-checks'));
 
   function setMessage(text: string, ok: boolean) {
     if (!messageEl) return;
@@ -157,7 +166,7 @@ import MainLayout from '../layouts/Layout.astro';
     const password = String(formData.get('password') || '');
     const confirm = String(formData.get('password_confirm') || '');
 
-    if (password.length < 8) {
+    if (!isStrongPassword(password)) {
       setMessage(t('auth_password_hint'), false);
       return;
     }
@@ -217,6 +226,36 @@ import MainLayout from '../layouts/Layout.astro';
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
+  }
+
+  .password-checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+  }
+
+  .password-checks li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .password-checks li::before {
+    content: '○';
+    color: #6b7280;
+  }
+
+  .password-checks li.is-met {
+    color: #22c55e;
+  }
+
+  .password-checks li.is-met::before {
+    content: '✓';
+    color: #22c55e;
   }
 
   .auth-form[hidden],
