@@ -2,65 +2,52 @@
 import MainLayout from '../layouts/Layout.astro';
 ---
 
-<MainLayout title="Connexion">
+<MainLayout title="Mot de passe oublié">
   <div class="auth-page">
     <div class="auth-card">
-      <h1 data-i18n="auth_login_title">Connexion</h1>
-      <p class="auth-subtitle" data-i18n="auth_login_subtitle">
-        Connectez-vous pour commenter les articles.
+      <h1 data-i18n="auth_forgot_title">Mot de passe oublié</h1>
+      <p class="auth-subtitle" data-i18n="auth_forgot_subtitle">
+        Indiquez votre adresse e-mail. Si un compte existe, vous recevrez un lien pour en choisir un nouveau.
       </p>
 
-      <form id="login-form" class="auth-form">
+      <form id="forgot-form" class="auth-form">
         <div class="form-group">
           <label for="email" data-i18n="auth_email">Adresse e-mail</label>
           <input type="email" id="email" name="email" required autocomplete="email" />
         </div>
 
-        <div class="form-group">
-          <label for="password" data-i18n="auth_password">Mot de passe</label>
-          <input type="password" id="password" name="password" required autocomplete="current-password" />
-          <a id="forgot-link" class="auth-forgot" href="/mot-de-passe-oublie" data-i18n="auth_forgot_password">Mot de passe oublié ?</a>
-        </div>
-
         <p id="form-message" class="form-message"></p>
-        <button type="submit" id="submit-btn" data-i18n="auth_login">Connexion</button>
+        <button type="submit" id="submit-btn" data-i18n="auth_forgot_submit">Envoyer le lien</button>
       </form>
 
       <p class="auth-switch">
-        <span data-i18n="auth_no_account">Pas encore de compte ?</span>
-        {' '}
-        <a id="signup-link" href="/inscription" data-i18n="auth_create_account">Créer un compte</a>
+        <a id="login-link" href="/connexion" data-i18n="auth_forgot_back">Retour à la connexion</a>
       </p>
     </div>
   </div>
 </MainLayout>
 
 <script>
-  import { getBrowserSupabase, getCurrentAccount, safeRedirectPath } from '../utils/supabase-browser';
-  import { flushPendingAvatar } from '../utils/avatar';
+  import { getBrowserSupabase, safeRedirectPath, getAuthRedirectUrl } from '../utils/supabase-browser';
+  import { t as translate } from '../utils/i18n.js';
 
   const params = new URLSearchParams(window.location.search);
   const redirect = safeRedirectPath(params.get('redirect'));
 
-  try {
-    const existing = await getCurrentAccount();
-    if (existing) {
-      window.location.replace(redirect);
-    }
-  } catch {
-    /* ignore */
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
   }
 
-  const signupLink = document.getElementById('signup-link') as HTMLAnchorElement | null;
-  if (signupLink && params.get('redirect')) {
-    signupLink.href = `/inscription?redirect=${encodeURIComponent(redirect)}`;
-  }
-  const forgotLink = document.getElementById('forgot-link') as HTMLAnchorElement | null;
-  if (forgotLink && params.get('redirect')) {
-    forgotLink.href = `/mot-de-passe-oublie?redirect=${encodeURIComponent(redirect)}`;
+  function t(key: string) {
+    return translate(key, currentLang());
   }
 
-  const form = document.getElementById('login-form') as HTMLFormElement | null;
+  const loginLink = document.getElementById('login-link') as HTMLAnchorElement | null;
+  if (loginLink && params.get('redirect')) {
+    loginLink.href = `/connexion?redirect=${encodeURIComponent(redirect)}`;
+  }
+
+  const form = document.getElementById('forgot-form') as HTMLFormElement | null;
   const messageEl = document.getElementById('form-message');
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
 
@@ -68,37 +55,25 @@ import MainLayout from '../layouts/Layout.astro';
     e.preventDefault();
     if (!messageEl || !form) return;
 
-    messageEl.textContent = 'Connexion en cours...';
+    const email = String(new FormData(form).get('email') || '').trim();
+    if (!email) return;
+
+    messageEl.textContent = currentLang() === 'EN' ? 'Sending…' : 'Envoi en cours…';
     messageEl.style.color = '#9ca3af';
     if (submitBtn) submitBtn.disabled = true;
 
-    const formData = new FormData(form);
-    const email = String(formData.get('email') || '').trim();
-    const password = String(formData.get('password') || '');
-
     try {
       const supabase = getBrowserSupabase();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        messageEl.textContent = 'E-mail ou mot de passe incorrect.';
-        messageEl.style.color = '#ef4444';
-        if (submitBtn) submitBtn.disabled = false;
-        return;
-      }
-
-      try {
-        await flushPendingAvatar(supabase);
-      } catch {
-        /* la photo pourra être retentée au prochain chargement */
-      }
-
-      window.location.href = redirect;
+      await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getAuthRedirectUrl('/nouveau-mot-de-passe'),
+      });
     } catch {
-      messageEl.textContent = 'Erreur de connexion au serveur.';
-      messageEl.style.color = '#ef4444';
-      if (submitBtn) submitBtn.disabled = false;
+      /* message générique : on ne révèle pas si l’adresse existe */
     }
+
+    messageEl.textContent = t('auth_forgot_sent');
+    messageEl.style.color = '#22c55e';
+    if (submitBtn) submitBtn.disabled = false;
   });
 </script>
 
@@ -125,6 +100,7 @@ import MainLayout from '../layouts/Layout.astro';
     margin: 0 0 28px 0;
     color: #9ca3af;
     font-size: 0.95rem;
+    line-height: 1.5;
   }
 
   .auth-form {
@@ -157,18 +133,6 @@ import MainLayout from '../layouts/Layout.astro';
   .form-group input:focus {
     outline: none;
     border-color: #ea580c;
-  }
-
-  .auth-forgot {
-    align-self: flex-end;
-    margin-top: 2px;
-    color: #ea580c;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-  }
-  .auth-forgot:hover {
-    text-decoration: underline;
   }
 
   .form-message {

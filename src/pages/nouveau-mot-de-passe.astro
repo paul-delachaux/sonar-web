@@ -1,0 +1,309 @@
+---
+import MainLayout from '../layouts/Layout.astro';
+---
+
+<MainLayout title="Nouveau mot de passe">
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1 data-i18n="auth_reset_title">Nouveau mot de passe</h1>
+      <p id="reset-subtitle" class="auth-subtitle" data-i18n="auth_reset_subtitle">
+        Choisissez un mot de passe d’au moins 8 caractères.
+      </p>
+
+      <form id="reset-form" class="auth-form" hidden>
+        <div class="form-group">
+          <label for="password" data-i18n="account_password_new">Nouveau mot de passe</label>
+          <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password" />
+          <small data-i18n="auth_password_hint">8 caractères minimum.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="password_confirm" data-i18n="auth_reset_confirm">Confirmer le mot de passe</label>
+          <input type="password" id="password_confirm" name="password_confirm" required minlength="8" autocomplete="new-password" />
+        </div>
+
+        <p id="form-message" class="form-message"></p>
+        <button type="submit" id="submit-btn" data-i18n="auth_reset_submit">Enregistrer le mot de passe</button>
+      </form>
+
+      <p id="reset-back" class="auth-switch" hidden>
+        <a href="/connexion" data-i18n="auth_forgot_back">Retour à la connexion</a>
+      </p>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { getBrowserSupabase } from '../utils/supabase-browser';
+  import { t as translate } from '../utils/i18n.js';
+  import type { Session } from '@supabase/supabase-js';
+
+  function currentLang(): 'FR' | 'EN' {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function t(key: string) {
+    return translate(key, currentLang());
+  }
+
+  const form = document.getElementById('reset-form') as HTMLFormElement | null;
+  const messageEl = document.getElementById('form-message');
+  const subtitleEl = document.getElementById('reset-subtitle');
+  const backEl = document.getElementById('reset-back');
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement | null;
+
+  function setMessage(text: string, ok: boolean) {
+    if (!messageEl) return;
+    messageEl.textContent = text;
+    messageEl.style.color = ok ? '#22c55e' : '#ef4444';
+  }
+
+  function showInvalid() {
+    if (subtitleEl) {
+      subtitleEl.removeAttribute('data-i18n');
+      subtitleEl.textContent = t('auth_reset_invalid');
+    }
+    form?.setAttribute('hidden', '');
+    backEl?.removeAttribute('hidden');
+  }
+
+  function waitForRecoverySession(supabase: ReturnType<typeof getBrowserSupabase>): Promise<Session | null> {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (session: Session | null) => {
+        if (settled) return;
+        settled = true;
+        subscription.unsubscribe();
+        resolve(session);
+      };
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (
+          session &&
+          (event === 'PASSWORD_RECOVERY' ||
+            event === 'SIGNED_IN' ||
+            event === 'INITIAL_SESSION' ||
+            event === 'TOKEN_REFRESHED')
+        ) {
+          finish(session);
+        }
+      });
+
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) finish(session);
+      });
+
+      window.setTimeout(() => {
+        void supabase.auth.getSession().then(({ data: { session } }) => finish(session));
+      }, 2500);
+    });
+  }
+
+  async function prepareReset() {
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const errorDescription =
+      search.get('error_description') ||
+      hash.get('error_description') ||
+      search.get('error') ||
+      hash.get('error');
+
+    if (errorDescription) {
+      showInvalid();
+      return;
+    }
+
+    try {
+      const supabase = getBrowserSupabase();
+      const tokenHash = search.get('token_hash') || hash.get('token_hash');
+
+      const hasHashRecovery =
+        hash.get('type') === 'recovery' || Boolean(hash.get('access_token'));
+
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+        if (error) {
+          showInvalid();
+          return;
+        }
+      } else if (!hasHashRecovery) {
+        showInvalid();
+        return;
+      }
+
+      const session = await waitForRecoverySession(supabase);
+      if (!session) {
+        showInvalid();
+        return;
+      }
+
+      history.replaceState(null, '', '/nouveau-mot-de-passe');
+      form?.removeAttribute('hidden');
+    } catch {
+      showInvalid();
+    }
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form || !messageEl) return;
+
+    const formData = new FormData(form);
+    const password = String(formData.get('password') || '');
+    const confirm = String(formData.get('password_confirm') || '');
+
+    if (password.length < 8) {
+      setMessage(t('auth_password_hint'), false);
+      return;
+    }
+    if (password !== confirm) {
+      setMessage(t('auth_reset_mismatch'), false);
+      return;
+    }
+
+    setMessage(currentLang() === 'EN' ? 'Saving…' : 'Enregistrement…', true);
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const supabase = getBrowserSupabase();
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      await supabase.auth.signOut();
+      setMessage(t('auth_reset_success'), true);
+      window.setTimeout(() => {
+        window.location.replace('/connexion');
+      }, 1400);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : t('auth_reset_invalid'), false);
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+
+  prepareReset();
+</script>
+
+<style>
+  .auth-page {
+    max-width: 480px;
+    margin: 40px auto 80px auto;
+  }
+
+  .auth-card {
+    background-color: #02001d;
+    border-radius: 8px;
+    padding: 40px 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .auth-card h1 {
+    margin: 0 0 8px 0;
+    font-size: 1.8rem;
+    color: #ffffff;
+  }
+
+  .auth-subtitle {
+    margin: 0 0 28px 0;
+    color: #9ca3af;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .auth-form[hidden],
+  .auth-switch[hidden] {
+    display: none !important;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    color: #d1d5db;
+  }
+
+  .form-group small {
+    color: #9ca3af;
+    font-size: 0.8rem;
+  }
+
+  .form-group input {
+    background-color: #0b092b;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #ea580c;
+  }
+
+  .form-message {
+    min-height: 1.2em;
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  #submit-btn {
+    background-color: #ea580c;
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  #submit-btn:hover:not(:disabled) {
+    background-color: #d4510b;
+  }
+
+  #submit-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  .auth-switch {
+    margin-top: 8px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+  }
+
+  .auth-switch a {
+    color: #ea580c;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .auth-switch a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 968px) {
+    .auth-page {
+      margin: 20px auto 40px auto;
+    }
+    .auth-card {
+      padding: 28px 20px;
+    }
+  }
+</style>

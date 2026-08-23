@@ -70,6 +70,11 @@ import MainLayout from '../../layouts/Layout.astro';
         data: { session },
       } = await supabase.auth.getSession();
 
+      if (typeParam === 'recovery' && session) {
+        window.location.replace('/nouveau-mot-de-passe');
+        return;
+      }
+
       if (!session) {
         setMessage('Adresse confirmée. Vous pouvez maintenant vous connecter.', true);
         window.setTimeout(() => {
