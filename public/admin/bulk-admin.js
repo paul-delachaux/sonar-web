@@ -1,17 +1,18 @@
 /**
  * Sélection multiple sur les listes Decap (articles, brèves, catégories) :
- * visibilité et suppression, en un commit GitHub.
+ * visibilité et suppression via /api/admin/bulk-articles.
+ * Les cases sont en overlay hors du DOM React, pour éviter le clignotement.
  */
 (function (global) {
-  var REPO = 'paul-delachaux/sonar-web';
-  var BRANCH = 'main';
-  var ARTICLES_DIR = 'src/content/articles';
-  var API = 'https://api.github.com';
   var selected = Object.create(null);
   var lastCollection = '';
-  var extraKey = '';
+  var extrasKey = '';
+  var extrasLoading = false;
+  var extrasSource = null;
+  var extrasLoadedFor = '';
   var busy = false;
   var scheduled = false;
+  var posFrame = 0;
 
   function githubToken() {
     var search = global.SonarArticleSearch;
@@ -73,14 +74,6 @@
     return native.concat(extra);
   }
 
-  function cardHost(link) {
-    var parent = link.parentElement;
-    if (!parent) return link;
-    var nested = parent.querySelectorAll('a[href*="/entries/"]');
-    if (nested.length === 1 && parent !== document.body && parent.tagName !== 'MAIN') return parent;
-    return link;
-  }
-
   function selectedSlugs() {
     return Object.keys(selected).filter(function (slug) { return selected[slug]; });
   }
@@ -96,7 +89,7 @@
     var slugs = selectedSlugs();
     var count = document.getElementById('sonar-bulk-count');
     var all = document.getElementById('sonar-bulk-all');
-    var buttons = bar.querySelectorAll('button');
+    var buttons = bar.querySelectorAll('button[data-bulk]');
     if (count) count.textContent = slugs.length ? slugs.length + ' sélectionné' + (slugs.length > 1 ? 's' : '') : '';
     if (all) {
       var total = entryLinks().length;
@@ -116,87 +109,208 @@
     refreshBar();
   }
 
-  function findHit(parent, slug) {
-    var kids = parent ? parent.children : [];
-    for (var i = 0; i < kids.length; i++) {
-      if (kids[i].classList && kids[i].classList.contains('sonar-bulk-hit') && kids[i].getAttribute('data-slug') === slug) {
-        return kids[i];
-      }
+  function overlay() {
+    var el = document.getElementById('sonar-bulk-overlay');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'sonar-bulk-overlay';
+      document.body.appendChild(el);
     }
-    return null;
-  }
-
-  function placeHit(hit, link) {
-    var parent = link.parentElement;
-    if (!parent) return;
-    if (!parent.style.position || parent.style.position === 'static') parent.style.position = 'relative';
-    hit.style.top = link.offsetTop + 'px';
-    hit.style.left = link.offsetLeft + 'px';
-    hit.style.height = Math.max(link.offsetHeight, 44) + 'px';
+    return el;
   }
 
   function syncHits() {
-    Array.prototype.forEach.call(document.querySelectorAll('.sonar-bulk-hit'), function (hit) {
+    Array.prototype.forEach.call(document.querySelectorAll('#sonar-bulk-overlay .sonar-bulk-hit'), function (hit) {
       var slug = hit.getAttribute('data-slug') || '';
       hit.classList.toggle('is-on', !!selected[slug]);
       hit.setAttribute('aria-pressed', selected[slug] ? 'true' : 'false');
     });
   }
 
-  function injectChecks() {
-    Array.prototype.forEach.call(document.querySelectorAll('.sonar-bulk-check'), function (el) {
-      el.remove();
+  function positionHits() {
+    var host = document.getElementById('sonar-bulk-overlay');
+    if (!host) return;
+    var bySlug = Object.create(null);
+    Array.prototype.forEach.call(host.children, function (hit) {
+      bySlug[hit.getAttribute('data-slug') || ''] = hit;
     });
     entryLinks().forEach(function (link) {
       var slug = slugFromLink(link);
-      if (!slug) return;
-      var parent = link.parentElement;
-      if (!parent) return;
-      var hit = findHit(parent, slug);
-      if (!hit) {
-        hit = document.createElement('button');
-        hit.type = 'button';
-        hit.className = 'sonar-bulk-hit';
-        hit.setAttribute('data-slug', slug);
-        hit.setAttribute('aria-label', 'Sélectionner');
-        hit.innerHTML = '<span class="sonar-bulk-box"></span>';
-        hit.addEventListener('click', function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-          toggleSlug(slug);
-        });
-        hit.addEventListener('mousedown', function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        });
-        parent.insertBefore(hit, link);
+      var hit = bySlug[slug];
+      if (!hit) return;
+      var rect = link.getBoundingClientRect();
+      if (rect.width < 8 || rect.height < 8) {
+        hit.style.display = 'none';
+        return;
       }
-      var shared = parent.querySelectorAll('a[href*="/entries/"]').length > 1;
-      parent.classList.add('sonar-bulk-host');
-      if (shared) {
-        if (!link.getAttribute('data-sonar-pad')) {
-          link.setAttribute('data-sonar-pad', '1');
-          var current = parseFloat(window.getComputedStyle(link).paddingLeft) || 0;
-          link.style.paddingLeft = (current + 28) + 'px';
-        }
-      } else {
-        parent.classList.add('sonar-bulk-pad');
-      }
-      placeHit(hit, link);
+      hit.style.display = 'flex';
+      hit.style.top = Math.round(rect.top) + 'px';
+      hit.style.left = Math.round(rect.left - 8) + 'px';
+      hit.style.height = Math.max(Math.round(rect.height), 44) + 'px';
+    });
+  }
+
+  function injectChecks() {
+    var host = overlay();
+    if (!isListView()) {
+      host.style.display = 'none';
+      host.innerHTML = '';
+      return;
+    }
+    host.style.display = '';
+    var links = entryLinks();
+    var wanted = Object.create(null);
+    links.forEach(function (link) {
+      var slug = slugFromLink(link);
+      if (slug) wanted[slug] = true;
+    });
+    Array.prototype.slice.call(host.children).forEach(function (hit) {
+      var slug = hit.getAttribute('data-slug') || '';
+      if (!wanted[slug]) hit.remove();
+    });
+    var existing = Object.create(null);
+    Array.prototype.forEach.call(host.children, function (hit) {
+      existing[hit.getAttribute('data-slug') || ''] = hit;
+    });
+    Object.keys(wanted).forEach(function (slug) {
+      if (existing[slug]) return;
+      var hit = document.createElement('button');
+      hit.type = 'button';
+      hit.className = 'sonar-bulk-hit';
+      hit.setAttribute('data-slug', slug);
+      hit.setAttribute('aria-label', 'Sélectionner');
+      hit.innerHTML = '<span class="sonar-bulk-box"></span>';
+      hit.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleSlug(slug);
+      });
+      host.appendChild(hit);
     });
     syncHits();
+    positionHits();
     refreshBar();
+  }
+
+  function extrasHost() {
+    var bar = document.getElementById('sonar-bulk-bar');
+    if (!bar) return null;
+    var el = document.getElementById('sonar-extra-cards');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'sonar-extra-cards';
+      el.className = 'sonar-extra-wrap';
+      bar.appendChild(el);
+    }
+    return el;
+  }
+
+  function renderExtras(items) {
+    if (!items.length) {
+      extrasKey = '';
+      var empty = document.getElementById('sonar-extra-cards');
+      if (empty) empty.remove();
+      injectChecks();
+      return;
+    }
+    var host = extrasHost();
+    if (!host) return;
+    var key = items.map(function (article) { return article.slug; }).join('|');
+    if (key === extrasKey && host.childNodes.length === items.length) {
+      injectChecks();
+      return;
+    }
+    extrasKey = key;
+    host.innerHTML = '';
+    items.forEach(function (article) {
+      var dest = collectionNameFor(article.category) || (article.layout_type === 'breve' ? 'breves' : 'articles');
+      var card = document.createElement('div');
+      card.className = 'sonar-extra-card';
+      var link = document.createElement('a');
+      link.setAttribute('data-slug', article.slug);
+      link.href = '#/collections/' + dest + '/entries/' + encodeURIComponent(article.slug);
+      link.appendChild(document.createTextNode(article.title || article.slug));
+      var tag = document.createElement('span');
+      tag.className = 'sonar-extra-tag';
+      tag.textContent = article._label || article.category;
+      link.appendChild(tag);
+      card.appendChild(link);
+      host.appendChild(card);
+    });
+    injectChecks();
+  }
+
+  function loadExtras() {
+    var host = document.getElementById('sonar-extra-cards');
+    if (!isListView()) {
+      if (host) host.remove();
+      extrasKey = '';
+      extrasLoading = false;
+      extrasSource = null;
+      extrasLoadedFor = '';
+      return;
+    }
+    var col = currentCollection();
+    var domain = domainForCollection(col);
+    var children = (domain && !domain.parent)
+      ? (global.__SONAR_SUBDOMAINS || []).filter(function (sub) {
+        return sub && sub.parent === domain.slug && sub.slug;
+      })
+      : [];
+    if (!children.length) {
+      if (host) host.remove();
+      extrasKey = '';
+      extrasLoading = false;
+      return;
+    }
+    var labels = Object.create(null);
+    children.forEach(function (sub) { labels[sub.slug] = sub.label || sub.slug; });
+
+    function apply(articles) {
+      if (currentCollection() !== col) return;
+      var already = Object.create(null);
+      entryLinks().forEach(function (link) {
+        if (link.closest('.sonar-extra-card')) return;
+        var slug = slugFromLink(link);
+        if (slug) already[slug] = true;
+      });
+      var extras = (articles || []).filter(function (article) {
+        return article && labels[article.category] && !already[article.slug];
+      }).map(function (article) {
+        var copy = {};
+        Object.keys(article).forEach(function (key) { copy[key] = article[key]; });
+        copy._label = labels[article.category];
+        return copy;
+      });
+      renderExtras(extras);
+    }
+
+    if (extrasLoadedFor === col && extrasSource) {
+      apply(extrasSource);
+      return;
+    }
+    if (extrasLoading) return;
+    var search = global.SonarArticleSearch;
+    if (!search || typeof search.fetchArticles !== 'function') return;
+    extrasLoading = true;
+    search.fetchArticles().then(function (articles) {
+      extrasLoading = false;
+      extrasSource = articles || [];
+      extrasLoadedFor = col;
+      apply(extrasSource);
+    }).catch(function () {
+      extrasLoading = false;
+    });
   }
 
   function placeBar() {
     var existing = document.getElementById('sonar-bulk-bar');
     if (!isListView()) {
-      if (existing) existing.remove();
+      if (existing) existing.style.display = 'none';
       return;
     }
     if (existing) {
-      injectChecks();
-      injectChildEntries();
+      existing.style.display = '';
       return;
     }
     var bar = document.createElement('div');
@@ -226,238 +340,13 @@
           if (slug) selected[slug] = true;
         });
       }
-      injectChecks();
+      syncHits();
+      refreshBar();
     });
     bar.addEventListener('click', function (event) {
       var btn = event.target.closest('button[data-bulk]');
       if (!btn || busy) return;
       runBulk(btn.getAttribute('data-bulk'));
-    });
-    injectChecks();
-    injectChildEntries();
-  }
-
-  function injectChildEntries() {
-    var box = document.getElementById('sonar-extra-cards');
-    if (!isListView()) {
-      if (box) box.remove();
-      extraKey = '';
-      return;
-    }
-    var domain = domainForCollection(currentCollection());
-    var children = (domain && !domain.parent)
-      ? (global.__SONAR_SUBDOMAINS || []).filter(function (sub) {
-        return sub && sub.parent === domain.slug && sub.slug;
-      })
-      : [];
-    if (!children.length) {
-      if (box) box.remove();
-      extraKey = '';
-      return;
-    }
-    var labels = Object.create(null);
-    children.forEach(function (sub) { labels[sub.slug] = sub.label || sub.slug; });
-
-    function parseArticleMarkdown(name, raw) {
-      var slug = String(name || '').replace(/\.mdx?$/, '');
-      var titleMatch = String(raw || '').match(/^title:\s*(.+)$/m);
-      var catMatch = String(raw || '').match(/^category:\s*["']?([a-z0-9-]+)/m);
-      var layoutMatch = String(raw || '').match(/^layout_type:\s*["']?(\w+)/m);
-      return {
-        slug: slug,
-        title: titleMatch ? titleMatch[1].replace(/^["']|["']$/g, '').trim() : slug,
-        category: catMatch ? catMatch[1] : '',
-        layout_type: layoutMatch ? layoutMatch[1] : ''
-      };
-    }
-
-    function fromApi() {
-      var search = global.SonarArticleSearch;
-      if (!search || typeof search.fetchArticles !== 'function') return Promise.resolve([]);
-      global.__sonarArticlesPromise = null;
-      return search.fetchArticles().catch(function () { return []; });
-    }
-
-    function fromGithub() {
-      var token = githubToken();
-      if (!token) return Promise.resolve([]);
-      return fetch(API + '/repos/' + REPO + '/contents/' + ARTICLES_DIR + '?ref=' + BRANCH, {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          Accept: 'application/vnd.github+json',
-          'User-Agent': 'le-sonar-admin'
-        }
-      }).then(function (res) { return res.ok ? res.json() : []; }).then(function (files) {
-        if (!Array.isArray(files)) return [];
-        return Promise.all(files.filter(function (file) {
-          return file && file.type === 'file' && /\.mdx?$/.test(file.name || '');
-        }).map(function (file) {
-          return fetch(file.url, {
-            headers: {
-              Authorization: 'Bearer ' + token,
-              Accept: 'application/vnd.github.raw',
-              'User-Agent': 'le-sonar-admin'
-            }
-          }).then(function (res) { return res.ok ? res.text() : ''; })
-            .then(function (raw) { return parseArticleMarkdown(file.name, raw); });
-        }));
-      }).catch(function () { return []; });
-    }
-
-    Promise.all([fromApi(), fromGithub()]).then(function (parts) {
-      if (currentCollection() !== collectionNameFor(domain.slug)) return;
-      var bySlug = Object.create(null);
-      function add(item) {
-        if (!item || !item.slug) return;
-        var prev = bySlug[item.slug];
-        if (!prev || labels[item.category]) bySlug[item.slug] = item;
-      }
-      (parts[0] || []).forEach(add);
-      (parts[1] || []).forEach(add);
-      var already = Object.create(null);
-      entryLinks().forEach(function (link) {
-        if (link.closest('.sonar-extra-card')) return;
-        var slug = slugFromLink(link);
-        if (slug) already[slug] = true;
-      });
-      var extras = Object.keys(bySlug).map(function (slug) { return bySlug[slug]; }).filter(function (article) {
-        return article && labels[article.category] && !already[article.slug];
-      });
-      var key = extras.map(function (article) { return article.slug; }).sort().join('|');
-      if (key === extraKey && document.getElementById('sonar-extra-cards')) {
-        injectChecks();
-        return;
-      }
-      extraKey = key;
-      var host = document.getElementById('sonar-extra-cards');
-      if (!host) {
-        host = document.createElement('div');
-        host.id = 'sonar-extra-cards';
-        var natives = Array.prototype.filter.call(document.querySelectorAll('#nc-root a[href*="/collections/' + currentCollection() + '/entries/"]'), function (link) {
-          return !link.closest('aside') && !link.closest('.sonar-extra-card');
-        });
-        var last = natives[natives.length - 1];
-        var bar = document.getElementById('sonar-bulk-bar');
-        if (last) {
-          var lastHost = cardHost(last);
-          var after = lastHost && lastHost.parentElement ? lastHost : last;
-          after.parentElement.insertBefore(host, after.nextSibling);
-        } else if (bar && bar.parentNode) {
-          bar.parentNode.insertBefore(host, bar.nextSibling);
-        } else {
-          return;
-        }
-      }
-      host.innerHTML = '';
-      extras.forEach(function (article) {
-        var dest = collectionNameFor(article.category) || (article.layout_type === 'breve' ? 'breves' : 'articles');
-        var card = document.createElement('div');
-        card.className = 'sonar-extra-card sonar-bulk-host sonar-bulk-pad';
-        var link = document.createElement('a');
-        link.setAttribute('data-slug', article.slug);
-        link.href = '#/collections/' + dest + '/entries/' + encodeURIComponent(article.slug);
-        link.appendChild(document.createTextNode(article.title || article.slug));
-        var tag = document.createElement('span');
-        tag.className = 'sonar-extra-tag';
-        tag.textContent = labels[article.category];
-        link.appendChild(tag);
-        card.appendChild(link);
-        host.appendChild(card);
-      });
-      injectChecks();
-    }).catch(function () {});
-  }
-
-  function gh(path, options) {
-    var token = githubToken();
-    if (!token) return Promise.reject(new Error('Connectez-vous à GitHub dans l’admin.'));
-    var opts = options || {};
-    return fetch(API + path, {
-      method: opts.method || 'GET',
-      headers: {
-        Authorization: 'Bearer ' + token,
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'le-sonar-admin',
-        'Content-Type': 'application/json'
-      },
-      body: opts.body ? JSON.stringify(opts.body) : undefined
-    }).then(function (res) {
-      return res.json().catch(function () { return {}; }).then(function (data) {
-        if (!res.ok) throw new Error(data.message || 'GitHub HTTP ' + res.status);
-        return data;
-      });
-    });
-  }
-
-  function listArticleFiles() {
-    return gh('/repos/' + REPO + '/contents/' + ARTICLES_DIR + '?ref=' + BRANCH).then(function (files) {
-      if (!Array.isArray(files)) throw new Error('Impossible de lister les articles sur GitHub.');
-      return files.filter(function (file) {
-        return file && file.type === 'file' && /\.mdx?$/.test(file.name || '');
-      });
-    });
-  }
-
-  function fileForSlug(files, slug) {
-    var wanted = String(slug || '');
-    var decoded = wanted;
-    try { decoded = decodeURIComponent(wanted); } catch (e) {}
-    for (var i = 0; i < files.length; i++) {
-      var stem = String(files[i].name || '').replace(/\.mdx?$/, '');
-      if (stem === wanted || stem === decoded) return files[i];
-    }
-    return null;
-  }
-
-  function setVisible(raw, visible) {
-    var line = 'isVisible: ' + (visible ? 'true' : 'false');
-    if (/^isVisible:\s*/m.test(raw)) return raw.replace(/^isVisible:\s*.*$/m, line);
-    if (/^---\r?\n/.test(raw)) return raw.replace(/^---\r?\n/, function (open) { return open + line + '\n'; });
-    return line + '\n' + raw;
-  }
-
-  function fetchRaw(file) {
-    var token = githubToken();
-    return fetch(file.url, {
-      headers: {
-        Authorization: 'Bearer ' + token,
-        Accept: 'application/vnd.github.raw',
-        'User-Agent': 'le-sonar-admin'
-      }
-    }).then(function (res) {
-      if (!res.ok) throw new Error('Lecture impossible : ' + file.name);
-      return res.text();
-    });
-  }
-
-  function createBlob(content) {
-    return gh('/repos/' + REPO + '/git/blobs', {
-      method: 'POST',
-      body: { content: content, encoding: 'utf-8' }
-    }).then(function (data) { return data.sha; });
-  }
-
-  function commitTree(changes, message) {
-    return gh('/repos/' + REPO + '/git/ref/heads/' + BRANCH).then(function (ref) {
-      var commitSha = ref && ref.object && ref.object.sha;
-      if (!commitSha) throw new Error('Branche GitHub introuvable.');
-      return gh('/repos/' + REPO + '/git/commits/' + commitSha).then(function (commit) {
-        var baseTree = commit.tree && commit.tree.sha;
-        return gh('/repos/' + REPO + '/git/trees', {
-          method: 'POST',
-          body: { base_tree: baseTree, tree: changes }
-        }).then(function (tree) {
-          return gh('/repos/' + REPO + '/git/commits', {
-            method: 'POST',
-            body: { message: message, tree: tree.sha, parents: [commitSha] }
-          });
-        }).then(function (newCommit) {
-          return gh('/repos/' + REPO + '/git/refs/heads/' + BRANCH, {
-            method: 'PATCH',
-            body: { sha: newCommit.sha }
-          });
-        });
-      });
     });
   }
 
@@ -497,26 +386,73 @@
     });
   }
 
+  function ourNode(node) {
+    return !!(node && node.closest && (
+      node.closest('#sonar-bulk-bar') ||
+      node.closest('#sonar-bulk-overlay') ||
+      node.closest('#sonar-extra-cards') ||
+      node.id === 'sonar-bulk-bar' ||
+      node.id === 'sonar-bulk-overlay' ||
+      node.id === 'sonar-extra-cards'
+    ));
+  }
+
   function tick() {
     scheduled = false;
     var col = currentCollection();
     if (col !== lastCollection) {
       lastCollection = col;
       selected = Object.create(null);
-      extraKey = '';
+      extrasKey = '';
+      extrasLoading = false;
+      extrasSource = null;
+      extrasLoadedFor = '';
     }
     placeBar();
-    if (isListView()) injectChildEntries();
+    injectChecks();
+    loadExtras();
   }
 
   function schedule() {
     if (scheduled) return;
     scheduled = true;
-    setTimeout(tick, 80);
+    setTimeout(tick, 200);
+  }
+
+  function onScroll() {
+    if (posFrame) return;
+    posFrame = global.requestAnimationFrame(function () {
+      posFrame = 0;
+      positionHits();
+    });
   }
 
   window.addEventListener('hashchange', schedule);
   window.addEventListener('load', schedule);
-  new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener('resize', onScroll);
+  document.addEventListener('scroll', onScroll, true);
+  new MutationObserver(function (mutations) {
+    for (var i = 0; i < mutations.length; i++) {
+      var mut = mutations[i];
+      if (ourNode(mut.target)) continue;
+      var nodes = [];
+      if (mut.addedNodes) Array.prototype.push.apply(nodes, mut.addedNodes);
+      if (mut.removedNodes) Array.prototype.push.apply(nodes, mut.removedNodes);
+      var relevant = false;
+      for (var n = 0; n < nodes.length; n++) {
+        var node = nodes[n];
+        if (!node || node.nodeType !== 1) continue;
+        if (ourNode(node)) continue;
+        if (node.matches && (node.matches('a[href*="/entries/"]') || node.querySelector && node.querySelector('a[href*="/entries/"]'))) {
+          relevant = true;
+          break;
+        }
+      }
+      if (relevant) {
+        schedule();
+        return;
+      }
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
   schedule();
 })(window);

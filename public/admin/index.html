@@ -525,12 +525,15 @@
     .sonar-bulk-hide { background: #64748b; }
     .sonar-bulk-remove { background: #e5484d; }
     .sonar-bulk-status { width: 100%; margin: 0; font-size: 12px; font-weight: 600; color: #ffb38a; }
-    .sonar-bulk-host { position: relative !important; }
-    .sonar-bulk-hit {
-      position: absolute;
-      left: 0;
-      width: 42px;
+    #sonar-bulk-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
       z-index: 80;
+    }
+    #sonar-bulk-overlay .sonar-bulk-hit {
+      position: absolute;
+      width: 42px;
       margin: 0;
       padding: 16px 0 0;
       border: none;
@@ -539,7 +542,7 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      transform: translateX(-55%);
+      pointer-events: auto;
     }
     .sonar-bulk-box {
       width: 16px;
@@ -555,7 +558,14 @@
       border-color: #ff7900;
       box-shadow: inset 0 0 0 2px #fff;
     }
-    .sonar-bulk-host.sonar-bulk-pad { padding-left: 36px !important; }
+    .sonar-extra-wrap {
+      width: 100%;
+      max-height: 36vh;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
     .sonar-extra-card {
       position: relative;
       background: #fff;
@@ -590,11 +600,11 @@
 <body>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/article-search.js"></script>
-  <script src="/admin/cms-boot.js"></script>
-  <script src="/admin/domains-admin.js"></script>
-  <script src="/admin/moderation.js"></script>
-  <script src="/admin/bulk-admin.js"></script>
+  <script src="/admin/article-search.js?v=20260824"></script>
+  <script src="/admin/cms-boot.js?v=20260824"></script>
+  <script src="/admin/domains-admin.js?v=20260824"></script>
+  <script src="/admin/moderation.js?v=20260824"></script>
+  <script src="/admin/bulk-admin.js?v=20260824"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
