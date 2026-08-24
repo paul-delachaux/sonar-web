@@ -465,51 +465,31 @@
     var slugs = selectedSlugs();
     if (!slugs.length || busy) return;
     if (action === 'delete') {
-      var ok = global.confirm('Supprimer ' + slugs.length + ' contenu' + (slugs.length > 1 ? 's' : '') + ' du projet ?\nCette action crée un commit GitHub et est irréversible.');
+      var ok = global.confirm('Supprimer ' + slugs.length + ' contenu' + (slugs.length > 1 ? 's' : '') + ' du projet ? Cette action est irréversible.');
       if (!ok) return;
     }
     busy = true;
     refreshBar();
-    setStatus('Préparation…');
-    listArticleFiles().then(function (files) {
-      var matched = [];
-      var missing = [];
-      slugs.forEach(function (slug) {
-        var file = fileForSlug(files, slug);
-        if (file) matched.push(file);
-        else missing.push(slug);
+    setStatus('Enregistrement…');
+    var token = githubToken();
+    var headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    fetch('/api/admin/bulk-articles', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ action: action, slugs: slugs })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+        return data;
       });
-      if (!matched.length) throw new Error('Aucun fichier trouvé sur GitHub (brouillon non publié ?).');
-      if (action === 'delete') {
-        setStatus('Suppression…');
-        var removals = matched.map(function (file) {
-          return { path: ARTICLES_DIR + '/' + file.name, mode: '100644', type: 'blob', sha: null };
-        });
-        var msg = 'cms: supprimer ' + matched.length + ' contenu' + (matched.length > 1 ? 's' : '');
-        return commitTree(removals, msg).then(function () { return missing; });
-      }
-      var visible = action === 'show';
-      setStatus('Mise à jour de la visibilité…');
-      return matched.reduce(function (promise, file) {
-        return promise.then(function (tree) {
-          return fetchRaw(file).then(function (raw) {
-            return createBlob(setVisible(raw, visible)).then(function (sha) {
-              tree.push({ path: ARTICLES_DIR + '/' + file.name, mode: '100644', type: 'blob', sha: sha });
-              return tree;
-            });
-          });
-        });
-      }, Promise.resolve([])).then(function (tree) {
-        var msg = visible
-          ? 'cms: rendre visibles ' + tree.length + ' contenu' + (tree.length > 1 ? 's' : '')
-          : 'cms: masquer ' + tree.length + ' contenu' + (tree.length > 1 ? 's' : '');
-        return commitTree(tree, msg).then(function () { return missing; });
-      });
-    }).then(function (missing) {
+    }).then(function (data) {
       if (global.__sonarArticlesPromise) global.__sonarArticlesPromise = null;
-      var extra = missing && missing.length ? ' (' + missing.length + ' brouillon ignoré' + (missing.length > 1 ? 's' : '') + ')' : '';
+      var extra = data && data.missing && data.missing.length
+        ? ' (' + data.missing.length + ' introuvable' + (data.missing.length > 1 ? 's' : '') + ')'
+        : '';
       setStatus('Enregistré.' + extra + ' Rechargement…');
-      setTimeout(function () { global.location.reload(); }, 600);
+      setTimeout(function () { global.location.reload(); }, 500);
     }).catch(function (err) {
       busy = false;
       refreshBar();

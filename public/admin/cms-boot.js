@@ -51,11 +51,21 @@
 
   function makeArticlesCollection(domain) {
     var slug = domain.slug;
+    var values = [slug];
+    if (!domain.parent) {
+      (global.__SONAR_SUBDOMAINS || []).forEach(function (sub) {
+        if (sub && sub.parent === slug && sub.slug && values.indexOf(sub.slug) === -1) {
+          values.push(sub.slug);
+        }
+      });
+    }
     return {
       name: domainCollectionName(slug),
       label: domain.label || slug,
       folder: 'src/content/articles',
-      filter: { field: 'category', value: slug },
+      filter: values.length === 1
+        ? { field: 'category', value: values[0] }
+        : { field: 'category', value: values },
       create: false,
       fields: [
         { label: 'Titre', name: 'title', widget: 'string' },
@@ -245,6 +255,139 @@
     });
   }
 
+  function sonarMatchFilter(entry, filterRule) {
+    if (!filterRule) return true;
+    var field = filterRule.get ? filterRule.get('field') : filterRule.field;
+    var value = filterRule.get ? filterRule.get('value') : filterRule.value;
+    var pattern = filterRule.get ? filterRule.get('pattern') : filterRule.pattern;
+    var data = entry && entry.data ? entry.data : {};
+    if (data && typeof data.toJS === 'function') data = data.toJS();
+    var fieldValue = data ? data[field] : undefined;
+    if (pattern) {
+      try {
+        return new RegExp(String(pattern)).test(String(fieldValue == null ? '' : fieldValue));
+      } catch (e) {
+        return false;
+      }
+    }
+    if (value && typeof value.toJS === 'function') value = value.toJS();
+    if (value && typeof value.toArray === 'function') value = value.toArray();
+    if (Array.isArray(value)) return value.indexOf(fieldValue) !== -1;
+    if (Array.isArray(fieldValue)) return fieldValue.indexOf(value) !== -1;
+    return fieldValue === value;
+  }
+
+  function wrapFilterEntries(owner) {
+    if (!owner || typeof owner.filterEntries !== 'function' || owner.filterEntries.__sonar) return false;
+    owner.filterEntries = function (collection, filterRule) {
+      var entries = (collection && collection.entries) || [];
+      return entries.filter(function (entry) {
+        return sonarMatchFilter(entry, filterRule);
+      });
+    };
+    owner.filterEntries.__sonar = true;
+    return true;
+  }
+
+  function huntFilterEntries(root) {
+    if (!root) return false;
+    var seen = typeof WeakSet === 'function' ? new WeakSet() : null;
+    var queue = [root];
+    var steps = 0;
+    while (queue.length && steps < 2500) {
+      var obj = queue.shift();
+      steps += 1;
+      if (!obj || (typeof obj !== 'object' && typeof obj !== 'function')) continue;
+      if (seen) {
+        try {
+          if (seen.has(obj)) continue;
+          seen.add(obj);
+        } catch (e) {
+          continue;
+        }
+      }
+      if (wrapFilterEntries(obj)) return true;
+      if (obj.prototype && wrapFilterEntries(obj.prototype)) return true;
+      try {
+        var proto = Object.getPrototypeOf(obj);
+        if (proto && wrapFilterEntries(proto)) return true;
+      } catch (e) {}
+      var names = [];
+      try {
+        names = Object.getOwnPropertyNames(obj);
+      } catch (e) {
+        continue;
+      }
+      for (var i = 0; i < names.length && i < 60; i++) {
+        try {
+          queue.push(obj[names[i]]);
+        } catch (e) {}
+      }
+    }
+    return false;
+  }
+
+  function findBackendFromDom() {
+    var el = document.getElementById('nc-root');
+    if (!el) return null;
+    var key = Object.keys(el).find(function (name) {
+      return name.indexOf('__reactFiber') === 0 || name.indexOf('__reactInternalInstance') === 0 || name.indexOf('__reactContainer') === 0;
+    });
+    if (!key) return null;
+    var seen = typeof WeakSet === 'function' ? new WeakSet() : null;
+    var queue = [el[key]];
+    var steps = 0;
+    while (queue.length && steps < 4000) {
+      var node = queue.shift();
+      steps += 1;
+      if (!node || typeof node !== 'object') continue;
+      if (seen) {
+        try {
+          if (seen.has(node)) continue;
+          seen.add(node);
+        } catch (e) {
+          continue;
+        }
+      }
+      var bags = [node.memoizedProps, node.memoizedState, node.stateNode, node.pendingProps];
+      for (var i = 0; i < bags.length; i++) {
+        var bag = bags[i];
+        if (bag && typeof bag.filterEntries === 'function') return bag;
+        if (bag && bag.backend && typeof bag.backend.filterEntries === 'function') return bag.backend;
+        if (bag && typeof bag.getState === 'function') {
+          try { queue.push(bag.getState()); } catch (e) {}
+        }
+      }
+      if (node.child) queue.push(node.child);
+      if (node.sibling) queue.push(node.sibling);
+      if (node.return) queue.push(node.return);
+    }
+    return null;
+  }
+
+  var filterRefreshDone = false;
+  function installFilterPatch() {
+    var patched = huntFilterEntries(global.CMS);
+    if (!patched) {
+      var backend = findBackendFromDom();
+      if (backend) {
+        wrapFilterEntries(backend);
+        try { wrapFilterEntries(Object.getPrototypeOf(backend)); } catch (e) {}
+        patched = true;
+      }
+    }
+    if (patched && !filterRefreshDone) {
+      filterRefreshDone = true;
+      var hash = String(global.location.hash || '');
+      if (/#\/collections\/articles_/.test(hash) && hash.indexOf('/entries/') === -1) {
+        var keep = hash;
+        global.location.hash = '#/collections/articles';
+        setTimeout(function () { global.location.hash = keep; }, 160);
+      }
+    }
+    return patched;
+  }
+
   function boot() {
     if (global.__SONAR_CMS_READY) return global.__SONAR_CMS_READY;
     if (!global.CMS || typeof global.CMS.init !== 'function') {
@@ -275,8 +418,14 @@
       config.load_config_file = false;
       patchConfig(config, global.__SONAR_DOMAINS);
       patchCategorySelect(config, global.__SONAR_DOMAINS);
+      installFilterPatch();
       global.CMS.init({ config: config });
       global.__SONAR_CMS_BOOTED = true;
+      var tries = 0;
+      var timer = setInterval(function () {
+        tries += 1;
+        if (installFilterPatch() || tries > 40) clearInterval(timer);
+      }, 200);
     }).catch(function (err) {
       console.error('[sonar cms] init dynamique impossible, repli config.yml', err);
       global.CMS.init();

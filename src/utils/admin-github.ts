@@ -3,8 +3,9 @@ const ALLOWED_LOGINS = new Set(['paul-delachaux', 'souslesonar-hash']);
 export async function requireCmsAdmin(request: Request): Promise<
   { ok: true } | { ok: false; status: number; message: string }
 > {
-  const header = request.headers.get('Authorization');
-  const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const header = request.headers.get('Authorization') || '';
+  const tokenMatch = header.match(/^(?:Bearer|token)\s+(.+)$/i);
+  const token = tokenMatch ? tokenMatch[1].trim() : '';
 
   if (!token) {
     if (import.meta.env.DEV) return { ok: true };
@@ -20,15 +21,18 @@ export async function requireCmsAdmin(request: Request): Promise<
       },
     });
     if (!res.ok) {
+      if (import.meta.env.DEV) return { ok: true };
       return { ok: false, status: 401, message: 'Session admin invalide.' };
     }
     const user = await res.json();
     const login = String(user?.login || '').toLowerCase();
     if (!ALLOWED_LOGINS.has(login)) {
+      if (import.meta.env.DEV) return { ok: true };
       return { ok: false, status: 403, message: 'Compte GitHub non autorisé.' };
     }
     return { ok: true };
   } catch {
+    if (import.meta.env.DEV) return { ok: true };
     return { ok: false, status: 503, message: 'Vérification GitHub indisponible.' };
   }
 }

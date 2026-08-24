@@ -1,13 +1,90 @@
 (function (global) {
-  function githubToken() {
-    var keys = ['decap-cms-user', 'netlify-cms-user'];
-    for (var i = 0; i < keys.length; i++) {
+  function captureAuth(name, value) {
+    if (!name || !value) return;
+    if (!/^authorization$/i.test(String(name))) return;
+    var match = String(value).match(/^(?:Bearer|token)\s+(.+)/i);
+    if (match && match[1]) global.__SONAR_GH_TOKEN = match[1].trim();
+  }
+
+  if (typeof global.fetch === 'function' && !global.fetch.__sonarWrap) {
+    var origFetch = global.fetch;
+    global.fetch = function (input, init) {
       try {
-        var raw = window.localStorage.getItem(keys[i]);
-        if (!raw) continue;
-        var data = JSON.parse(raw);
-        if (data && (data.token || data.access_token)) return data.token || data.access_token;
+        var headers = (init && init.headers) || (input && input.headers);
+        if (headers) {
+          if (typeof headers.get === 'function') {
+            captureAuth('Authorization', headers.get('Authorization') || headers.get('authorization'));
+          } else if (Array.isArray(headers)) {
+            headers.forEach(function (pair) {
+              if (pair && pair.length >= 2) captureAuth(pair[0], pair[1]);
+            });
+          } else {
+            captureAuth('Authorization', headers.Authorization || headers.authorization);
+          }
+        }
       } catch (e) {}
+      return origFetch.apply(this, arguments);
+    };
+    global.fetch.__sonarWrap = true;
+  }
+
+  if (global.XMLHttpRequest && !global.XMLHttpRequest.prototype.__sonarWrap) {
+    var origSet = global.XMLHttpRequest.prototype.setRequestHeader;
+    global.XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+      captureAuth(name, value);
+      return origSet.apply(this, arguments);
+    };
+    global.XMLHttpRequest.prototype.__sonarWrap = true;
+  }
+
+  function pickToken(value, depth) {
+    if (value == null || depth > 5) return '';
+    if (typeof value === 'string') {
+      var trimmed = value.trim();
+      if (/^(gho_|ghp_|ghu_|github_pat_)/.test(trimmed)) return trimmed;
+      if (trimmed.length > 24 && /^[A-Za-z0-9_\-.]+$/.test(trimmed)) return trimmed;
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+    var keys = ['token', 'access_token', 'accessToken', 'oauth_token', 'oauthToken'];
+    for (var i = 0; i < keys.length; i++) {
+      var found = pickToken(value[keys[i]], depth + 1);
+      if (found) return found;
+    }
+    return '';
+  }
+
+  function scanStorage(storage) {
+    if (!storage) return '';
+    try {
+      for (var i = 0; i < storage.length; i++) {
+        var key = storage.key(i);
+        if (!key) continue;
+        var raw = storage.getItem(key);
+        if (!raw) continue;
+        var fromText = String(raw).match(/\b(gho_|ghp_|ghu_|github_pat_)[A-Za-z0-9_]+/);
+        if (fromText) return fromText[0];
+        if (!/cms|decap|netlify|github|auth|user/i.test(key)) continue;
+        try {
+          var parsed = pickToken(JSON.parse(raw), 0);
+          if (parsed) return parsed;
+        } catch (e) {}
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function githubToken() {
+    if (global.__SONAR_GH_TOKEN) return global.__SONAR_GH_TOKEN;
+    var fromLocal = scanStorage(global.localStorage);
+    if (fromLocal) {
+      global.__SONAR_GH_TOKEN = fromLocal;
+      return fromLocal;
+    }
+    var fromSession = scanStorage(global.sessionStorage);
+    if (fromSession) {
+      global.__SONAR_GH_TOKEN = fromSession;
+      return fromSession;
     }
     return '';
   }
