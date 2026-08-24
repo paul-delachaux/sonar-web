@@ -1,0 +1,32 @@
+---
+import CategoryLayout from '../layouts/CategoryLayout.astro';
+import { getCollection } from 'astro:content';
+import { getRoutableDomains, getDomainBySlug, articleCategorySlugsOnPage, RESERVED_PAGE_SLUGS } from '../data/domains';
+
+export const prerender = false;
+
+export function getStaticPaths() {
+    return getRoutableDomains().map((d) => ({
+        params: { category: d.slug },
+    }));
+}
+
+const { category } = Astro.params;
+const domain = getDomainBySlug(category);
+const reserved = new Set<string>(RESERVED_PAGE_SLUGS);
+
+if (!domain || !domain.visible || reserved.has(String(category || ''))) {
+    return new Response(null, { status: 404 });
+}
+
+const allowed = new Set(articleCategorySlugsOnPage(domain.slug).map((s) => s.toLowerCase()));
+const articles = (await getCollection('articles'))
+    .filter((art) => allowed.has(String(art.data.category || '').toLowerCase()) && art.data.isVisible !== false)
+    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+---
+
+<CategoryLayout
+    categoryTitle={domain.label}
+    categorySlug={domain.slug}
+    articles={articles}
+/>

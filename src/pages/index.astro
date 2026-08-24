@@ -1,9 +1,9 @@
 ---
 import MainLayout from '../layouts/Layout.astro';
 import ThumbnailCard from '../components/ThumbnailCard.astro';
+import CategoryBadge from '../components/CategoryBadge.astro';
 import { getCollection } from 'astro:content';
 import homeSettings from '../data/settings.json';
-import { categoryLabel } from '../utils/i18n.js';
 import Analytics from '@vercel/analytics/astro';
 
 import { supabase } from '../utils/supabase';
@@ -296,12 +296,8 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                       data-has-en={hasEnUne ? "true" : "false"}
                     >
                         <div class="article-une-body">
-                            <p 
-                              class="article-tag"
-                              data-fr={categoryLabel(articleUneFR.data.category, 'FR')}
-                              data-en={hasEnUne ? categoryLabel(articleUneEN.data.category, 'EN') : ''}
-                            >
-                                {categoryLabel(articleUneFR.data.category, 'FR')}
+                            <p class="article-tag">
+                                <CategoryBadge mainOnly slug={articleUneFR.data.category} slugEn={hasEnUne ? articleUneEN?.data?.category : undefined} />
                             </p>
                             <h2 
                               data-fr={articleUneFR.data.title}
@@ -354,12 +350,8 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                       data-has-en={hasEnLong ? "true" : "false"}
                     >
                         <div class="card-content-top">
-                            <p 
-                              class="sidebar-tag"
-                              data-fr={categoryLabel(premierSecondaireLongFR.data.category, 'FR')}
-                              data-en={hasEnLong ? categoryLabel(premierSecondaireLongEN.data.category, 'EN') : ''}
-                            >
-                                {categoryLabel(premierSecondaireLongFR.data.category, 'FR')}
+                            <p class="sidebar-tag">
+                                <CategoryBadge mainOnly slug={premierSecondaireLongFR.data.category} slugEn={hasEnLong ? premierSecondaireLongEN?.data?.category : undefined} />
                             </p>
                             <h3
                               data-fr={premierSecondaireLongFR.data.title}
@@ -415,12 +407,8 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                   data-has-en={hasEn ? "true" : "false"}
                                 >
                                     <div class="card-content-top">
-                                        <p 
-                                          class="sidebar-tag"
-                                          data-fr={categoryLabel(artFR.data.category, 'FR')}
-                                          data-en={hasEn ? categoryLabel(artEN.data.category, 'EN') : ''}
-                                        >
-                                            {categoryLabel(artFR.data.category, 'FR')}
+                                        <p class="sidebar-tag">
+                                            <CategoryBadge mainOnly slug={artFR.data.category} slugEn={hasEn ? artEN?.data?.category : undefined} />
                                         </p>
                                         <h3
                                           data-fr={artFR.data.title}
@@ -486,12 +474,8 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                         >
                             <div class="overlay" style={`background: ${overlayGradientVertical(artFR.customStyles.overlayOpacity)};`}></div>
                             <div class="card-content-top">
-                                <p 
-                                  class="card-tag"
-                                  data-fr={categoryLabel(artFR.data.category, 'FR')}
-                                  data-en={hasEn ? categoryLabel(artEN.data.category, 'EN') : ''}
-                                >
-                                    {categoryLabel(artFR.data.category, 'FR')}
+                                <p class="card-tag">
+                                    <CategoryBadge mainOnly slug={artFR.data.category} slugEn={hasEn ? artEN?.data?.category : undefined} />
                                 </p>
                                 <h3 
                                   style={`font-size: ${artFR.customStyles.fontSize} !important; font-weight: ${artFR.customStyles.fontWeight} !important; font-family: ${artFR.customStyles.fontFamily} !important;`}
@@ -546,12 +530,8 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                             >
                                 <div class="overlay" style={`background: ${overlayGradientVertical(artFR.customStyles.overlayOpacity)};`}></div>
                                 <div class="card-content-top">
-                                    <p 
-                                      class="card-tag"
-                                      data-fr={categoryLabel(artFR.data.category, 'FR')}
-                                      data-en={hasEn ? categoryLabel(artEN.data.category, 'EN') : ''}
-                                    >
-                                        {categoryLabel(artFR.data.category, 'FR')}
+                                    <p class="card-tag">
+                                        <CategoryBadge mainOnly slug={artFR.data.category} slugEn={hasEn ? artEN?.data?.category : undefined} />
                                     </p>
                                     <h3 
                                       style={`font-size: ${artFR.customStyles.fontSize} !important; font-weight: ${artFR.customStyles.fontWeight} !important; font-family: ${artFR.customStyles.fontFamily} !important;`}
@@ -594,12 +574,8 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                         >
                             <div class="overlay" style={`background: ${overlayGradientVertical(styleGrandArticle.overlayOpacity)};`}></div>
                             <div class="card-content-top">
-                                <p 
-                                  class="card-tag"
-                                  data-fr={categoryLabel(articleAsymDroiteFR.data.category, 'FR')}
-                                  data-en={hasEnAsymDroite ? categoryLabel(articleAsymDroiteEN.data.category, 'EN') : ''}
-                                >
-                                    {categoryLabel(articleAsymDroiteFR.data.category, 'FR')}
+                                <p class="card-tag">
+                                    <CategoryBadge mainOnly slug={articleAsymDroiteFR.data.category} slugEn={hasEnAsymDroite ? articleAsymDroiteEN?.data?.category : undefined} />
                                 </p>
                                 <h3 
                                   style={`font-size: ${styleGrandArticle.fontSize} !important; font-weight: ${styleGrandArticle.fontWeight} !important; font-family: ${styleGrandArticle.fontFamily} !important;`}
@@ -738,6 +714,9 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #0a0a40; height: 60px; }
     .spacer-img { width: 100%; height: 100%; object-fit: cover; }
     .article-tag, .sidebar-tag, .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
+    .article-tag :global(.category-badge-sub),
+    .sidebar-tag :global(.category-badge-sub),
+    .card-tag :global(.category-badge-sub) { font-style: italic; font-weight: 600; }
     .article-tag { margin: 0 0 10px 0; }
     .sidebar-tag, .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
     .article-desc, .sidebar-desc, .card-desc { font-size: 0.95rem; line-height: 1.5; color: #c9c9d4; margin: 0; }

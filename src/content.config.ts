@@ -23,12 +23,7 @@ const articles = defineCollection({
     image_caption_en: z.string().nullish().optional(),
     article_image_caption_en: z.string().nullish().optional(),
 
-    category: z.enum([
-      'politique',
-      'culture',
-      'societe',
-      'technologie'
-    ]),
+    category: z.string().min(1),
 
     image: z.string().nullish().optional(),
     image_caption: z.string().nullish().optional(), // NOUVEAU

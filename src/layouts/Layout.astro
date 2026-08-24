@@ -9,6 +9,7 @@ import Analytics from '@vercel/analytics/astro';
 import AuthNav from '../components/AuthNav.astro';
 import HeaderInner from '../components/HeaderInner.astro';
 import AccountDrawer from '../components/AccountDrawer.astro';
+import NavDomains from '../components/NavDomains.astro';
 import { getCollection } from 'astro:content';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
@@ -226,6 +227,9 @@ const articleTitlesJson = JSON.stringify(
                 min-height: 52px;
                 background-color: #02001d;
                 border-top: 1px solid rgba(255, 255, 255, 0.12);
+                overflow: visible;
+                position: relative;
+                z-index: 3;
             }
             .hv2-category-bar a {
                 text-decoration: none;
@@ -238,6 +242,150 @@ const articleTitlesJson = JSON.stringify(
             }
             .hv2-category-bar a:hover {
                 color: #ff8826;
+            }
+
+            .nav-domain {
+                position: relative;
+                display: inline-flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 52px;
+            }
+            .nav-domain-row {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 52px;
+            }
+            .nav-domain-toggle {
+                display: none;
+            }
+            .nav-domain-row a {
+                position: relative;
+                z-index: 90;
+                display: flex;
+                align-items: center;
+                min-height: 52px;
+                padding: 0 2px;
+            }
+            .nav-domain-subs {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                min-width: max(100%, 160px);
+                padding: 10px 14px 14px;
+                z-index: 80;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 2px;
+                background: #02001d;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 6px;
+                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+            }
+            /* Pont invisible sous le lien (z-index plus bas) pour atteindre le menu. */
+            .nav-domain-subs::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: -14px;
+                height: 14px;
+            }
+            .nav-domain:hover .nav-domain-subs,
+            .nav-domain:focus-within .nav-domain-subs {
+                display: flex;
+            }
+            .nav-domain-subs a {
+                white-space: nowrap;
+                font-size: 0.92rem;
+                font-weight: 600;
+                padding: 6px 4px;
+            }
+            .hv2-menu-links .nav-domain {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                min-height: 0;
+            }
+            .hv2-menu-links .nav-domain-row {
+                display: flex;
+                align-items: stretch;
+                width: 100%;
+                min-height: 0;
+            }
+            .hv2-menu-links .nav-domain-row a {
+                flex: 1;
+                min-width: 0;
+                min-height: 0;
+                z-index: auto;
+            }
+            .hv2-menu-links .nav-domain-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                width: 52px;
+                margin: 0;
+                padding: 0;
+                border: none;
+                background: transparent;
+                color: #ffffff;
+                cursor: pointer;
+            }
+            .hv2-menu-links .nav-domain-toggle:hover {
+                color: #ff8826;
+            }
+            .hv2-menu-links .nav-domain-toggle svg {
+                width: 18px;
+                height: 18px;
+                transition: transform 0.2s ease;
+            }
+            .hv2-menu-links .nav-domain.is-open .nav-domain-toggle svg {
+                transform: rotate(180deg);
+            }
+            .hv2-menu-links .nav-domain:hover .nav-domain-subs,
+            .hv2-menu-links .nav-domain:focus-within .nav-domain-subs {
+                display: none;
+            }
+            .hv2-menu-links .nav-domain-subs {
+                display: none;
+                position: static;
+                transform: none;
+                min-width: 0;
+                padding: 0 0 8px 12px;
+                background: transparent;
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .hv2-menu-links .nav-domain-subs::before {
+                content: none;
+            }
+            .hv2-menu-links .nav-domain.is-open .nav-domain-subs,
+            .hv2-menu-links .nav-domain.is-open:hover .nav-domain-subs,
+            .hv2-menu-links .nav-domain.is-open:focus-within .nav-domain-subs {
+                display: flex;
+            }
+            .hv2-menu-links .nav-domain-subs a {
+                font-size: 0.95rem;
+                font-weight: 600;
+                padding: 8px 26px;
+            }
+            .footer-links .nav-domain-subs-list {
+                list-style: none;
+                margin: 4px 0 10px 14px;
+                padding: 0;
+            }
+            .footer-links .nav-domain-subs-list li {
+                margin-bottom: 6px;
+            }
+            .footer-links .nav-domain-subs-list a {
+                color: #ff8826;
+                font-style: italic;
             }
 
             .header-v2-left,
@@ -618,7 +766,8 @@ const articleTitlesJson = JSON.stringify(
             .header-right-group {
                 display: flex;
                 align-items: center;
-                gap: 40px; 
+                gap: 40px;
+                overflow: visible;
             }
 
             .header-toolbar {
@@ -631,6 +780,7 @@ const articleTitlesJson = JSON.stringify(
                 display: flex;
                 gap: 25px;
                 align-items: center;
+                overflow: visible;
             }
 
             .nav-bar-inner a {
@@ -640,6 +790,9 @@ const articleTitlesJson = JSON.stringify(
                 font-weight: bold; 
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 transition: color 0.3s ease;
+            }
+            .nav-bar-inner .nav-domain-row a {
+                min-height: 50px;
             }
 
             .nav-bar-inner a:hover {
@@ -999,6 +1152,31 @@ const articleTitlesJson = JSON.stringify(
                 .nav-bar-inner.is-open a {
                     display: block;
                 }
+                .nav-bar-inner .nav-domain {
+                    display: none;
+                    width: 100%;
+                }
+                .nav-bar-inner.is-open .nav-domain {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: stretch;
+                    min-height: 0;
+                }
+                .nav-bar-inner.is-open .nav-domain-subs {
+                    display: flex;
+                    position: static;
+                    transform: none;
+                    min-width: 0;
+                    padding: 0 0 8px;
+                    background: transparent;
+                    border: none;
+                    box-shadow: none;
+                }
+                .nav-bar-inner.is-open .nav-domain-subs a {
+                    display: block;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                }
 
                 /* --- Footer --- */
                 .site-footer {
@@ -1185,10 +1363,7 @@ const articleTitlesJson = JSON.stringify(
 
                     <nav class="hv2-category-bar" aria-label="Catégories">
                         <a href="/" data-i18n="nav_home">Accueil</a>
-                        <a href="/politique" data-i18n="nav_politique">Politique</a>
-                        <a href="/culture" data-i18n="nav_culture">Culture</a>
-                        <a href="/societe" data-i18n="nav_societe">Société</a>
-                        <a href="/technologie" data-i18n="nav_tech">Technologie</a>
+                        <NavDomains />
                     </nav>
                 </header>
 
@@ -1216,10 +1391,7 @@ const articleTitlesJson = JSON.stringify(
                     </div>
                     <div class="hv2-menu-links">
                         <a href="/" data-i18n="nav_home">Accueil</a>
-                        <a href="/politique" data-i18n="nav_politique">Politique</a>
-                        <a href="/culture" data-i18n="nav_culture">Culture</a>
-                        <a href="/societe" data-i18n="nav_societe">Société</a>
-                        <a href="/technologie" data-i18n="nav_tech">Technologie</a>
+                        <NavDomains />
                     </div>
                 </nav>
 
@@ -1251,10 +1423,7 @@ const articleTitlesJson = JSON.stringify(
                     <h4 data-i18n="footer_nav_title">Navigation</h4>
                     <ul>
                         <li><a href="/" data-i18n="nav_home">Accueil</a></li>
-                        <li><a href="/politique" data-i18n="nav_politique">Politique</a></li>
-                        <li><a href="/culture" data-i18n="nav_culture">Culture</a></li>
-                        <li><a href="/societe" data-i18n="nav_societe">Société</a></li>
-                        <li><a href="/technologie" data-i18n="nav_tech">Technologie</a></li>
+                        <NavDomains as="list" />
                     </ul>
                 </div>
 
@@ -1454,6 +1623,11 @@ const articleTitlesJson = JSON.stringify(
                     menuPanel.classList.remove('is-open');
                     if (overlay) overlay.classList.remove('is-open');
                     if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'false');
+                    menuPanel.querySelectorAll('.nav-domain.is-open').forEach((item) => {
+                        item.classList.remove('is-open');
+                        const toggle = item.querySelector('.nav-domain-toggle');
+                        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+                    });
                 }
 
                 const searchApi = setupHeaderSearch(header, {
@@ -1491,6 +1665,23 @@ const articleTitlesJson = JSON.stringify(
                 if (menuPanel) {
                     menuPanel.querySelectorAll('.hv2-menu-links a').forEach((link) => {
                         link.addEventListener('click', closeMenu);
+                    });
+                    menuPanel.querySelectorAll('.nav-domain-toggle').forEach((btn) => {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const item = btn.closest('.nav-domain');
+                            if (!item) return;
+                            const willOpen = !item.classList.contains('is-open');
+                            menuPanel.querySelectorAll('.nav-domain.is-open').forEach((other) => {
+                                if (other === item) return;
+                                other.classList.remove('is-open');
+                                const otherBtn = other.querySelector('.nav-domain-toggle');
+                                if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+                            });
+                            item.classList.toggle('is-open', willOpen);
+                            btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                        });
                     });
                     menuPanel.addEventListener('click', (e) => e.stopPropagation());
                 }
@@ -1546,9 +1737,26 @@ const articleTitlesJson = JSON.stringify(
 
                 // 3. Application des traductions d'articles
                 document.querySelectorAll('[data-fr][data-en]').forEach(el => {
+                    if (el.closest('.category-badge')) return;
                     const text = langKey === 'EN' ? el.getAttribute('data-en') : el.getAttribute('data-fr');
                     if (text && text !== 'undefined') {
                         el.textContent = text;
+                    }
+                });
+
+                document.querySelectorAll('.category-badge').forEach((el) => {
+                    const isEn = langKey === 'EN';
+                    const main = isEn ? el.getAttribute('data-en-main') : el.getAttribute('data-fr-main');
+                    const sub = isEn ? el.getAttribute('data-en-sub') : el.getAttribute('data-fr-sub');
+                    const mainEl = el.querySelector('.category-badge-main');
+                    const sepEl = el.querySelector('.category-badge-sep');
+                    const subEl = el.querySelector('.category-badge-sub');
+                    if (mainEl && main) mainEl.textContent = main;
+                    const hasSub = Boolean(sub) && el.getAttribute('data-main-only') !== 'true';
+                    if (sepEl) sepEl.hidden = !hasSub;
+                    if (subEl) {
+                        subEl.hidden = !hasSub;
+                        if (hasSub) subEl.textContent = sub;
                     }
                 });
 

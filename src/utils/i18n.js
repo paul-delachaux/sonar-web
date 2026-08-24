@@ -1,4 +1,5 @@
 import { dictionary } from '../data/dictionary';
+import { domainHeading } from '../data/domains';
 
 /** Traduire une clé du dictionnaire (lang: 'FR' | 'EN') */
 export function t(key, lang = 'FR') {
@@ -6,28 +7,9 @@ export function t(key, lang = 'FR') {
   return dictionary[langKey]?.[key] || dictionary.FR?.[key] || key;
 }
 
-/** Slug catégorie CMS → clé dictionnaire (ex: technologie → category_title_tech) */
-const CATEGORY_DICT_KEYS = {
-  politique: 'category_title_politique',
-  culture: 'category_title_culture',
-  societe: 'category_title_societe',
-  technologie: 'category_title_tech',
-  tech: 'category_title_tech',
-};
-
-export function categoryDictKey(slug) {
-  const s = String(slug || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-  return CATEGORY_DICT_KEYS[s] || null;
-}
-
-/** Libellé traduit d'une catégorie */
+/** Libellé traduit d'une catégorie (capitales, depuis src/data/domains.json). */
 export function categoryLabel(slug, lang = 'FR') {
-  const key = categoryDictKey(slug);
-  return key ? t(key, lang) : String(slug || '');
+  return domainHeading(slug, lang);
 }
 
 // Filtrer les articles selon la langue

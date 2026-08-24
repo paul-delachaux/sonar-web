@@ -11,6 +11,7 @@ const searchPanelId = fixedClone ? 'header-inner-search-panel-clone' : 'header-i
 
 import logoSonar from './LogoSonarVdef.png';
 import AuthNav from './AuthNav.astro';
+import NavDomains from './NavDomains.astro';
 ---
 
 <header class:list={['header-inner', fixedClone && 'header-fixed-clone']}>
@@ -53,10 +54,7 @@ import AuthNav from './AuthNav.astro';
                 <span></span><span></span><span></span>
             </button>
             <a href="/" data-i18n="nav_home">Accueil</a>
-            <a href="/politique" data-i18n="nav_politique">Politique</a>
-            <a href="/culture" data-i18n="nav_culture">Culture</a>
-            <a href="/societe" data-i18n="nav_societe">Société</a>
-            <a href="/technologie" data-i18n="nav_tech">Technologie</a>
+            <NavDomains />
         </nav>
 
         <div class="header-toolbar">

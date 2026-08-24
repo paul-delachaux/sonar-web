@@ -1,16 +1,5 @@
 {
-  "politique_topArticles": [
-    "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
-    "premier-article-en-ligne",
-    "sonar-réussi-sa-première-publication"
-  ],
-  "politique_topStyles": [
-    {
-      "titleSize": "1.2rem",
-      "titleWeight": "700",
-      "descSize": "0.8rem",
-      "overlay_opacity": 0
-    },
+  "technologie_topStyles": [
     {
       "titleSize": "1.2rem",
       "titleWeight": "700",
@@ -19,13 +8,43 @@
     {
       "titleSize": "1.2rem",
       "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "400",
       "descSize": "0.8rem"
     }
   ],
   "culture_topArticles": [
     "test-admin",
-    null,
+    "gecko-le-meilleur-initiateur-de-valorant",
     null
+  ],
+  "environnement_topStyles": [
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    }
+  ],
+  "politique_topArticles": [
+    "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
+    "premier-article-en-ligne",
+    "sonar-réussi-sa-première-publication"
   ],
   "culture_topStyles": [
     {
@@ -49,6 +68,24 @@
     null,
     null
   ],
+  "politique_topStyles": [
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 0
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    },
+    {
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem"
+    }
+  ],
   "societe_topStyles": [
     {
       "titleSize": "1.2rem",
@@ -66,26 +103,19 @@
       "descSize": "0.8rem"
     }
   ],
+  "election-presidentielle_topArticles": [
+    "",
+    null,
+    null
+  ],
   "technologie_topArticles": [
     null,
     "test-pour-la-catégorie-technologie",
     null
   ],
-  "technologie_topStyles": [
-    {
-      "titleSize": "1.2rem",
-      "titleWeight": "700",
-      "descSize": "0.8rem"
-    },
-    {
-      "titleSize": "1.2rem",
-      "titleWeight": "700",
-      "descSize": "0.8rem"
-    },
-    {
-      "titleSize": "1.2rem",
-      "titleWeight": "400",
-      "descSize": "0.8rem"
-    }
+  "environnement_topArticles": [
+    "première-brève-du-site",
+    null,
+    null
   ]
 }

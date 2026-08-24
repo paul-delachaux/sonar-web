@@ -1,0 +1,57 @@
+{
+  "domains": [
+    {
+      "slug": "culture",
+      "label": "Culture",
+      "labelEn": "Culture",
+      "visible": true,
+      "order": 1
+    },
+    {
+      "slug": "politique",
+      "label": "Politique",
+      "labelEn": "Politics",
+      "visible": true,
+      "order": 2
+    },
+    {
+      "slug": "societe",
+      "label": "Société",
+      "labelEn": "Society",
+      "visible": true,
+      "order": 3
+    },
+    {
+      "slug": "technologie",
+      "label": "Technologie",
+      "labelEn": "Technology",
+      "visible": true,
+      "order": 4
+    },
+    {
+      "visible": true,
+      "label": "Environnement",
+      "labelEn": "Environment",
+      "slug": "environnement",
+      "order": 5
+    }
+  ],
+  "subdomains": [
+    {
+      "visible": true,
+      "label": "Élection présidentielle 2027",
+      "labelEn": "2027 presidential election",
+      "slug": "election-presidentielle",
+      "parent": "politique",
+      "order": 1
+    },
+    {
+      "visible": true,
+      "label": "Budget 2027",
+      "labelEn": "2027 Budget",
+      "slug": "budget-2027",
+      "parent": "politique",
+      "order": 2
+    }
+  ]
+}

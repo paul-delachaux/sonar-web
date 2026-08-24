@@ -52,7 +52,16 @@ collections:
       # --- INFORMATIONS GÉNÉRALES ---
       - { label: "INFORMATIONS GÉNÉRALES DE L'ARTICLE", name: "sep_article", widget: "separator", required: false }
       - { label: "Date de publication", name: "date", widget: "datetime" }
-      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe", "technologie"] }
+      - label: "Catégorie"
+        name: "category"
+        widget: "relation"
+        collection: "domains"
+        file: "domains"
+        search_fields: ["domains.*.label", "domains.*.slug"]
+        value_field: "domains.*.slug"
+        display_fields: ["domains.*.label"]
+        options_length: 50
+        hint: "Domaines et sous-domaines (Paramètres → Domaines). Un article de sous-domaine apparaît aussi sur la page du domaine principal."
       
       # --- IMAGES ---
       - { label: "Image de miniature", name: "image", widget: "image", hint: "Sert de miniature globale et d'image d'article par défaut" }
@@ -182,7 +191,16 @@ collections:
           - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
           - { label: "Partenaires (EN)", name: "author_partners_en", widget: "text", required: false }
 
-      - { label: "Catégorie", name: "category", widget: "select", options: ["politique", "culture", "societe", "technologie"] }
+      - label: "Catégorie"
+        name: "category"
+        widget: "relation"
+        collection: "domains"
+        file: "domains"
+        search_fields: ["domains.*.label", "domains.*.slug"]
+        value_field: "domains.*.slug"
+        display_fields: ["domains.*.label"]
+        options_length: 50
+        hint: "Domaines et sous-domaines (Paramètres → Domaines). Un article de sous-domaine apparaît aussi sur la page du domaine principal."
       - { label: "Image de miniature", name: "image", widget: "image" }
       - label: "Légende de l'image (Optionnelle)"
         name: "image_info"
@@ -286,7 +304,7 @@ collections:
   # 6. PARAMÈTRES DU SITE
   # ==========================================
   - name: "settings"
-    label: "Paramètres"
+    label: "Configuration"
     delete: false
     files:
       - name: "homepage"
@@ -693,3 +711,67 @@ collections:
                   - { label: "Ultra-Gras (900)", value: "900" }
               - { label: "Taille de la description (ex: 0.8rem)", name: "descSize", widget: "string", default: "0.8rem", required: false }
               - { label: "Intensité du filtre sombre", name: "overlay_opacity", widget: "number", default: 75, value_type: "int", min: 0, max: 100, required: false, hint: "Voile sombre sur la carte hero. 0 = image brute, 75 = défaut du site, 100 = très sombre." }
+
+  # ==========================================
+  # 7. DOMAINES DU SITE
+  # ==========================================
+  - name: "domains"
+    label: "Domaines"
+    delete: false
+    files:
+      - name: "domains"
+        label: "Domaines"
+        file: "src/data/domains.json"
+        editor:
+          preview: true
+        fields:
+          - label: "Domaines du site"
+            name: "domains"
+            widget: "list"
+            label_singular: "Domaine"
+            summary: "{{label}}"
+            collapsed: true
+            minimize_collapsed: true
+            sortable: true
+            min: 1
+            allow_add: true
+            hint: "Glisse les barres (poignée à droite) pour changer l’ordre dans les menus. Chaque domaine a une page /slug et apparaît dans les menus s’il est visible. Ne renomme pas un slug déjà utilisé par des articles : masque le domaine à la place. La suppression d’un domaine encore rattaché à des articles ou à des sous-domaines est refusée."
+            fields:
+              - { label: "Nom (FR)", name: "label", widget: "string", hint: "Affiché dans le menu, ex. Politique" }
+              - { label: "Nom (EN)", name: "labelEn", widget: "string", hint: "Affiché dans le menu en anglais, ex. Politics" }
+              - label: "Slug (URL)"
+                name: "slug"
+                widget: "string"
+                hint: "Minuscules, chiffres, tirets. Devient l’adresse /mon-slug. Ex. politique, election-2027."
+                pattern: ['^[a-z0-9]+(?:-[a-z0-9]+)*$', 'Minuscules, chiffres et tirets uniquement (ex. election-2027)']
+              - { label: "Visible sur le site ?", name: "visible", widget: "boolean", default: true, hint: "Non = absent des menus, la page /slug renvoie 404. Les articles restent classés dans ce domaine." }
+          - label: "Sous-domaines"
+            name: "subdomains"
+            widget: "list"
+            label_singular: "Sous-domaine"
+            summary: "{{label}} → {{parent}}"
+            collapsed: true
+            minimize_collapsed: true
+            sortable: true
+            required: false
+            allow_add: true
+            hint: "Mêmes champs qu’un domaine, plus le domaine principal. Au survol du domaine dans le menu, la liste des sous-domaines s’affiche. La page du domaine principal liste aussi les articles de ses sous-domaines ; la page du sous-domaine ne liste que les siens."
+            fields:
+              - { label: "Nom (FR)", name: "label", widget: "string", hint: "Affiché dans le menu, ex. Élection 2027" }
+              - { label: "Nom (EN)", name: "labelEn", widget: "string", hint: "Affiché dans le menu en anglais, ex. 2027 Election" }
+              - label: "Slug (URL)"
+                name: "slug"
+                widget: "string"
+                hint: "Minuscules, chiffres, tirets. Devient l’adresse /mon-slug. Ne pas réutiliser un slug de domaine."
+                pattern: ['^[a-z0-9]+(?:-[a-z0-9]+)*$', 'Minuscules, chiffres et tirets uniquement (ex. election-2027)']
+              - label: "Domaine principal"
+                name: "parent"
+                widget: "relation"
+                collection: "domains"
+                file: "domains"
+                search_fields: ["domains.*.label", "domains.*.slug"]
+                value_field: "domains.*.slug"
+                display_fields: ["domains.*.label"]
+                options_length: 50
+                hint: "Le sous-domaine apparaît au survol de ce domaine dans les menus."
+              - { label: "Visible sur le site ?", name: "visible", widget: "boolean", default: true, hint: "Non = absent des menus, la page /slug renvoie 404. Les articles restent visibles sur la page du domaine principal." }

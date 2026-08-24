@@ -1,58 +1,333 @@
 {
-  "asymRightArticle": "gecko-le-meilleur-initiateur-de-valorant",
+  "partial": false,
+  "path": "src/data/settings.json",
+  "meta": {
+    "path": "src/data/settings.json"
+  },
+  "isModification": null,
+  "raw": "{\n  \"partial\": false,\n  \"path\": \"src/data/settings.json\",\n  \"meta\": {\n    \"path\": \"src/data/settings.json\"\n  },\n  \"isModification\": null,\n  \"raw\": \"{\\r\\n  \\\"asymRightArticle\\\": \\\"gecko-le-meilleur-initiateur-de-valorant\\\",\\r\\n  \\\"bottomArticles\\\": [\\r\\n    \\\"gecko-le-meilleur-initiateur-de-valorant\\\",\\r\\n    \\\"test-pour-la-catégorie-société\\\",\\r\\n    \\\"test-pour-la-catégorie-technologie\\\"\\r\\n  ],\\r\\n  \\\"sidebarSmallArticles\\\": [\\r\\n    \\\"gecko-le-meilleur-initiateur-de-valorant\\\",\\r\\n    \\\"\\\"\\r\\n  ],\\r\\n  \\\"bottomArticlesStyles\\\": [\\r\\n    {\\r\\n      \\\"titleSize\\\": \\\"1.2rem\\\",\\r\\n      \\\"titleWeight\\\": \\\"400\\\",\\r\\n      \\\"titleFont\\\": \\\"sans-serif\\\"\\r\\n    },\\r\\n    {\\r\\n      \\\"titleSize\\\": \\\"1.2rem\\\",\\r\\n      \\\"titleWeight\\\": \\\"700\\\",\\r\\n      \\\"titleFont\\\": \\\"sans-serif\\\"\\r\\n    },\\r\\n    {\\r\\n      \\\"titleSize\\\": \\\"1.2rem\\\",\\r\\n      \\\"titleWeight\\\": \\\"700\\\",\\r\\n      \\\"titleFont\\\": \\\"sans-serif\\\"\\r\\n    }\\r\\n  ],\\r\\n  \\\"asymLeftArticles\\\": [\\r\\n    \\\"gecko-le-meilleur-initiateur-de-valorant\\\",\\r\\n    \\\"le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée\\\",\\r\\n    null\\r\\n  ],\\r\\n  \\\"asymLeftStyles\\\": [\\r\\n    {\\r\\n      \\\"titleSize\\\": \\\"1.1rem\\\",\\r\\n      \\\"titleWeight\\\": \\\"400\\\",\\r\\n      \\\"titleFont\\\": \\\"sans-serif\\\"\\r\\n    },\\r\\n    {\\r\\n      \\\"titleSize\\\": \\\"1.1rem\\\",\\r\\n      \\\"titleWeight\\\": \\\"400\\\",\\r\\n      \\\"titleFont\\\": \\\"sans-serif\\\"\\r\\n    },\\r\\n    {\\r\\n      \\\"titleSize\\\": \\\"1.1rem\\\",\\r\\n      \\\"titleWeight\\\": \\\"700\\\",\\r\\n      \\\"titleFont\\\": \\\"sans-serif\\\"\\r\\n    }\\r\\n  ],\\r\\n  \\\"asymRightStyle\\\": {\\r\\n    \\\"titleSize\\\": \\\"1.5rem\\\",\\r\\n    \\\"titleWeight\\\": \\\"700\\\",\\r\\n    \\\"titleFont\\\": \\\"sans-serif\\\"\\r\\n  },\\r\\n  \\\"heroArticle\\\": \\\"le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée\\\",\\r\\n  \\\"sidebarLongArticle\\\": \\\"\\\"\\r\\n}\\r\\n\",\n  \"data\": {\n    \"asymRightArticle\": \"gecko-le-meilleur-initiateur-de-valorant\",\n    \"bottomArticles\": [\n      \"gecko-le-meilleur-initiateur-de-valorant\",\n      \"test-pour-la-catégorie-société\",\n      \"test-pour-la-catégorie-technologie\"\n    ],\n    \"sidebarSmallArticles\": [\n      \"gecko-le-meilleur-initiateur-de-valorant\",\n      \"\"\n    ],\n    \"bottomArticlesStyles\": [\n      {\n        \"titleSize\": \"1.2rem\",\n        \"titleWeight\": \"400\",\n        \"titleFont\": \"sans-serif\"\n      },\n      {\n        \"titleSize\": \"1.2rem\",\n        \"titleWeight\": \"700\",\n        \"titleFont\": \"sans-serif\"\n      },\n      {\n        \"titleSize\": \"1.2rem\",\n        \"titleWeight\": \"700\",\n        \"titleFont\": \"sans-serif\"\n      }\n    ],\n    \"asymLeftArticles\": [\n      \"gecko-le-meilleur-initiateur-de-valorant\",\n      \"le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée\",\n      null\n    ],\n    \"asymLeftStyles\": [\n      {\n        \"titleSize\": \"1.1rem\",\n        \"titleWeight\": \"400\",\n        \"titleFont\": \"sans-serif\"\n      },\n      {\n        \"titleSize\": \"1.1rem\",\n        \"titleWeight\": \"400\",\n        \"titleFont\": \"sans-serif\"\n      },\n      {\n        \"titleSize\": \"1.1rem\",\n        \"titleWeight\": \"700\",\n        \"titleFont\": \"sans-serif\"\n      }\n    ],\n    \"asymRightStyle\": {\n      \"titleSize\": \"1.5rem\",\n      \"titleWeight\": \"700\",\n      \"titleFont\": \"sans-serif\"\n    },\n    \"heroArticle\": \"le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée\",\n    \"sidebarLongArticle\": \"enfin-le-nouveau-menu-admin\"\n  },\n  \"author\": \"\",\n  \"slug\": \"homepage\",\n  \"newRecord\": false,\n  \"status\": \"\",\n  \"mediaFiles\": [\n    {\n      \"id\": \"849f0a3fd484c55d7387bae200f9e3d8d7f56515b2bf0d6f4c6003f524ff4c3f\",\n      \"name\": \"ab67616d0000b2735b41f212c291593d87ea0736.jpeg\",\n      \"path\": \"public/assets/uploads/ab67616d0000b2735b41f212c291593d87ea0736.jpeg\",\n      \"file\": {},\n      \"size\": 53082,\n      \"url\": \"blob:http://localhost:4321/14f8b04a-8688-4548-87fa-defe9a087fa4\",\n      \"displayURL\": \"blob:http://localhost:4321/14f8b04a-8688-4548-87fa-defe9a087fa4\"\n    },\n    {\n      \"id\": \"5492fe9e00e7255fb9e28c72e13ec5e0b9cf77e73de98c878ec0225c00e84e4e\",\n      \"name\": \"avatar-paul.jpg\",\n      \"path\": \"public/assets/uploads/avatar-paul.jpg\",\n      \"file\": {},\n      \"size\": 4205,\n      \"url\": \"blob:http://localhost:4321/792d80de-2a53-413e-92da-b4a4724b0e79\",\n      \"displayURL\": \"blob:http://localhost:4321/792d80de-2a53-413e-92da-b4a4724b0e79\"\n    },\n    {\n      \"id\": \"3adcb4e7d82abbccd7450ccf25c83f070f4e8dfb637153ea9aa0303a7095b629\",\n      \"name\": \"avatar-victor.jpg\",\n      \"path\": \"public/assets/uploads/avatar-victor.jpg\",\n      \"file\": {},\n      \"size\": 321137,\n      \"url\": \"blob:http://localhost:4321/e2fc2459-05b4-4f54-ad20-d1d277faa84c\",\n      \"displayURL\": \"blob:http://localhost:4321/e2fc2459-05b4-4f54-ad20-d1d277faa84c\"\n    },\n    {\n      \"id\": \"084c907deb59998af7a2b66474d475bad803ea7da22107cb67082f1cdbda9651\",\n      \"name\": \"capture-d’écran-2026-05-19-à-12.05.39.png\",\n      \"path\": \"public/assets/uploads/capture-d’écran-2026-05-19-à-12.05.39.png\",\n      \"file\": {},\n      \"size\": 415286,\n      \"url\": \"blob:http://localhost:4321/5ccff7ed-6e5d-49b8-af2d-ac149e41ec1b\",\n      \"displayURL\": \"blob:http://localhost:4321/5ccff7ed-6e5d-49b8-af2d-ac149e41ec1b\"\n    },\n    {\n      \"id\": \"b2af09e406c7818b593e2dc7afda9d02d55f97c06c2c9013c4bafe5e18cbb7f6\",\n      \"name\": \"capture_decran_2026-05-07_a_15.20.30.png\",\n      \"path\": \"public/assets/uploads/capture_decran_2026-05-07_a_15.20.30.png\",\n      \"file\": {},\n      \"size\": 1612304,\n      \"url\": \"blob:http://localhost:4321/35a71fe1-1eff-46ed-b6df-38529aee2e2d\",\n      \"displayURL\": \"blob:http://localhost:4321/35a71fe1-1eff-46ed-b6df-38529aee2e2d\"\n    },\n    {\n      \"id\": \"99ff567d984e38805779dd4562c9a52410af37ab99e9594dedd2cbc932dd273b\",\n      \"name\": \"icon-instagram.png\",\n      \"path\": \"public/assets/uploads/icon-instagram.png\",\n      \"file\": {},\n      \"size\": 1335709,\n      \"url\": \"blob:http://localhost:4321/dbc76d3a-e799-402a-86b6-f7f3727e8826\",\n      \"displayURL\": \"blob:http://localhost:4321/dbc76d3a-e799-402a-86b6-f7f3727e8826\"\n    },\n    {\n      \"id\": \"bf9ce15128f0252f00184fbf38c2ee66ecb4700a37df2a776ff13ffe7f8005e6\",\n      \"name\": \"icon-substack.png\",\n      \"path\": \"public/assets/uploads/icon-substack.png\",\n      \"file\": {},\n      \"size\": 2721,\n      \"url\": \"blob:http://localhost:4321/98e3678e-9eb9-4134-b6c5-01f2b3e0143f\",\n      \"displayURL\": \"blob:http://localhost:4321/98e3678e-9eb9-4134-b6c5-01f2b3e0143f\"\n    },\n    {\n      \"id\": \"7317db3c480f9ed77ed6d5847dddd81964c21314da4e614e28da89260e99616e\",\n      \"name\": \"logo-sonar.png\",\n      \"path\": \"public/assets/uploads/logo-sonar.png\",\n      \"file\": {},\n      \"size\": 66692,\n      \"url\": \"blob:http://localhost:4321/f021ca5b-119b-4be3-91e9-f527082b1e91\",\n      \"displayURL\": \"blob:http://localhost:4321/f021ca5b-119b-4be3-91e9-f527082b1e91\"\n    },\n    {\n      \"id\": \"73536fff471de3eb68e9320596e96cc0521f2b65427018f084c652cc6c040a4d\",\n      \"name\": \"palantir-technologies.png.webp\",\n      \"path\": \"public/assets/uploads/palantir-technologies.png.webp\",\n      \"file\": {},\n      \"size\": 2280,\n      \"url\": \"blob:http://localhost:4321/026234b2-fb2e-4b9d-b8f3-44403f0f0169\",\n      \"displayURL\": \"blob:http://localhost:4321/026234b2-fb2e-4b9d-b8f3-44403f0f0169\"\n    },\n    {\n      \"id\": \"2be0a181114fa89274ad7f5b00f6c6e1bb63441abbafc87c07268e7e0ed57659\",\n      \"name\": \"ussop-giga-chad.png\",\n      \"path\": \"public/assets/uploads/ussop-giga-chad.png\",\n      \"file\": {},\n      \"size\": 655707,\n      \"url\": \"blob:http://localhost:4321/7d1afc0d-7416-4dd2-ac56-13f15ccb289f\",\n      \"displayURL\": \"blob:http://localhost:4321/7d1afc0d-7416-4dd2-ac56-13f15ccb289f\"\n    }\n  ],\n  \"label\": \"Configuration Accueil\",\n  \"updatedOn\": \"\",\n  \"i18n\": {},\n  \"collection\": \"settings\"\n}\n",
   "bottomArticles": [
-    "gecko-le-meilleur-initiateur-de-valorant",
-    "test-pour-la-catégorie-société",
-    "test-pour-la-catégorie-technologie"
+    null,
+    null,
+    null
   ],
   "sidebarSmallArticles": [
-    "gecko-le-meilleur-initiateur-de-valorant",
-    ""
+    "",
+    "test-pour-victor"
   ],
   "bottomArticlesStyles": [
     {
       "titleSize": "1.2rem",
-      "titleWeight": "400",
-      "titleFont": "sans-serif"
+      "titleWeight": "700",
+      "titleFont": "sans-serif",
+      "overlay_opacity": 75
     },
     {
       "titleSize": "1.2rem",
       "titleWeight": "700",
-      "titleFont": "sans-serif"
+      "titleFont": "sans-serif",
+      "overlay_opacity": 75
     },
     {
       "titleSize": "1.2rem",
       "titleWeight": "700",
-      "titleFont": "sans-serif"
+      "titleFont": "sans-serif",
+      "overlay_opacity": 75
     }
   ],
   "asymLeftArticles": [
-    "gecko-le-meilleur-initiateur-de-valorant",
-    "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
+    null,
+    null,
     null
   ],
+  "data": {
+    "partial": false,
+    "path": "src/data/settings.json",
+    "meta": {
+      "path": "src/data/settings.json"
+    },
+    "isModification": null,
+    "raw": "{\r\n  \"asymRightArticle\": \"gecko-le-meilleur-initiateur-de-valorant\",\r\n  \"bottomArticles\": [\r\n    \"gecko-le-meilleur-initiateur-de-valorant\",\r\n    \"test-pour-la-catégorie-société\",\r\n    \"test-pour-la-catégorie-technologie\"\r\n  ],\r\n  \"sidebarSmallArticles\": [\r\n    \"gecko-le-meilleur-initiateur-de-valorant\",\r\n    \"\"\r\n  ],\r\n  \"bottomArticlesStyles\": [\r\n    {\r\n      \"titleSize\": \"1.2rem\",\r\n      \"titleWeight\": \"400\",\r\n      \"titleFont\": \"sans-serif\"\r\n    },\r\n    {\r\n      \"titleSize\": \"1.2rem\",\r\n      \"titleWeight\": \"700\",\r\n      \"titleFont\": \"sans-serif\"\r\n    },\r\n    {\r\n      \"titleSize\": \"1.2rem\",\r\n      \"titleWeight\": \"700\",\r\n      \"titleFont\": \"sans-serif\"\r\n    }\r\n  ],\r\n  \"asymLeftArticles\": [\r\n    \"gecko-le-meilleur-initiateur-de-valorant\",\r\n    \"le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée\",\r\n    null\r\n  ],\r\n  \"asymLeftStyles\": [\r\n    {\r\n      \"titleSize\": \"1.1rem\",\r\n      \"titleWeight\": \"400\",\r\n      \"titleFont\": \"sans-serif\"\r\n    },\r\n    {\r\n      \"titleSize\": \"1.1rem\",\r\n      \"titleWeight\": \"400\",\r\n      \"titleFont\": \"sans-serif\"\r\n    },\r\n    {\r\n      \"titleSize\": \"1.1rem\",\r\n      \"titleWeight\": \"700\",\r\n      \"titleFont\": \"sans-serif\"\r\n    }\r\n  ],\r\n  \"asymRightStyle\": {\r\n    \"titleSize\": \"1.5rem\",\r\n    \"titleWeight\": \"700\",\r\n    \"titleFont\": \"sans-serif\"\r\n  },\r\n  \"heroArticle\": \"le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée\",\r\n  \"sidebarLongArticle\": \"\"\r\n}\r\n",
+    "data": {
+      "asymRightArticle": "gecko-le-meilleur-initiateur-de-valorant",
+      "bottomArticles": [
+        "gecko-le-meilleur-initiateur-de-valorant",
+        "test-pour-la-catégorie-société",
+        "test-pour-la-catégorie-technologie"
+      ],
+      "sidebarSmallArticles": [
+        "gecko-le-meilleur-initiateur-de-valorant",
+        ""
+      ],
+      "bottomArticlesStyles": [
+        {
+          "titleSize": "1.2rem",
+          "titleWeight": "400",
+          "titleFont": "sans-serif"
+        },
+        {
+          "titleSize": "1.2rem",
+          "titleWeight": "700",
+          "titleFont": "sans-serif"
+        },
+        {
+          "titleSize": "1.2rem",
+          "titleWeight": "700",
+          "titleFont": "sans-serif"
+        }
+      ],
+      "asymLeftArticles": [
+        "gecko-le-meilleur-initiateur-de-valorant",
+        "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
+        null
+      ],
+      "asymLeftStyles": [
+        {
+          "titleSize": "1.1rem",
+          "titleWeight": "400",
+          "titleFont": "sans-serif"
+        },
+        {
+          "titleSize": "1.1rem",
+          "titleWeight": "400",
+          "titleFont": "sans-serif"
+        },
+        {
+          "titleSize": "1.1rem",
+          "titleWeight": "700",
+          "titleFont": "sans-serif"
+        }
+      ],
+      "asymRightStyle": {
+        "titleSize": "1.5rem",
+        "titleWeight": "700",
+        "titleFont": "sans-serif"
+      },
+      "heroArticle": "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
+      "sidebarLongArticle": "enfin-le-nouveau-menu-admin"
+    },
+    "author": "",
+    "slug": "homepage",
+    "newRecord": false,
+    "status": "",
+    "mediaFiles": [
+      {
+        "id": "849f0a3fd484c55d7387bae200f9e3d8d7f56515b2bf0d6f4c6003f524ff4c3f",
+        "name": "ab67616d0000b2735b41f212c291593d87ea0736.jpeg",
+        "path": "public/assets/uploads/ab67616d0000b2735b41f212c291593d87ea0736.jpeg",
+        "file": {},
+        "size": 53082,
+        "url": "blob:http://localhost:4321/14f8b04a-8688-4548-87fa-defe9a087fa4",
+        "displayURL": "blob:http://localhost:4321/14f8b04a-8688-4548-87fa-defe9a087fa4"
+      },
+      {
+        "id": "5492fe9e00e7255fb9e28c72e13ec5e0b9cf77e73de98c878ec0225c00e84e4e",
+        "name": "avatar-paul.jpg",
+        "path": "public/assets/uploads/avatar-paul.jpg",
+        "file": {},
+        "size": 4205,
+        "url": "blob:http://localhost:4321/792d80de-2a53-413e-92da-b4a4724b0e79",
+        "displayURL": "blob:http://localhost:4321/792d80de-2a53-413e-92da-b4a4724b0e79"
+      },
+      {
+        "id": "3adcb4e7d82abbccd7450ccf25c83f070f4e8dfb637153ea9aa0303a7095b629",
+        "name": "avatar-victor.jpg",
+        "path": "public/assets/uploads/avatar-victor.jpg",
+        "file": {},
+        "size": 321137,
+        "url": "blob:http://localhost:4321/e2fc2459-05b4-4f54-ad20-d1d277faa84c",
+        "displayURL": "blob:http://localhost:4321/e2fc2459-05b4-4f54-ad20-d1d277faa84c"
+      },
+      {
+        "id": "084c907deb59998af7a2b66474d475bad803ea7da22107cb67082f1cdbda9651",
+        "name": "capture-d’écran-2026-05-19-à-12.05.39.png",
+        "path": "public/assets/uploads/capture-d’écran-2026-05-19-à-12.05.39.png",
+        "file": {},
+        "size": 415286,
+        "url": "blob:http://localhost:4321/5ccff7ed-6e5d-49b8-af2d-ac149e41ec1b",
+        "displayURL": "blob:http://localhost:4321/5ccff7ed-6e5d-49b8-af2d-ac149e41ec1b"
+      },
+      {
+        "id": "b2af09e406c7818b593e2dc7afda9d02d55f97c06c2c9013c4bafe5e18cbb7f6",
+        "name": "capture_decran_2026-05-07_a_15.20.30.png",
+        "path": "public/assets/uploads/capture_decran_2026-05-07_a_15.20.30.png",
+        "file": {},
+        "size": 1612304,
+        "url": "blob:http://localhost:4321/35a71fe1-1eff-46ed-b6df-38529aee2e2d",
+        "displayURL": "blob:http://localhost:4321/35a71fe1-1eff-46ed-b6df-38529aee2e2d"
+      },
+      {
+        "id": "99ff567d984e38805779dd4562c9a52410af37ab99e9594dedd2cbc932dd273b",
+        "name": "icon-instagram.png",
+        "path": "public/assets/uploads/icon-instagram.png",
+        "file": {},
+        "size": 1335709,
+        "url": "blob:http://localhost:4321/dbc76d3a-e799-402a-86b6-f7f3727e8826",
+        "displayURL": "blob:http://localhost:4321/dbc76d3a-e799-402a-86b6-f7f3727e8826"
+      },
+      {
+        "id": "bf9ce15128f0252f00184fbf38c2ee66ecb4700a37df2a776ff13ffe7f8005e6",
+        "name": "icon-substack.png",
+        "path": "public/assets/uploads/icon-substack.png",
+        "file": {},
+        "size": 2721,
+        "url": "blob:http://localhost:4321/98e3678e-9eb9-4134-b6c5-01f2b3e0143f",
+        "displayURL": "blob:http://localhost:4321/98e3678e-9eb9-4134-b6c5-01f2b3e0143f"
+      },
+      {
+        "id": "7317db3c480f9ed77ed6d5847dddd81964c21314da4e614e28da89260e99616e",
+        "name": "logo-sonar.png",
+        "path": "public/assets/uploads/logo-sonar.png",
+        "file": {},
+        "size": 66692,
+        "url": "blob:http://localhost:4321/f021ca5b-119b-4be3-91e9-f527082b1e91",
+        "displayURL": "blob:http://localhost:4321/f021ca5b-119b-4be3-91e9-f527082b1e91"
+      },
+      {
+        "id": "73536fff471de3eb68e9320596e96cc0521f2b65427018f084c652cc6c040a4d",
+        "name": "palantir-technologies.png.webp",
+        "path": "public/assets/uploads/palantir-technologies.png.webp",
+        "file": {},
+        "size": 2280,
+        "url": "blob:http://localhost:4321/026234b2-fb2e-4b9d-b8f3-44403f0f0169",
+        "displayURL": "blob:http://localhost:4321/026234b2-fb2e-4b9d-b8f3-44403f0f0169"
+      },
+      {
+        "id": "2be0a181114fa89274ad7f5b00f6c6e1bb63441abbafc87c07268e7e0ed57659",
+        "name": "ussop-giga-chad.png",
+        "path": "public/assets/uploads/ussop-giga-chad.png",
+        "file": {},
+        "size": 655707,
+        "url": "blob:http://localhost:4321/7d1afc0d-7416-4dd2-ac56-13f15ccb289f",
+        "displayURL": "blob:http://localhost:4321/7d1afc0d-7416-4dd2-ac56-13f15ccb289f"
+      }
+    ],
+    "label": "Configuration Accueil",
+    "updatedOn": "",
+    "heroArticle": "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
+    "sidebarLongArticle": "enfin-le-nouveau-menu-admin",
+    "i18n": {},
+    "collection": "settings"
+  },
+  "author": "",
+  "slug": "homepage",
   "asymLeftStyles": [
     {
       "titleSize": "1.1rem",
-      "titleWeight": "400",
-      "titleFont": "sans-serif"
-    },
-    {
-      "titleSize": "1.1rem",
-      "titleWeight": "400",
-      "titleFont": "sans-serif"
+      "titleWeight": "700",
+      "titleFont": "sans-serif",
+      "overlay_opacity": 75
     },
     {
       "titleSize": "1.1rem",
       "titleWeight": "700",
-      "titleFont": "sans-serif"
+      "titleFont": "sans-serif",
+      "overlay_opacity": 75
+    },
+    {
+      "titleSize": "1.1rem",
+      "titleWeight": "700",
+      "titleFont": "sans-serif",
+      "overlay_opacity": 75
     }
   ],
-  "asymRightStyle": {
-    "titleSize": "1.5rem",
-    "titleWeight": "700",
-    "titleFont": "sans-serif"
-  },
+  "newRecord": false,
+  "status": "",
+  "mediaFiles": [
+    {
+      "id": "849f0a3fd484c55d7387bae200f9e3d8d7f56515b2bf0d6f4c6003f524ff4c3f",
+      "name": "ab67616d0000b2735b41f212c291593d87ea0736.jpeg",
+      "path": "public/assets/uploads/ab67616d0000b2735b41f212c291593d87ea0736.jpeg",
+      "file": {},
+      "size": 53082,
+      "url": "blob:http://localhost:4321/f5a96021-b6ae-414b-bf5f-20b7aaaf342b",
+      "displayURL": "blob:http://localhost:4321/f5a96021-b6ae-414b-bf5f-20b7aaaf342b"
+    },
+    {
+      "id": "5492fe9e00e7255fb9e28c72e13ec5e0b9cf77e73de98c878ec0225c00e84e4e",
+      "name": "avatar-paul.jpg",
+      "path": "public/assets/uploads/avatar-paul.jpg",
+      "file": {},
+      "size": 4205,
+      "url": "blob:http://localhost:4321/00a8f4da-ab6a-4e61-8094-058ddb341f1e",
+      "displayURL": "blob:http://localhost:4321/00a8f4da-ab6a-4e61-8094-058ddb341f1e"
+    },
+    {
+      "id": "3adcb4e7d82abbccd7450ccf25c83f070f4e8dfb637153ea9aa0303a7095b629",
+      "name": "avatar-victor.jpg",
+      "path": "public/assets/uploads/avatar-victor.jpg",
+      "file": {},
+      "size": 321137,
+      "url": "blob:http://localhost:4321/1b1870fe-0100-4443-adf4-d9c2cc7c8057",
+      "displayURL": "blob:http://localhost:4321/1b1870fe-0100-4443-adf4-d9c2cc7c8057"
+    },
+    {
+      "id": "084c907deb59998af7a2b66474d475bad803ea7da22107cb67082f1cdbda9651",
+      "name": "capture-d’écran-2026-05-19-à-12.05.39.png",
+      "path": "public/assets/uploads/capture-d’écran-2026-05-19-à-12.05.39.png",
+      "file": {},
+      "size": 415286,
+      "url": "blob:http://localhost:4321/0ae90fc5-88be-433f-b223-d40c3b888ad6",
+      "displayURL": "blob:http://localhost:4321/0ae90fc5-88be-433f-b223-d40c3b888ad6"
+    },
+    {
+      "id": "b2af09e406c7818b593e2dc7afda9d02d55f97c06c2c9013c4bafe5e18cbb7f6",
+      "name": "capture_decran_2026-05-07_a_15.20.30.png",
+      "path": "public/assets/uploads/capture_decran_2026-05-07_a_15.20.30.png",
+      "file": {},
+      "size": 1612304,
+      "url": "blob:http://localhost:4321/1736a889-ad41-4257-a7d7-be0f05841d70",
+      "displayURL": "blob:http://localhost:4321/1736a889-ad41-4257-a7d7-be0f05841d70"
+    },
+    {
+      "id": "99ff567d984e38805779dd4562c9a52410af37ab99e9594dedd2cbc932dd273b",
+      "name": "icon-instagram.png",
+      "path": "public/assets/uploads/icon-instagram.png",
+      "file": {},
+      "size": 1335709,
+      "url": "blob:http://localhost:4321/f325745c-7175-42b7-a3a8-05a45cae5b5a",
+      "displayURL": "blob:http://localhost:4321/f325745c-7175-42b7-a3a8-05a45cae5b5a"
+    },
+    {
+      "id": "bf9ce15128f0252f00184fbf38c2ee66ecb4700a37df2a776ff13ffe7f8005e6",
+      "name": "icon-substack.png",
+      "path": "public/assets/uploads/icon-substack.png",
+      "file": {},
+      "size": 2721,
+      "url": "blob:http://localhost:4321/ef5943df-4325-4d55-815e-82546f583063",
+      "displayURL": "blob:http://localhost:4321/ef5943df-4325-4d55-815e-82546f583063"
+    },
+    {
+      "id": "7317db3c480f9ed77ed6d5847dddd81964c21314da4e614e28da89260e99616e",
+      "name": "logo-sonar.png",
+      "path": "public/assets/uploads/logo-sonar.png",
+      "file": {},
+      "size": 66692,
+      "url": "blob:http://localhost:4321/3a20b866-c3dd-497a-ac27-176bf32d435c",
+      "displayURL": "blob:http://localhost:4321/3a20b866-c3dd-497a-ac27-176bf32d435c"
+    },
+    {
+      "id": "73536fff471de3eb68e9320596e96cc0521f2b65427018f084c652cc6c040a4d",
+      "name": "palantir-technologies.png.webp",
+      "path": "public/assets/uploads/palantir-technologies.png.webp",
+      "file": {},
+      "size": 2280,
+      "url": "blob:http://localhost:4321/82e6a42a-9db6-4b80-94a1-3c76caf3706d",
+      "displayURL": "blob:http://localhost:4321/82e6a42a-9db6-4b80-94a1-3c76caf3706d"
+    },
+    {
+      "id": "2be0a181114fa89274ad7f5b00f6c6e1bb63441abbafc87c07268e7e0ed57659",
+      "name": "ussop-giga-chad.png",
+      "path": "public/assets/uploads/ussop-giga-chad.png",
+      "file": {},
+      "size": 655707,
+      "url": "blob:http://localhost:4321/894fce6c-f3d3-4442-a6c0-a0bd63a3bf19",
+      "displayURL": "blob:http://localhost:4321/894fce6c-f3d3-4442-a6c0-a0bd63a3bf19"
+    }
+  ],
+  "label": "Configuration Accueil",
+  "updatedOn": "",
   "heroArticle": "le-«-manifeste-»-de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
-  "sidebarLongArticle": ""
+  "i18n": {},
+  "collection": "settings"
 }

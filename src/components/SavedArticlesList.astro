@@ -103,8 +103,9 @@ const sortStorageKey = isReadLater ? 'sonar_read_later_sort' : 'sonar_favorites_
 
 <script>
   import { getCurrentAccount, listFavoriteSlugs, listReadLaterItems } from '../utils/supabase-browser';
+  import { getVisibleDomainSlugs } from '../data/domains';
 
-  const CATEGORY_ORDER = ['politique', 'culture', 'societe', 'technologie'];
+  const CATEGORY_ORDER = getVisibleDomainSlugs();
   const page = document.querySelector<HTMLElement>('.favorites-page');
   const kind = page?.dataset.savedKind || 'favorites';
   const loginRedirect = page?.dataset.loginRedirect || '/favoris';

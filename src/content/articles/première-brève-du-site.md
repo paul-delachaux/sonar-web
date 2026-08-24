@@ -41,7 +41,7 @@ author_about: Super beau gosse ce mec en plus d'être super intelligent.
 description: Description de la première brève. En gros j'ai besoin d'un texte
   assez long pour vérifier que l'affichage se faire correctement et que je suis
   satisfait de mon travail.
-category: technologie
+category: environnement
 image: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZ41YjiG4pw_0D6EoEeEYnIseBagTy872GkV5vBfekJw&s=10
 ---
 Ceci est la première brève publié sur le site afin de tester le layout.

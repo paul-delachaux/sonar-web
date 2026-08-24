@@ -1,0 +1,38 @@
+---
+import { getCategoryParts } from '../data/domains';
+
+interface Props {
+    slug: string | null | undefined;
+    slugEn?: string | null;
+    class?: string;
+    mainOnly?: boolean;
+}
+
+const { slug, slugEn, class: className, mainOnly = false } = Astro.props;
+const fr = getCategoryParts(slug, 'FR');
+const en = getCategoryParts(slugEn || slug, 'EN');
+const showSub = Boolean(fr.sub) && !mainOnly;
+---
+
+<span
+    class:list={['category-badge', className]}
+    data-fr-main={fr.main}
+    data-en-main={en.main}
+    data-fr-sub={fr.sub || ''}
+    data-en-sub={en.sub || ''}
+    data-main-only={mainOnly ? 'true' : undefined}
+>
+    <span class="category-badge-main">{fr.main}</span>
+    <span class="category-badge-sep" hidden={!showSub}> - </span>
+    <em class="category-badge-sub" hidden={!showSub}>{fr.sub}</em>
+</span>
+
+<style>
+    .category-badge-sub {
+        font-style: italic;
+        font-weight: 600;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        color: inherit;
+    }
+</style>

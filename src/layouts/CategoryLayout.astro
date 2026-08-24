@@ -1,7 +1,7 @@
 ---
 import MainLayout from './Layout.astro';
 import categorySettings from '../data/categories.json';
-import { t, categoryDictKey, categoryLabel } from '../utils/i18n.js';
+import { t, categoryLabel } from '../utils/i18n.js';
 
 interface Props {
   categoryTitle: string;
@@ -177,7 +177,7 @@ const overlayGradient = (raw: unknown) => {
     
     <!-- BANDEAU TITRE -->
     <header class="category-header">
-      <h1 class="category-title" data-i18n={categoryDictKey(currentSlug) || undefined}>{categoryLabel(currentSlug, 'FR')}</h1>
+      <h1 class="category-title" data-fr={categoryLabel(currentSlug, 'FR')} data-en={categoryLabel(currentSlug, 'EN')}>{categoryLabel(currentSlug, 'FR')}</h1>
       <div class="title-separator"></div>
     </header>
 

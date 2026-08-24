@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Le Sonar — Content Manager</title>
   <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url" />
+  <script>window.CMS_MANUAL_INIT = true;</script>
 
   <style>
     /* 1. BARRE SUPÉRIEURE */
@@ -485,18 +486,123 @@
     }
     .sonar-mod-keep { background: #1D9E75; }
     .sonar-mod-delete { background: #e5484d; }
+    .sonar-bulk-bar {
+      width: 60%;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px;
+      padding: 10px 12px;
+      background: #01002b;
+      color: #fff;
+      border-radius: 8px;
+      font-family: Helvetica, Arial, sans-serif;
+    }
+    .sonar-bulk-bar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      color: #fff !important;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .sonar-bulk-count { font-size: 13px; font-weight: 700; color: #ffb38a; margin-right: 4px; }
+    .sonar-bulk-bar button {
+      border: none;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #fff;
+    }
+    .sonar-bulk-bar button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .sonar-bulk-visible { background: #1D9E75; }
+    .sonar-bulk-hide { background: #64748b; }
+    .sonar-bulk-remove { background: #e5484d; }
+    .sonar-bulk-status { width: 100%; margin: 0; font-size: 12px; font-weight: 600; color: #ffb38a; }
+    .sonar-bulk-host { position: relative !important; }
+    .sonar-bulk-hit {
+      position: absolute;
+      left: 0;
+      width: 42px;
+      z-index: 80;
+      margin: 0;
+      padding: 16px 0 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      transform: translateX(-55%);
+    }
+    .sonar-bulk-box {
+      width: 16px;
+      height: 16px;
+      box-sizing: border-box;
+      border: 1.5px solid #64748b;
+      border-radius: 3px;
+      background: #fff;
+      pointer-events: none;
+    }
+    .sonar-bulk-hit.is-on .sonar-bulk-box {
+      background: #ff7900;
+      border-color: #ff7900;
+      box-shadow: inset 0 0 0 2px #fff;
+    }
+    .sonar-bulk-host.sonar-bulk-pad { padding-left: 36px !important; }
+    .sonar-extra-card {
+      position: relative;
+      background: #fff;
+      border-radius: 8px;
+      margin: 0 0 10px;
+      box-shadow: 0 1px 4px rgba(1, 0, 43, 0.1);
+    }
+    .sonar-extra-card a {
+      display: block;
+      padding: 18px 16px 16px;
+      color: #01002b !important;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .sonar-extra-card a:hover { color: #ff7900 !important; }
+    .sonar-extra-tag {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #ff7900;
+      color: #fff !important;
+      font-size: 11px;
+      font-weight: 800;
+      font-style: italic;
+      text-transform: none;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="/admin/article-search.js"></script>
+  <script src="/admin/cms-boot.js"></script>
+  <script src="/admin/domains-admin.js"></script>
   <script src="/admin/moderation.js"></script>
+  <script src="/admin/bulk-admin.js"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
-      const checkCMS = setInterval(() => {
-        if (window.CMS) {
-          clearInterval(checkCMS);
+      const startWhenReady = () => {
+        if (!window.CMS || !window.__SONAR_CMS_BOOTED) {
+          setTimeout(startWhenReady, 120);
+          return;
+        }
           console.log("=== CMS LOADED ===");
           
           window.CMS.registerEventListener({
@@ -557,12 +663,12 @@
               window.location.reload();
             }
           });
-        }
-      }, 500);
+      };
+      startWhenReady();
     });
 
     // 🧱 Widget de section intelligent / Séparateur Accordéon
-    const PREVIEW_TARGETS = {
+    const HOMEPAGE_PREVIEW_TARGETS = {
       sep_article_une: 'preview-hero',
       heroArticle: 'preview-hero',
       sep_sidebar_long: 'preview-sidebar',
@@ -576,20 +682,26 @@
       asymLeftStyles: 'preview-asym-left',
       sep_giant_article: 'preview-asym-right',
       asymRightArticle: 'preview-asym-right',
-      asymRightStyle: 'preview-asym-right',
-      sep_politique: 'preview-cat-politique',
-      politique_topArticles: 'preview-cat-politique',
-      politique_topStyles: 'preview-cat-politique',
-      sep_culture: 'preview-cat-culture',
-      culture_topArticles: 'preview-cat-culture',
-      culture_topStyles: 'preview-cat-culture',
-      sep_societe: 'preview-cat-societe',
-      societe_topArticles: 'preview-cat-societe',
-      societe_topStyles: 'preview-cat-societe',
-      sep_technologie: 'preview-cat-technologie',
-      technologie_topArticles: 'preview-cat-technologie',
-      technologie_topStyles: 'preview-cat-technologie'
+      asymRightStyle: 'preview-asym-right'
     };
+
+    function sonarDomains() {
+      return Array.isArray(window.__SONAR_DOMAINS) ? window.__SONAR_DOMAINS : [];
+    }
+
+    function getPreviewTargets() {
+      const targets = Object.assign({}, HOMEPAGE_PREVIEW_TARGETS);
+      sonarDomains().forEach(function(domain) {
+        if (!domain || !domain.slug) return;
+        const slug = domain.slug;
+        const safe = String(slug).replace(/[^a-z0-9]+/gi, '_');
+        const target = 'preview-cat-' + slug;
+        targets['sep_' + safe] = target;
+        targets[slug + '_topArticles'] = target;
+        targets[slug + '_topStyles'] = target;
+      });
+      return targets;
+    }
 
     const PREVIEW_LABEL_RULES = [
       { test: /article à la une/i, target: 'preview-hero' },
@@ -610,6 +722,13 @@
       for (let i = 0; i < PREVIEW_LABEL_RULES.length; i++) {
         if (PREVIEW_LABEL_RULES[i].test.test(text)) return PREVIEW_LABEL_RULES[i].target;
       }
+      const domains = sonarDomains();
+      for (let i = 0; i < domains.length; i++) {
+        const domain = domains[i];
+        if (!domain || !domain.slug) continue;
+        const name = String(domain.label || domain.slug).trim();
+        if (name && text.toLowerCase() === name.toLowerCase()) return 'preview-cat-' + domain.slug;
+      }
       return null;
     }
 
@@ -618,11 +737,35 @@
         const field = this.props.field;
         const label = field.get('label');
         const fieldName = field.get('name');
-        const sectionTarget = PREVIEW_TARGETS[fieldName] || matchLabelToPreviewTarget(label) || '';
+        const sectionTarget = getPreviewTargets()[fieldName] || matchLabelToPreviewTarget(label) || '';
         const isDefaultCollapsed = field.get('collapsed') === true;
-        
+        const isNested = field.get('nested') === true;
+
+        function sectionHeaderIn(el) {
+          return el && el.querySelector ? el.querySelector('[data-section-header="true"]') : null;
+        }
+        function isNestedSectionContainer(el) {
+          var header = sectionHeaderIn(el);
+          return Boolean(header && header.getAttribute('data-nested-section') === 'true');
+        }
+        function isMainSectionContainer(el) {
+          var header = sectionHeaderIn(el);
+          return Boolean(header && header.getAttribute('data-nested-section') !== 'true');
+        }
+        function getControlContainer(start) {
+          var parentContainer = start && start.parentElement;
+          while (parentContainer) {
+            if (parentContainer.className && String(parentContainer.className).indexOf('ControlContainer') !== -1) {
+              return parentContainer;
+            }
+            parentContainer = parentContainer.parentElement;
+          }
+          return null;
+        }
+
         return h('div', {
           'data-section-header': 'true',
+          'data-nested-section': isNested ? 'true' : 'false',
           'data-collapsed': isDefaultCollapsed ? 'true' : 'false',
           'data-preview-target': sectionTarget,
           title: sectionTarget ? 'Survolez pour localiser cette zone dans l’aperçu' : undefined,
@@ -642,29 +785,38 @@
               headerEl.style.borderBottomRightRadius = '8px';
             }
             
-            var parentContainer = headerEl.parentElement;
-            while (parentContainer) {
-              if (parentContainer.className && parentContainer.className.indexOf('ControlContainer') !== -1) {
-                var nextSibling = parentContainer.nextElementSibling;
-                while (nextSibling) {
-                  if (nextSibling.querySelector('[data-section-header="true"]') || 
-                      (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
-                    break;
-                  }
-                  nextSibling.style.display = isCollapsed ? 'block' : 'none';
-                  nextSibling = nextSibling.nextElementSibling;
-                }
+            var parentContainer = getControlContainer(headerEl);
+            if (!parentContainer) return;
+            var showing = isCollapsed;
+            var nextSibling = parentContainer.nextElementSibling;
+            while (nextSibling) {
+              if (isMainSectionContainer(nextSibling) ||
+                  (isNested && isNestedSectionContainer(nextSibling)) ||
+                  (nextSibling.className && String(nextSibling.className).indexOf('ControlContainer') === -1 && !sectionHeaderIn(nextSibling))) {
                 break;
               }
-              parentContainer = parentContainer.parentElement;
+              if (!isNested && isNestedSectionContainer(nextSibling)) {
+                nextSibling.style.display = showing ? 'block' : 'none';
+                var nestedHeader = sectionHeaderIn(nextSibling);
+                var nestedOpen = nestedHeader && nestedHeader.getAttribute('data-collapsed') === 'false';
+                nextSibling = nextSibling.nextElementSibling;
+                while (nextSibling && !sectionHeaderIn(nextSibling)) {
+                  if (nextSibling.className && String(nextSibling.className).indexOf('ControlContainer') === -1) break;
+                  nextSibling.style.display = (showing && nestedOpen) ? 'block' : 'none';
+                  nextSibling = nextSibling.nextElementSibling;
+                }
+                continue;
+              }
+              nextSibling.style.display = showing ? 'block' : 'none';
+              nextSibling = nextSibling.nextElementSibling;
             }
           },
           style: {
             backgroundColor: '#1D9E75',
             color: '#ffffff',
-            padding: '14px 18px',
+            padding: isNested ? '12px 16px' : '14px 18px',
             fontWeight: '800',
-            fontSize: '13px',
+            fontSize: isNested ? '12px' : '13px',
             borderTopLeftRadius: '8px',
             borderTopRightRadius: '8px',
             borderBottomLeftRadius: isDefaultCollapsed ? '8px' : '0px',
@@ -675,64 +827,78 @@
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             cursor: 'pointer',
             display: 'flex',
-            justifySpaceBetween: 'space-between',
+            justifyContent: 'space-between',
             alignItems: 'center',
             userSelect: 'none'
           },
           ref: function(el) {
             if (!el) return;
-            var parentContainer = el.parentElement;
-            while (parentContainer) {
-              if (parentContainer.className && parentContainer.className.indexOf('ControlContainer') !== -1) {
-                var defaultLabel = parentContainer.querySelector('label');
-                if (defaultLabel) defaultLabel.style.display = 'none';
-                
-                parentContainer.style.marginBottom = '0px';
-                parentContainer.style.paddingBottom = '0px';
-                parentContainer.style.marginTop = '35px';
-                if (sectionTarget) parentContainer.setAttribute('data-preview-target', sectionTarget);
-                
-                var nextSibling = parentContainer.nextElementSibling;
-                var fieldsInGroup = [];
-                
-                while (nextSibling) {
-                  if (nextSibling.querySelector('[data-section-header="true"]') || 
-                      (nextSibling.className && nextSibling.className.indexOf('ControlContainer') === -1)) {
-                    break;
-                  }
+            var parentContainer = getControlContainer(el);
+            if (!parentContainer) return;
+            var defaultLabel = parentContainer.querySelector('label');
+            if (defaultLabel) defaultLabel.style.display = 'none';
+
+            parentContainer.style.marginBottom = '0px';
+            parentContainer.style.paddingBottom = '0px';
+            parentContainer.style.marginTop = isNested ? '12px' : '35px';
+            parentContainer.style.marginLeft = isNested ? '18px' : '0px';
+            if (sectionTarget) parentContainer.setAttribute('data-preview-target', sectionTarget);
+
+            var nextSibling = parentContainer.nextElementSibling;
+            var fieldsInGroup = [];
+
+            while (nextSibling) {
+              if (isMainSectionContainer(nextSibling) ||
+                  (isNested && isNestedSectionContainer(nextSibling)) ||
+                  (nextSibling.className && String(nextSibling.className).indexOf('ControlContainer') === -1 && !sectionHeaderIn(nextSibling))) {
+                break;
+              }
+              if (!isNested && isNestedSectionContainer(nextSibling)) {
+                fieldsInGroup.push(nextSibling);
+                nextSibling = nextSibling.nextElementSibling;
+                while (nextSibling && !sectionHeaderIn(nextSibling)) {
+                  if (nextSibling.className && String(nextSibling.className).indexOf('ControlContainer') === -1) break;
                   fieldsInGroup.push(nextSibling);
                   nextSibling = nextSibling.nextElementSibling;
                 }
-                
-                fieldsInGroup.forEach(function(fieldEl, index) {
-                  var fieldLabel = fieldEl.querySelector('label');
-                  var specificTarget = matchLabelToPreviewTarget(fieldLabel ? fieldLabel.textContent : '') || sectionTarget;
-                  if (specificTarget) fieldEl.setAttribute('data-preview-target', specificTarget);
-                  fieldEl.style.backgroundColor = '#f8fafc';
-                  fieldEl.style.borderLeft = '2px solid #1D9E75';
-                  fieldEl.style.borderRight = '2px solid #1D9E75';
-                  fieldEl.style.paddingLeft = '25px';
-                  fieldEl.style.paddingRight = '25px';
-                  fieldEl.style.paddingTop = '12px';
-                  fieldEl.style.paddingBottom = '12px';
-                  fieldEl.style.marginTop = '0px';
-                  fieldEl.style.marginBottom = '0px';
-                  
-                  if (isDefaultCollapsed) {
-                    fieldEl.style.display = 'none';
-                  }
-                  
-                  if (index === fieldsInGroup.length - 1) {
-                    fieldEl.style.borderBottom = '2px solid #1D9E75';
-                    fieldEl.style.borderBottomLeftRadius = '8px';
-                    fieldEl.style.borderBottomRightRadius = '8px';
-                    fieldEl.style.marginBottom = '30px';
-                  }
-                });
-                break;
+                continue;
               }
-              parentContainer = parentContainer.parentElement;
+              fieldsInGroup.push(nextSibling);
+              nextSibling = nextSibling.nextElementSibling;
             }
+
+            fieldsInGroup.forEach(function(fieldEl, index) {
+              if (sectionHeaderIn(fieldEl)) {
+                fieldEl.style.marginTop = '8px';
+                if (isDefaultCollapsed) fieldEl.style.display = 'none';
+                return;
+              }
+              var fieldLabel = fieldEl.querySelector('label');
+              var specificTarget = matchLabelToPreviewTarget(fieldLabel ? fieldLabel.textContent : '') || sectionTarget;
+              if (specificTarget) fieldEl.setAttribute('data-preview-target', specificTarget);
+              fieldEl.style.backgroundColor = '#f8fafc';
+              fieldEl.style.borderLeft = '2px solid #1D9E75';
+              fieldEl.style.borderRight = '2px solid #1D9E75';
+              fieldEl.style.paddingLeft = isNested ? '36px' : '25px';
+              fieldEl.style.paddingRight = '25px';
+              fieldEl.style.paddingTop = '12px';
+              fieldEl.style.paddingBottom = '12px';
+              fieldEl.style.marginTop = '0px';
+              fieldEl.style.marginBottom = '0px';
+
+              if (isDefaultCollapsed) {
+                fieldEl.style.display = 'none';
+              }
+
+              var nextInGroup = fieldsInGroup[index + 1];
+              var closesGroup = index === fieldsInGroup.length - 1 || (nextInGroup && sectionHeaderIn(nextInGroup));
+              if (closesGroup) {
+                fieldEl.style.borderBottom = '2px solid #1D9E75';
+                fieldEl.style.borderBottomLeftRadius = '8px';
+                fieldEl.style.borderBottomRightRadius = '8px';
+                fieldEl.style.marginBottom = (index === fieldsInGroup.length - 1 && !isNested) ? '30px' : '8px';
+              }
+            });
           }
         }, [
           h('span', null, label),
@@ -782,6 +948,17 @@
         };
       }
 
+      function categoryMatchesTarget(articleCategory, targetCategory) {
+        if (!targetCategory) return true;
+        if (articleCategory === targetCategory) return true;
+        var subs = window.__SONAR_SUBDOMAINS || [];
+        for (var i = 0; i < subs.length; i++) {
+          var sub = subs[i];
+          if (sub && sub.slug === articleCategory && sub.parent === targetCategory) return true;
+        }
+        return false;
+      }
+
       class FilteredRelationControl extends NativeRelationControl {
         constructor(props) {
           super(props);
@@ -801,18 +978,35 @@
         }
         function extractHits(result) {
           if (result && result.payload && Array.isArray(result.payload.hits)) return result.payload.hits;
+          if (result && Array.isArray(result.hits)) return result.hits;
           if (Array.isArray(result)) return result;
-          if (this.props.queryHits) {
-            return this.props.queryHits.toJS ? this.props.queryHits.toJS() : this.props.queryHits;
-          }
           return [];
         }
+        function hitToOption(hit) {
+          if (!hit) return null;
+          var data = hit.data;
+          if (!data && hit.get) {
+            var raw = hit.get('data');
+            data = raw && raw.toJS ? raw.toJS() : raw;
+          }
+          data = data || {};
+          if (data && typeof data.toJS === 'function') data = data.toJS();
+          var slug = hit.slug || (hit.get && hit.get('slug')) || data.slug || '';
+          if (!slug && typeof hit.path === 'string') {
+            slug = hit.path.replace(/^.*[\\/]/, '').replace(/\.(md|mdx|yml|yaml)$/i, '');
+          }
+          if (!slug) return null;
+          return { value: slug, label: data.title || slug, data: data };
+        }
         const apply = (hits) => {
-          let options = this.parseHitOptions(hits || []);
+          let options = (hits || []).map(hitToOption).filter(Boolean);
+          if (!options.length && typeof this.parseHitOptions === 'function') {
+            options = this.parseHitOptions(hits || []) || [];
+          }
           options = options.filter((opt) => {
             const data = opt.data || {};
             if (data.isVisible === false || data.isVisible === 'false') return false;
-            if (targetCategory && data.category !== targetCategory) return false;
+            if (targetCategory && !categoryMatchesTarget(data.category, targetCategory)) return false;
             if (!term) return true;
             const helper = window.SonarArticleSearch;
             if (!helper) {
@@ -827,16 +1021,61 @@
           const optionsLength = field.get('options_length') || 80;
           callback(options.slice(0, optionsLength));
         };
-        Promise.resolve(query(forID, collection, searchFieldsArray, '', file))
-          .then((result) => {
-            const hits = extractHits.call(this, result);
+        const self = this;
+        function queryOne(colName, searchTerm) {
+          return Promise.resolve(query(forID, colName, searchFieldsArray, searchTerm, file))
+            .then(function (result) { return extractHits.call(self, result) || []; })
+            .catch(function () { return []; });
+        }
+        function relatedCollections() {
+          var cols = [];
+          var seen = Object.create(null);
+          function add(name) {
+            if (!name || seen[name]) return;
+            seen[name] = true;
+            cols.push(name);
+          }
+          add(collection);
+          add('articles');
+          add('breves');
+          var nameOf = window.SonarDomainCollectionName || function (slug) {
+            return 'articles_' + String(slug || '').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
+          };
+          if (targetCategory) {
+            add(nameOf(targetCategory));
+            (window.__SONAR_SUBDOMAINS || []).forEach(function (sub) {
+              if (sub && sub.parent === targetCategory && sub.slug) add(nameOf(sub.slug));
+            });
+          }
+          return cols;
+        }
+        function queryAll(searchTerm) {
+          var cols = relatedCollections();
+          var merged = [];
+          var seen = Object.create(null);
+          return cols.reduce(function (promise, colName) {
+            return promise.then(function () {
+              return queryOne(colName, searchTerm).then(function (hits) {
+                (hits || []).forEach(function (hit) {
+                  var data = hit && (hit.data || hit);
+                  if (data && typeof data.toJS === 'function') data = data.toJS();
+                  var key = (hit && (hit.slug || (hit.get && hit.get('slug')) || hit.id)) || (data && data.title) || '';
+                  if (!key || seen[key]) return;
+                  seen[key] = true;
+                  merged.push(hit);
+                });
+              });
+            });
+          }, Promise.resolve()).then(function () { return merged; });
+        }
+        queryAll('')
+          .then(function (hits) {
             if (hits.length) {
               apply(hits);
               return;
             }
             const fallback = String(term || '').replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç]+/gi, ' ').trim();
-            return Promise.resolve(query(forID, collection, searchFieldsArray, fallback || 'e', file))
-              .then((second) => apply(extractHits.call(this, second)));
+            return queryAll(fallback || 'e').then(apply);
           })
             .catch((err) => {
               console.error('relation-filtered search failed', err);
@@ -1638,9 +1877,50 @@
       return AUTHORS_AVATARS[name] || "/assets/uploads/avatar-default.jpg";
     }
 
-    function getCategoryLabelFR(cat) {
+    function getCategoryPartsFR(cat) {
       const key = String(cat || '').trim().toLowerCase();
-      return CATEGORY_LABELS_FR[key] || String(cat || '').toUpperCase();
+      const subs = window.__SONAR_SUBDOMAINS || [];
+      const mains = window.__SONAR_MAIN_DOMAINS || [];
+      let i;
+      for (i = 0; i < subs.length; i++) {
+        if (subs[i] && subs[i].slug === key) {
+          const sub = subs[i];
+          let parent = null;
+          for (var j = 0; j < mains.length; j++) {
+            if (mains[j] && mains[j].slug === sub.parent) {
+              parent = mains[j];
+              break;
+            }
+          }
+          return {
+            main: String((parent && parent.label) || sub.parent || key).toLocaleUpperCase('fr-FR'),
+            sub: String(sub.label || key).toLocaleUpperCase('fr-FR')
+          };
+        }
+      }
+      for (i = 0; i < mains.length; i++) {
+        if (mains[i] && mains[i].slug === key) {
+          return { main: String(mains[i].label || key).toLocaleUpperCase('fr-FR'), sub: '' };
+        }
+      }
+      const flat = sonarDomains();
+      for (i = 0; i < flat.length; i++) {
+        if (flat[i] && flat[i].slug === key) {
+          return { main: String(flat[i].label || key).toLocaleUpperCase('fr-FR'), sub: '' };
+        }
+      }
+      return { main: CATEGORY_LABELS_FR[key] || String(cat || '').toUpperCase(), sub: '' };
+    }
+
+    function getCategoryLabelFR(cat) {
+      const parts = getCategoryPartsFR(cat);
+      return parts.sub ? parts.main + ' - ' + parts.sub : parts.main;
+    }
+
+    function renderCategoryLabel(h, cat) {
+      const parts = getCategoryPartsFR(cat);
+      if (!parts.sub) return parts.main;
+      return [parts.main, ' - ', h('em', { className: 'category-badge-sub' }, parts.sub)];
     }
 
     const PREVIEW_IMG_PLACEHOLDER = "/assets/uploads/default-placeholder.jpg";
@@ -2127,6 +2407,7 @@
       .home-preview .card-dynamic-spacer { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin: 10px 0; overflow: hidden; border-radius: 4px; background-color: #0a0a40; min-height: 60px; }
       .home-preview .spacer-img { width: 100%; height: 100%; object-fit: cover; }
       .home-preview .article-tag, .home-preview .sidebar-tag, .home-preview .card-tag { color: #ff8826; text-transform: uppercase; font-weight: bold; }
+      .category-badge-sub { font-style: italic; font-weight: 600; }
       .home-preview .article-tag { margin: 0 0 10px 0; }
       .home-preview .sidebar-tag, .home-preview .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
       .home-preview .article-desc, .home-preview .sidebar-desc { font-size: 0.95rem; line-height: 1.5; color: #c9c9d4; margin: 0; }
@@ -2383,7 +2664,7 @@
         const authorPartners = authorInfo.partners;
 
         const avatarUrl = getAuthorAvatar(author);
-        const categoryLabel = getCategoryLabelFR(category);
+        const categoryLabel = renderCategoryLabel(h, category);
         const sourcesList = renderBreveSourcesList(entry);
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" } },
@@ -2453,7 +2734,7 @@
       }
       return h('div', { className: 'article-sidebar' + (isLong ? ' long' : '') },
         h('div', { className: 'card-content-top' },
-          article.category ? h('p', { className: 'sidebar-tag' }, getCategoryLabelFR(article.category)) : null,
+          article.category ? h('p', { className: 'sidebar-tag' }, renderCategoryLabel(h, article.category)) : null,
           h('h3', {}, article.title),
           article.description ? h('p', { className: 'sidebar-desc' }, article.description) : null
         ),
@@ -2501,7 +2782,7 @@
       }
       return h('div', { className: 'article-une' },
         h('div', { className: 'article-une-body' },
-          article.category ? h('p', { className: 'article-tag' }, getCategoryLabelFR(article.category)) : null,
+          article.category ? h('p', { className: 'article-tag' }, renderCategoryLabel(h, article.category)) : null,
           h('h2', {}, article.title),
           article.description ? h('p', { className: 'article-desc' }, article.description) : null
         ),
@@ -2522,7 +2803,7 @@
       },
         h('div', { className: 'overlay', style: { background: getOverlayGradientVertical(style.overlay_opacity) } }),
         h('div', { className: 'card-content-top' },
-          article.category ? h('p', { className: 'card-tag' }, getCategoryLabelFR(article.category)) : null,
+          article.category ? h('p', { className: 'card-tag' }, renderCategoryLabel(h, article.category)) : null,
           h('h3', {
             style: {
               fontSize: style.titleSize || '1.2rem',
@@ -2631,7 +2912,13 @@
 
     function renderCategoriesPreview(props) {
       const entry = props.entry;
-      const sections = [
+      const fromDomains = sonarDomains().map(function(domain) {
+        return {
+          key: domain.slug,
+          label: String(domain.label || domain.slug).toLocaleUpperCase('fr-FR')
+        };
+      }).filter(function(section) { return section.key; });
+      const sections = fromDomains.length ? fromDomains : [
         { key: 'politique', label: 'POLITIQUE' },
         { key: 'culture', label: 'CULTURE' },
         { key: 'societe', label: 'SOCIÉTÉ' },
@@ -2672,6 +2959,65 @@
       );
     }
 
+    function renderDomainsPreview(props) {
+      const entry = props.entry;
+      const raw = entry.getIn(['data', 'domains']);
+      const list = (raw && typeof raw.toJS === 'function') ? raw.toJS() : [];
+      const items = Array.isArray(list) ? list : [];
+      const rawSubs = entry.getIn(['data', 'subdomains']);
+      const subsList = (rawSubs && typeof rawSubs.toJS === 'function') ? rawSubs.toJS() : [];
+      const subs = Array.isArray(subsList) ? subsList : [];
+
+      function flag(visible) {
+        return h('div', { className: 'dom-flag ' + (visible ? 'is-on' : 'is-off') }, visible ? 'Visible' : 'Masqué');
+      }
+
+      return h('div', { className: 'domains-config-preview' },
+        h('style', {}, [
+          '.domains-config-preview { background: #02001d; padding: 28px 20px 48px; font-family: Helvetica Neue, Helvetica, Arial, sans-serif; color: #ffffff; min-height: 100%; }',
+          '.domains-config-preview h1 { font-size: 1.15rem; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 8px; }',
+          '.domains-config-preview .note { color: #9ca3af; font-size: 12px; margin: 0 0 22px; }',
+          '.domains-config-preview ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }',
+          '.domains-config-preview li { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 12px 14px; border: 1px solid #1f2937; border-radius: 8px; background: #01002b; }',
+          '.domains-config-preview .dom-label { font-weight: 700; }',
+          '.domains-config-preview .dom-slug { color: #9ca3af; font-size: 12px; margin-top: 4px; }',
+          '.domains-config-preview .dom-flag { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }',
+          '.domains-config-preview .is-on { color: #4ade80; }',
+          '.domains-config-preview .is-off { color: #f97316; }',
+          '.domains-config-preview .dom-subs { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }',
+          '.domains-config-preview .dom-subs li { padding: 8px 10px; background: #02001d; }',
+          '.domains-config-preview .dom-sub-label { font-style: italic; color: #ff8826; font-weight: 600; }'
+        ].join('')),
+        h('h1', {}, 'Domaines'),
+        h('p', { className: 'note' }, 'Aperçu des menus publics. Au survol d’un domaine, ses sous-domaines s’affichent en dessous.'),
+        h('ul', {},
+          items.map(function(item, i) {
+            const visible = item && item.visible !== false;
+            const children = subs.filter(function(sub) { return sub && sub.parent === (item && item.slug); });
+            return h('li', { key: (item && item.slug) || i },
+              h('div', { style: { flex: '1' } },
+                h('div', { className: 'dom-label' }, (item && item.label) || 'Sans nom'),
+                h('div', { className: 'dom-slug' }, '/' + ((item && item.slug) || '…') + ' · ' + ((item && item.labelEn) || '')),
+                children.length ? h('ul', { className: 'dom-subs' },
+                  children.map(function(sub, si) {
+                    const subVisible = sub && sub.visible !== false;
+                    return h('li', { key: (sub && sub.slug) || si },
+                      h('div', {},
+                        h('div', { className: 'dom-sub-label' }, (sub && sub.label) || 'Sans nom'),
+                        h('div', { className: 'dom-slug' }, '/' + ((sub && sub.slug) || '…') + ' · ' + ((sub && sub.labelEn) || ''))
+                      ),
+                      flag(subVisible)
+                    );
+                  })
+                ) : null
+              ),
+              flag(visible)
+            );
+          })
+        )
+      );
+    }
+
     const HomepagePreview = createClass({
       componentDidMount: function() { rememberPreviewContext(this.props); },
       componentDidUpdate: function() { rememberPreviewContext(this.props); },
@@ -2691,6 +3037,9 @@
         rememberPreviewContext(this.props);
         const slug = String(this.props.entry.get('slug') || '');
         const path = String(this.props.entry.get('path') || '');
+        if (slug === 'domains' || /domains\.json$/.test(path)) {
+          return renderDomainsPreview(this.props);
+        }
         if (slug === 'categories' || /categories\.json$/.test(path)) {
           return renderCategoriesPreview(this.props);
         }
@@ -2702,6 +3051,11 @@
     CMS.registerPreviewTemplate("breves", BrevePreview);
     CMS.registerPreviewTemplate("settings", SettingsPreview);
     CMS.registerPreviewTemplate("homepage", HomepagePreview);
+    CMS.registerPreviewTemplate("domains", createClass({
+      componentDidMount: function() { rememberPreviewContext(this.props); },
+      componentDidUpdate: function() { rememberPreviewContext(this.props); },
+      render: function() { return renderDomainsPreview(this.props); }
+    }));
     CMS.registerPreviewTemplate("categories", CategoriesPreview);
 
     (function setupPreviewHoverSync() {
@@ -2947,8 +3301,14 @@
       var ARTICLE_SUMMARY_PATTERN = /^(Article\s*:\s*)(.+)$/;
       var STYLE_MARKER = '__STYLE_SUMMARY__';
 
+      // Masquage Add / croix : uniquement Configuration Accueil.
+      // Sur Catégories, on laisse ajouter et retirer les emplacements.
+      function isHomepageEditor() {
+        return /\/collections\/settings\/entries\/homepage(\/|$|\?)/.test(window.location.hash || '');
+      }
+
       function isSettingsRoute() {
-        return /\/collections\/settings\//.test(window.location.hash || '');
+        return /\/collections\/settings\/entries\/(homepage|categories)(\/|$|\?)/.test(window.location.hash || '');
       }
 
       // Capitalise la première lettre de chaque mot sans passer par \b (qui gère
@@ -3060,6 +3420,7 @@
         if (!isSettingsRoute()) return;
         beautifyArticleSummaries();
         beautifyStyleSummaries();
+        if (!isHomepageEditor()) return;
         hideRemoveButtons();
         hideAddButtons();
       }
@@ -3086,6 +3447,11 @@
     // 📂 SCRIPT : ORGANISATEUR / ACCORDÉON DE SIDEBAR
     // Configure ici la hiérarchie de tes collections (nom unique du name dans config.yml)
     window.addEventListener('load', () => {
+      const waitAndOrganize = () => {
+        if (!window.__SONAR_CMS_BOOTED) {
+          setTimeout(waitAndOrganize, 120);
+          return;
+        }
       const SIDEBAR_GROUPS = [
         {
           title: "Création d'articles",
@@ -3093,15 +3459,21 @@
         },
         {
           title: "Catégories",
-          collections: ["articles_politique", "articles_culture", "articles_societe", "articles_technologie"]
+          collections: (window.__SONAR_DOMAINS || []).length
+            ? (window.__SONAR_DOMAINS || []).map(function(domain) {
+                return window.SonarDomainCollectionName
+                  ? window.SonarDomainCollectionName(domain.slug)
+                  : ('articles_' + String(domain.slug || '').replace(/[^a-z0-9]+/gi, '_'));
+              })
+            : ["articles_politique", "articles_culture", "articles_societe", "articles_technologie"]
         },
         {
           title: "Filtres & Statuts",
           collections: ["contenus_visibles", "contenus_masques"]
         },
         {
-          title: "Configuration",
-          collections: ["settings"]
+          title: "Paramètres",
+          collections: ["settings", "domains"]
         }
       ];
 
@@ -3163,6 +3535,139 @@
         }
       }
 
+      function collectionPath(slug) {
+        const name = window.SonarDomainCollectionName
+          ? window.SonarDomainCollectionName(slug)
+          : ('articles_' + String(slug || '').replace(/[^a-z0-9]+/gi, '_'));
+        return '/collections/' + name;
+      }
+
+      function findSidebarItem(sidebarLinks, slug) {
+        const needle = collectionPath(slug);
+        const link = sidebarLinks.find(a => {
+          const href = a.getAttribute('href') || '';
+          const idx = href.indexOf(needle);
+          if (idx === -1) return false;
+          const after = href.charAt(idx + needle.length);
+          return after === '' || after === '/' || after === '?' || after === '#';
+        });
+        return link ? (link.closest('li') || link) : null;
+      }
+
+      function categoryTree() {
+        const mains = Array.isArray(window.__SONAR_MAIN_DOMAINS) ? window.__SONAR_MAIN_DOMAINS : [];
+        const subs = Array.isArray(window.__SONAR_SUBDOMAINS) ? window.__SONAR_SUBDOMAINS : [];
+        if (mains.length) return { mains: mains, subs: subs };
+        const flat = Array.isArray(window.__SONAR_DOMAINS) ? window.__SONAR_DOMAINS : [];
+        return {
+          mains: flat.filter(d => d && d.slug && !d.parent),
+          subs: flat.filter(d => d && d.parent)
+        };
+      }
+
+      function nestCategorySubdomains(sidebarContainer) {
+        const tree = categoryTree();
+        if (!tree.mains.length || !tree.subs.length) return;
+        const sidebarLinks = Array.from(sidebarContainer.querySelectorAll('a'));
+        const current = String(window.location.hash || window.location.pathname || '');
+
+        tree.mains.forEach(main => {
+          if (!main || !main.slug) return;
+          const children = tree.subs.filter(s => s && s.parent === main.slug && s.slug);
+          if (!children.length) return;
+          const parentEl = findSidebarItem(sidebarLinks, main.slug);
+          if (!parentEl || parentEl.tagName === 'A' || parentEl.getAttribute('data-cms-nested') === 'true') return;
+
+          const wrap = document.createElement('ul');
+          wrap.className = 'cms-cat-subs';
+          wrap.style.cssText = 'display:none;list-style:none;margin:0;padding:0;width:100%;';
+
+          let anyChild = false;
+          let shouldOpen = current.indexOf(collectionPath(main.slug)) !== -1;
+          children.forEach(sub => {
+            const childEl = findSidebarItem(sidebarLinks, sub.slug);
+            if (!childEl || childEl === parentEl) return;
+            const a = childEl.querySelector('a') || (childEl.tagName === 'A' ? childEl : null);
+            if (a && sub.label) a.textContent = sub.label;
+            childEl.style.paddingLeft = '18px';
+            wrap.appendChild(childEl);
+            anyChild = true;
+            if (current.indexOf(collectionPath(sub.slug)) !== -1) shouldOpen = true;
+          });
+          if (!anyChild) return;
+
+          const parentLink = parentEl.querySelector('a');
+          if (parentLink) {
+            parentLink.style.paddingRight = '36px';
+            parentLink.style.pointerEvents = 'auto';
+            parentLink.style.position = 'relative';
+            parentLink.style.zIndex = '2';
+            parentLink.style.cursor = 'pointer';
+            parentLink.addEventListener('click', function (event) {
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+              var href = parentLink.getAttribute('href') || '';
+              if (!href) return;
+              event.preventDefault();
+              event.stopPropagation();
+              var hashIdx = href.indexOf('#');
+              var next = hashIdx === -1 ? href : href.slice(hashIdx + 1);
+              next = String(next || '').replace(/^#/, '');
+              if (next && next.charAt(0) !== '/') next = '/' + next;
+              if (!next) return;
+              if ((window.location.hash || '').replace(/^#/, '') !== next.replace(/^#/, '')) {
+                window.location.hash = next;
+              }
+            });
+          }
+
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'cms-cat-toggle';
+          toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+          toggle.setAttribute('aria-label', 'Sous-domaines de ' + (main.label || main.slug));
+          toggle.style.cssText = [
+            'position:absolute',
+            'right:4px',
+            'top:0',
+            'width:28px',
+            'height:36px',
+            'margin:0',
+            'padding:0',
+            'border:none',
+            'background:transparent',
+            'color:#ff8826',
+            'cursor:pointer',
+            'z-index:3',
+            'display:inline-flex',
+            'align-items:center',
+            'justify-content:center',
+            'transform:' + (shouldOpen ? 'rotate(0deg)' : 'rotate(-90deg)'),
+            'transition:transform 0.15s ease'
+          ].join(';');
+          toggle.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+          parentEl.style.position = 'relative';
+          parentEl.style.overflow = 'visible';
+          parentEl.appendChild(toggle);
+          parentEl.appendChild(wrap);
+          parentEl.setAttribute('data-cms-nested', 'true');
+
+          if (shouldOpen) wrap.style.display = 'block';
+
+          wrap.addEventListener('click', (event) => {
+            event.stopPropagation();
+          });
+          toggle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const open = wrap.style.display === 'none';
+            wrap.style.display = open ? 'block' : 'none';
+            toggle.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          });
+        });
+      }
+
       function organizeSidebar() {
         // 1. Cible spécifiquement la sidebar de Decap CMS pour éviter les liens d'en-tête d'édition
         // Decap entoure sa sidebar dans un élément <aside> ou un conteneur principal de navigation
@@ -3180,7 +3685,11 @@
           group.collections.forEach(colName => {
             const link = sidebarLinks.find(a => {
               const href = a.getAttribute('href') || '';
-              return href.includes(`/collections/${colName}`);
+              const needle = '/collections/' + colName;
+              const idx = href.indexOf(needle);
+              if (idx === -1) return false;
+              const after = href.charAt(idx + needle.length);
+              return after === '' || after === '/' || after === '?' || after === '#';
             });
 
             if (link) {
@@ -3213,13 +3722,21 @@
 
             let isCollapsed = false;
 
-            itemsToGroup[0].parentNode.insertBefore(header, itemsToGroup[0]);
+            const parentNode = itemsToGroup[0].parentNode;
+            parentNode.insertBefore(header, itemsToGroup[0]);
+            let cursor = header;
+            itemsToGroup.forEach(el => {
+              parentNode.insertBefore(el, cursor.nextSibling);
+              cursor = el;
+              el.style.paddingLeft = '10px';
+            });
 
             header.addEventListener('click', () => {
               isCollapsed = !isCollapsed;
               header.querySelector('.arrow').innerText = isCollapsed ? '►' : '▼';
 
               itemsToGroup.forEach(el => {
+                if (el.closest && el.closest('.cms-cat-subs')) return;
                 el.style.display = isCollapsed ? 'none' : '';
                 el.style.paddingLeft = isCollapsed ? '0px' : '10px';
               });
@@ -3228,6 +3745,7 @@
         });
         }
 
+        nestCategorySubdomains(sidebarContainer);
         addModerationNav(sidebarContainer);
       }
 
@@ -3242,7 +3760,10 @@
       });
 
       organizeSidebar();
+      };
+      waitAndOrganize();
     });
+    if (window.SonarCmsBoot) window.SonarCmsBoot();
   </script>
 </body>
 </html>

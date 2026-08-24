@@ -2,11 +2,12 @@
 import { getCollection, render } from 'astro:content';
 import MainLayout from '../../layouts/Layout.astro';
 import { Tweet } from 'astro-embed';
-import { t, categoryLabel } from '../../utils/i18n.js';
+import { t } from '../../utils/i18n.js';
 import CommentsSection from '../../components/CommentsSection.astro';
 import DefinitionTooltips from '../../components/DefinitionTooltips.astro';
 import FavoriteStar from '../../components/FavoriteStar.astro';
 import ReadLaterClock from '../../components/ReadLaterClock.astro';
+import CategoryBadge from '../../components/CategoryBadge.astro';
 import { supabase } from '../../utils/supabase';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
@@ -135,9 +136,6 @@ const authorPartnersEN = authorData?.author_partners_en || article.data.author_p
 const imagePos = article.data.image_position ?? 0;
 const tweetPos = article.data.tweet_position ?? 0;
 
-const categoryFR = categoryLabel(article.data.category, 'FR');
-const categoryEN = article.data.category_en || categoryLabel(article.data.category, 'EN');
-
 const rawDate = article.data.date;
 const dateObj = rawDate instanceof Date ? rawDate : new Date(rawDate);
 const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -163,8 +161,8 @@ const descEN = hasEn && article.data.description_en
       <ReadLaterClock slug={article.id} title={titleFR} titleEn={titleEN} />
       <article class="breve-layout-container">
         <header class="breve-header">
-          <div class="breve-theme" data-fr={categoryFR} data-en={categoryEN}>
-            {categoryFR}
+          <div class="breve-theme">
+            <CategoryBadge slug={article.data.category} />
           </div>
 
           <div class="breve-header-main">
@@ -367,12 +365,8 @@ const descEN = hasEn && article.data.description_en
                             />
                           )}
                           <div class="sidebar-card-body">
-                            <p
-                              class="sidebar-card-tag"
-                              data-fr={categoryLabel(artFR.data.category, 'FR')}
-                              data-en={slotHasEn && artEN ? categoryLabel(artEN.data.category, 'EN') : ""}
-                            >
-                              {categoryLabel(artFR.data.category, 'FR')}
+                            <p class="sidebar-card-tag">
+                              <CategoryBadge slug={artFR.data.category} slugEn={slotHasEn && artEN ? artEN.data.category : undefined} />
                             </p>
                             <p
                               class="sidebar-card-title"
@@ -483,6 +477,7 @@ const descEN = hasEn && article.data.description_en
 
     function applyDataLangAttributes(lang) {
       document.querySelectorAll('[data-fr][data-en]').forEach(el => {
+        if (el.closest('.category-badge')) return;
         const valFr = el.getAttribute('data-fr');
         const valEn = el.getAttribute('data-en');
         if (lang === 'EN' && valEn) el.textContent = valEn;
@@ -663,6 +658,8 @@ const descEN = hasEn && article.data.description_en
   .sidebar-card-img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; display: block; }
   .sidebar-card-body { display: flex; flex-direction: column; gap: 4px; }
   .sidebar-card-tag { margin: 0; font-size: 0.75rem; font-weight: 700; color: #ea580c; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .sidebar-card-tag :global(.category-badge-sub),
+  .breve-theme :global(.category-badge-sub) { font-style: italic; font-weight: 600; }
   .sidebar-card-title { margin: 0; font-size: 0.95rem; font-weight: 600; color: #ffffff; line-height: 1.4; transition: color 0.2s ease; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .sidebar-card:hover .sidebar-card-title { color: #ea580c; }
   .article-sidebar .article-card-item.is-lang-hidden { display: none !important; }
