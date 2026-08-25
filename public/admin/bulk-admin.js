@@ -1,9 +1,14 @@
 /**
- * Sélection multiple sur les listes Decap (articles, brèves, catégories) :
- * visibilité et suppression via /api/admin/bulk-articles.
- * Les cases sont en overlay hors du DOM React, pour éviter le clignotement.
+ * Actions groupées + cartes des sous-domaines.
+ *
+ * Local (localhost) : écriture disque via /api/admin/bulk-articles (mode DEV).
+ * En ligne : commit GitHub depuis le navigateur, avec le jeton déjà stocké
+ * par Decap (localStorage decap-cms-user) — sans passer par l’API Vercel.
  */
 (function (global) {
+  var REPO = 'paul-delachaux/sonar-web';
+  var BRANCH = 'main';
+  var ARTICLES_DIR = 'src/content/articles';
   var selected = Object.create(null);
   var lastCollection = '';
   var extrasKey = '';
@@ -14,24 +19,37 @@
   var scheduled = false;
   var posFrame = 0;
 
-  function githubToken() {
-    var search = global.SonarArticleSearch;
-    if (search && typeof search.githubToken === 'function') return search.githubToken();
-    return '';
+  function isLocalHost() {
+    return /localhost|127\.0\.0\.1/.test(String(global.location.hostname || ''));
   }
 
-  function authHeaders() {
+  function githubToken() {
+    var keys = ['decap-cms-user', 'netlify-cms-user'];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var raw = global.localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        var data = JSON.parse(raw);
+        var token = data && (data.token || data.access_token);
+        if (typeof token === 'string' && token.trim()) return token.trim();
+      } catch (e) {}
+    }
+    try {
+      var cms = global.CMS;
+      var store = cms && (cms.store || (cms.getStore && cms.getStore()));
+      if (store && typeof store.getState === 'function') {
+        var auth = store.getState().auth;
+        if (auth && typeof auth.get === 'function') {
+          var fromMap = auth.get('token') || auth.get('access_token');
+          if (fromMap) return String(fromMap);
+        } else if (auth && (auth.token || auth.access_token)) {
+          return String(auth.token || auth.access_token);
+        }
+      }
+    } catch (e) {}
     var search = global.SonarArticleSearch;
-    if (search && typeof search.authHeaders === 'function') {
-      return search.authHeaders({ Accept: 'application/json', 'Content-Type': 'application/json' });
-    }
-    var headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
-    var token = githubToken();
-    if (token) {
-      headers.Authorization = 'Bearer ' + token;
-      headers['X-Sonar-GitHub'] = token;
-    }
-    return headers;
+    if (search && typeof search.githubToken === 'function') return search.githubToken() || '';
+    return '';
   }
 
   function currentCollection() {
@@ -133,6 +151,13 @@
     return el;
   }
 
+  function hideOverlay() {
+    var host = document.getElementById('sonar-bulk-overlay');
+    if (!host) return;
+    host.style.display = 'none';
+    host.innerHTML = '';
+  }
+
   function syncHits() {
     Array.prototype.forEach.call(document.querySelectorAll('#sonar-bulk-overlay .sonar-bulk-hit'), function (hit) {
       var slug = hit.getAttribute('data-slug') || '';
@@ -143,7 +168,7 @@
 
   function positionHits() {
     var host = document.getElementById('sonar-bulk-overlay');
-    if (!host) return;
+    if (!host || host.style.display === 'none') return;
     var bySlug = Object.create(null);
     Array.prototype.forEach.call(host.children, function (hit) {
       bySlug[hit.getAttribute('data-slug') || ''] = hit;
@@ -166,15 +191,14 @@
 
   function injectChecks() {
     var host = overlay();
-    if (!isListView()) {
+    var links = isListView() ? entryLinks() : [];
+    if (!links.length) {
       document.body.classList.remove('sonar-bulk-on');
-      host.style.display = 'none';
-      host.innerHTML = '';
+      hideOverlay();
       return;
     }
     document.body.classList.add('sonar-bulk-on');
     host.style.display = '';
-    var links = entryLinks();
     var wanted = Object.create(null);
     links.forEach(function (link) {
       var slug = slugFromLink(link);
@@ -221,6 +245,84 @@
     return el;
   }
 
+  function parseArticleMarkdown(name, raw) {
+    var slug = String(name || '').replace(/\.mdx?$/, '');
+    var titleMatch = String(raw || '').match(/^title:\s*(.+)$/m);
+    var catMatch = String(raw || '').match(/^category:\s*["']?([a-z0-9-]+)/m);
+    var layoutMatch = String(raw || '').match(/^layout_type:\s*["']?(\w+)/m);
+    return {
+      slug: slug,
+      title: titleMatch ? titleMatch[1].replace(/^["']|["']$/g, '').trim() : slug,
+      category: catMatch ? catMatch[1] : '',
+      layout_type: layoutMatch ? layoutMatch[1] : ''
+    };
+  }
+
+  function ghHeaders() {
+    return {
+      Authorization: 'token ' + githubToken(),
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'le-sonar-admin'
+    };
+  }
+
+  function articlesFromGithub() {
+    var token = githubToken();
+    if (!token) return Promise.resolve([]);
+    var query = '{ repository(owner:"paul-delachaux", name:"sonar-web") { object(expression:"' + BRANCH + ':' + ARTICLES_DIR + '") { ... on Tree { entries { name object { ... on Blob { text } } } } } } }';
+    return fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: 'bearer ' + token,
+        'Content-Type': 'application/json',
+        'User-Agent': 'le-sonar-admin'
+      },
+      body: JSON.stringify({ query: query })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; });
+    }).then(function (body) {
+      var entries = body && body.data && body.data.repository && body.data.repository.object && body.data.repository.object.entries;
+      if (!Array.isArray(entries) || !entries.length) return articlesFromGithubRest();
+      return entries.filter(function (file) {
+        return file && /\.mdx?$/.test(file.name || '');
+      }).map(function (file) {
+        var text = file.object && file.object.text;
+        return parseArticleMarkdown(file.name, text || '');
+      });
+    }).catch(function () {
+      return articlesFromGithubRest();
+    });
+  }
+
+  function articlesFromGithubRest() {
+    var token = githubToken();
+    if (!token) return Promise.resolve([]);
+    return fetch('https://api.github.com/repos/' + REPO + '/contents/' + ARTICLES_DIR + '?ref=' + BRANCH, {
+      headers: ghHeaders()
+    }).then(function (res) { return res.ok ? res.json() : []; }).then(function (files) {
+      if (!Array.isArray(files)) return [];
+      var md = files.filter(function (file) {
+        return file && file.type === 'file' && /\.mdx?$/.test(file.name || '');
+      });
+      return Promise.all(md.map(function (file) {
+        return fetch(file.url, {
+          headers: {
+            Authorization: 'token ' + token,
+            Accept: 'application/vnd.github.raw',
+            'User-Agent': 'le-sonar-admin'
+          }
+        }).then(function (res) { return res.ok ? res.text() : ''; })
+          .then(function (raw) { return parseArticleMarkdown(file.name, raw); });
+      }));
+    }).catch(function () { return []; });
+  }
+
+  function articlesFromLocalApi() {
+    var search = global.SonarArticleSearch;
+    if (!search || typeof search.fetchArticles !== 'function') return Promise.resolve([]);
+    return search.fetchArticles().catch(function () { return []; });
+  }
+
   function renderExtras(items) {
     if (!items.length) {
       extrasKey = '';
@@ -232,12 +334,16 @@
     var host = extrasHost();
     if (!host) return;
     var key = items.map(function (article) { return article.slug; }).join('|');
-    if (key === extrasKey && host.childNodes.length === items.length) {
+    if (key === extrasKey && host.querySelectorAll('.sonar-extra-card').length === items.length) {
       injectChecks();
       return;
     }
     extrasKey = key;
     host.innerHTML = '';
+    var title = document.createElement('p');
+    title.className = 'sonar-extra-label';
+    title.textContent = 'Aussi dans les sous-domaines';
+    host.appendChild(title);
     items.forEach(function (article) {
       var dest = collectionNameFor(article.category) || (article.layout_type === 'breve' ? 'breves' : 'articles');
       var card = document.createElement('div');
@@ -306,10 +412,23 @@
       return;
     }
     if (extrasLoading) return;
-    var search = global.SonarArticleSearch;
-    if (!search || typeof search.fetchArticles !== 'function') return;
     extrasLoading = true;
-    search.fetchArticles().then(function (articles) {
+    var loader;
+    if (isLocalHost()) {
+      loader = Promise.all([
+        articlesFromLocalApi(),
+        githubToken() ? articlesFromGithub() : Promise.resolve([])
+      ]).then(function (parts) {
+        var bySlug = Object.create(null);
+        [].concat(parts[0] || [], parts[1] || []).forEach(function (article) {
+          if (article && article.slug) bySlug[article.slug] = article;
+        });
+        return Object.keys(bySlug).map(function (slug) { return bySlug[slug]; });
+      });
+    } else {
+      loader = articlesFromGithub();
+    }
+    loader.then(function (articles) {
       extrasLoading = false;
       extrasSource = articles || [];
       extrasLoadedFor = col;
@@ -326,7 +445,6 @@
       if (existing) existing.style.display = 'none';
       return;
     }
-    document.body.classList.add('sonar-bulk-on');
     if (existing) {
       existing.style.display = '';
       return;
@@ -368,6 +486,120 @@
     });
   }
 
+  function setVisible(raw, visible) {
+    var line = 'isVisible: ' + (visible ? 'true' : 'false');
+    if (/^isVisible:\s*/m.test(raw)) return raw.replace(/^isVisible:\s*.*$/m, line);
+    if (/^---\r?\n/.test(raw)) return raw.replace(/^---\r?\n/, function (open) { return open + line + '\n'; });
+    return line + '\n' + raw;
+  }
+
+  function gh(path, options) {
+    var opts = options || {};
+    return fetch('https://api.github.com' + path, {
+      method: opts.method || 'GET',
+      headers: {
+        Authorization: 'token ' + githubToken(),
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'le-sonar-admin',
+        'Content-Type': 'application/json'
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.message || 'GitHub HTTP ' + res.status);
+        return data;
+      });
+    });
+  }
+
+  function runBulkGithub(action, slugs) {
+    return gh('/repos/' + REPO + '/contents/' + ARTICLES_DIR + '?ref=' + BRANCH).then(function (files) {
+      var md = (Array.isArray(files) ? files : []).filter(function (file) {
+        return file && file.type === 'file' && /\.mdx?$/.test(file.name || '');
+      });
+      var matched = [];
+      var missing = [];
+      slugs.forEach(function (slug) {
+        var decoded = slug;
+        try { decoded = decodeURIComponent(slug); } catch (e) {}
+        var file = md.filter(function (item) {
+          var stem = String(item.name || '').replace(/\.mdx?$/, '');
+          return stem === slug || stem === decoded;
+        })[0];
+        if (file) matched.push(file);
+        else missing.push(slug);
+      });
+      if (!matched.length) return { done: [], missing: missing };
+      var token = githubToken();
+      return gh('/repos/' + REPO + '/git/ref/heads/' + BRANCH).then(function (ref) {
+        var commitSha = ref.object.sha;
+        return gh('/repos/' + REPO + '/git/commits/' + commitSha).then(function (commit) {
+          var tree = [];
+          var chain = Promise.resolve();
+          if (action === 'delete') {
+            matched.forEach(function (file) {
+              tree.push({ path: ARTICLES_DIR + '/' + file.name, mode: '100644', type: 'blob', sha: null });
+            });
+          } else {
+            matched.forEach(function (file) {
+              chain = chain.then(function () {
+                return fetch(file.url, {
+                  headers: {
+                    Authorization: 'token ' + token,
+                    Accept: 'application/vnd.github.raw',
+                    'User-Agent': 'le-sonar-admin'
+                  }
+                }).then(function (res) {
+                  if (!res.ok) throw new Error('Lecture impossible : ' + file.name);
+                  return res.text();
+                }).then(function (raw) {
+                  return gh('/repos/' + REPO + '/git/blobs', {
+                    method: 'POST',
+                    body: { content: setVisible(raw, action === 'show'), encoding: 'utf-8' }
+                  }).then(function (blob) {
+                    tree.push({ path: ARTICLES_DIR + '/' + file.name, mode: '100644', type: 'blob', sha: blob.sha });
+                  });
+                });
+              });
+            });
+          }
+          return chain.then(function () {
+            var verb = action === 'delete' ? 'supprimer' : action === 'show' ? 'rendre visibles' : 'masquer';
+            return gh('/repos/' + REPO + '/git/trees', {
+              method: 'POST',
+              body: { base_tree: commit.tree.sha, tree: tree }
+            }).then(function (newTree) {
+              return gh('/repos/' + REPO + '/git/commits', {
+                method: 'POST',
+                body: { message: 'cms: ' + verb + ' ' + matched.length + ' contenu' + (matched.length > 1 ? 's' : ''), tree: newTree.sha, parents: [commitSha] }
+              });
+            }).then(function (newCommit) {
+              return gh('/repos/' + REPO + '/git/refs/heads/' + BRANCH, {
+                method: 'PATCH',
+                body: { sha: newCommit.sha }
+              });
+            }).then(function () {
+              return { done: matched.map(function (file) { return String(file.name).replace(/\.mdx?$/, ''); }), missing: missing };
+            });
+          });
+        });
+      });
+    });
+  }
+
+  function runBulkLocal(action, slugs) {
+    return fetch('/api/admin/bulk-articles', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action, slugs: slugs })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+        return data;
+      });
+    });
+  }
+
   function runBulk(action) {
     var slugs = selectedSlugs();
     if (!slugs.length || busy) return;
@@ -375,25 +607,21 @@
       var ok = global.confirm('Supprimer ' + slugs.length + ' contenu' + (slugs.length > 1 ? 's' : '') + ' du projet ? Cette action est irréversible.');
       if (!ok) return;
     }
+    if (!isLocalHost() && !githubToken()) {
+      setStatus('Session GitHub introuvable. Rechargez /admin après vous être connecté.');
+      return;
+    }
     busy = true;
     refreshBar();
     setStatus('Enregistrement…');
-    fetch('/api/admin/bulk-articles', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ action: action, slugs: slugs })
-    }).then(function (res) {
-      return res.json().catch(function () { return {}; }).then(function (data) {
-        if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
-        return data;
-      });
-    }).then(function (data) {
+    var job = isLocalHost() ? runBulkLocal(action, slugs) : runBulkGithub(action, slugs);
+    job.then(function (data) {
       if (global.__sonarArticlesPromise) global.__sonarArticlesPromise = null;
       var extra = data && data.missing && data.missing.length
         ? ' (' + data.missing.length + ' introuvable' + (data.missing.length > 1 ? 's' : '') + ')'
         : '';
       setStatus('Enregistré.' + extra + ' Rechargement…');
-      setTimeout(function () { global.location.reload(); }, 500);
+      setTimeout(function () { global.location.reload(); }, 700);
     }).catch(function (err) {
       busy = false;
       refreshBar();
@@ -422,6 +650,8 @@
       extrasLoading = false;
       extrasSource = null;
       extrasLoadedFor = '';
+      setStatus('');
+      hideOverlay();
     }
     placeBar();
     injectChecks();
@@ -431,7 +661,7 @@
   function schedule() {
     if (scheduled) return;
     scheduled = true;
-    setTimeout(tick, 200);
+    setTimeout(tick, 250);
   }
 
   function onScroll() {
@@ -442,7 +672,11 @@
     });
   }
 
-  window.addEventListener('hashchange', schedule);
+  window.addEventListener('hashchange', function () {
+    hideOverlay();
+    document.body.classList.remove('sonar-bulk-on');
+    schedule();
+  });
   window.addEventListener('load', schedule);
   window.addEventListener('resize', onScroll);
   document.addEventListener('scroll', onScroll, true);
