@@ -5,6 +5,75 @@
   var accounts = [];
   var busy = false;
 
+  function githubToken() {
+    var search = global.SonarArticleSearch;
+    if (search && typeof search.githubToken === 'function') return search.githubToken() || '';
+    return '';
+  }
+
+  function findSidebar() {
+    var root = document.getElementById('nc-root') || document.body;
+    var nodes = root.querySelectorAll('aside, [class*="Sidebar"], [class*="sidebar"]');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].querySelector && nodes[i].querySelector('a[href*="collections"]')) return nodes[i];
+    }
+    return document.querySelector('aside');
+  }
+
+  function applyDetectedRole(login, role) {
+    if (!role) return;
+    global.__SONAR_CMS_LOGIN = login || '';
+    global.__SONAR_CMS_ROLE = role;
+    global.__SONAR_CMS_SUPERADMIN = role === 'superadmin';
+    document.body.classList.toggle('sonar-role-superadmin', role === 'superadmin');
+    document.body.classList.toggle('sonar-role-admin', role === 'admin');
+    if (role === 'superadmin') addAccountsNav(findSidebar());
+  }
+
+  function detectRole() {
+    if (global.__SONAR_CMS_ROLE === 'superadmin') {
+      addAccountsNav(findSidebar());
+      return;
+    }
+    if (global.__SONAR_CMS_ROLE === 'admin') return;
+    var token = githubToken();
+    var headers = authHeaders();
+    var loginPromise = token
+      ? fetch('https://api.github.com/user', {
+          headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }
+        }).then(function (res) {
+          return res.ok ? res.json().then(function (u) { return String(u.login || '').toLowerCase(); }) : '';
+        }).catch(function () { return ''; })
+      : Promise.resolve('');
+    var mePromise = token
+      ? fetch('/api/admin/me', { headers: headers, cache: 'no-store' })
+          .then(function (res) { return res.ok ? res.json() : null; })
+          .catch(function () { return null; })
+      : Promise.resolve(null);
+    var listPromise = fetch('/api/cms-accounts', { cache: 'no-store' })
+      .then(function (res) { return res.ok ? res.json() : { accounts: [] }; })
+      .then(function (data) { return data.accounts || []; })
+      .catch(function () { return []; });
+
+    Promise.all([mePromise, listPromise, loginPromise]).then(function (parts) {
+      var me = parts[0];
+      var list = parts[1] || [];
+      var login = (me && me.login) || parts[2] || '';
+      if (me && me.role) {
+        applyDetectedRole(me.login, me.role);
+        return;
+      }
+      login = String(login || '').toLowerCase();
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] && String(list[i].login || '').toLowerCase() === login) {
+          applyDetectedRole(login, list[i].role || 'admin');
+          return;
+        }
+      }
+      if (login === 'paul-delachaux') applyDetectedRole(login, 'superadmin');
+    });
+  }
+
   function isSuperadmin() {
     return global.__SONAR_CMS_ROLE === 'superadmin';
   }
@@ -345,6 +414,15 @@
       return;
     }
     bootGuards();
+    detectRole();
+    var n = 0;
+    var iv = setInterval(function () {
+      n += 1;
+      detectRole();
+      if (document.getElementById('cms-accounts-group') || n > 90) {
+        clearInterval(iv);
+      }
+    }, 1000);
   }
   start();
 })(window);

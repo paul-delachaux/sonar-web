@@ -9,6 +9,7 @@ export function cmsGithubToken(request: Request): string {
   const sources = [
     request.headers.get('Authorization') || '',
     request.headers.get('X-Sonar-GitHub') || '',
+    request.headers.get('X-Github-Token') || '',
   ];
   for (const source of sources) {
     const trimmed = source.trim();

@@ -202,6 +202,7 @@
     if (token) {
       headers.Authorization = 'Bearer ' + token;
       headers['X-Sonar-GitHub'] = token;
+      headers['X-Github-Token'] = token;
     }
     return headers;
   }
