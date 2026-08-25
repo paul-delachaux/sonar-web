@@ -342,20 +342,12 @@
     return null;
   }
 
-  function injectAccountsNav() {
-    var sidebar = document.querySelector('aside') || document.querySelector('[class*="Sidebar"]') || document.querySelector('[class*="sidebar"]');
-    if (sidebar && global.SonarAccountsAdmin && global.SonarAccountsAdmin.addNav) {
-      global.SonarAccountsAdmin.addNav(sidebar);
-    }
-  }
-
   function applyMe(me) {
     global.__SONAR_CMS_LOGIN = me.login || '';
     global.__SONAR_CMS_ROLE = me.role || '';
     global.__SONAR_CMS_SUPERADMIN = me.role === 'superadmin';
     document.body.classList.toggle('sonar-role-superadmin', me.role === 'superadmin');
     document.body.classList.toggle('sonar-role-admin', me.role === 'admin');
-    if (me.role === 'superadmin') injectAccountsNav();
   }
 
   function loadMe() {

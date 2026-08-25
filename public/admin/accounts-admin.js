@@ -404,7 +404,17 @@
   }
 
   function addAccountsNav(sidebarContainer) {
-    if (!isSuperadmin() || !sidebarContainer || sidebarContainer.querySelector('#cms-accounts-group')) return;
+    if (!isSuperadmin()) return;
+    var groups = document.querySelectorAll('#cms-accounts-group');
+    var items = document.querySelectorAll('#cms-accounts-nav');
+    if (groups.length > 1) {
+      for (var g = 1; g < groups.length; g++) groups[g].remove();
+    }
+    if (items.length > 1) {
+      for (var n = 1; n < items.length; n++) items[n].remove();
+    }
+    if (document.getElementById('cms-accounts-group')) return;
+    if (!sidebarContainer) return;
 
     var header = document.createElement('div');
     header.id = 'cms-accounts-group';
