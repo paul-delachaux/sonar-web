@@ -245,6 +245,86 @@
     });
   }
 
+  function authHeaders() {
+    var search = global.SonarArticleSearch;
+    if (search && typeof search.authHeaders === 'function') {
+      return search.authHeaders({ Accept: 'application/json' });
+    }
+    var headers = { Accept: 'application/json' };
+    var token = githubToken();
+    if (token) {
+      headers.Authorization = 'Bearer ' + token;
+      headers['X-Sonar-GitHub'] = token;
+    }
+    return headers;
+  }
+
+  function isLocalHost() {
+    return /localhost|127\.0\.0\.1/.test(String(global.location.hostname || ''));
+  }
+
+  function loadMe() {
+    var token = githubToken();
+    if (!token) {
+      return Promise.resolve({
+        login: isLocalHost() ? 'local-dev' : '',
+        role: isLocalHost() ? 'superadmin' : '',
+        anonymous: !isLocalHost()
+      });
+    }
+    return fetch('/api/admin/me', { headers: authHeaders(), cache: 'no-store' })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          if (!res.ok) {
+            return {
+              login: '',
+              role: '',
+              forbidden: res.status === 403,
+              message: data.message || 'Accès refusé.'
+            };
+          }
+          return { login: data.login || '', role: data.role || 'admin', forbidden: false };
+        });
+      })
+      .catch(function () {
+        return { login: isLocalHost() ? 'local-dev' : '', role: isLocalHost() ? 'superadmin' : 'admin' };
+      });
+  }
+
+  function applyRoleToConfig(config, role) {
+    if (role === 'superadmin') return config;
+    config.collections = (config.collections || []).filter(function (col) {
+      return col && col.name !== 'settings' && col.name !== 'domains';
+    });
+    (config.collections || []).forEach(function (col) {
+      if (!col) return;
+      col.delete = false;
+      col.publish = false;
+    });
+    return config;
+  }
+
+  function showForbidden(message) {
+    document.body.innerHTML =
+      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#01002b;color:#fff;font-family:Helvetica,Arial,sans-serif;padding:24px;text-align:center">' +
+      '<div><h1 style="color:#ff7900;margin:0 0 12px">Accès refusé</h1>' +
+      '<p style="max-width:440px;line-height:1.5">' + (message || 'Ce compte GitHub n’est pas autorisé à ouvrir l’admin.') + '</p>' +
+      '<p style="opacity:.7;font-size:13px;margin-top:16px">Demandez à un superadmin de vous ajouter, puis reconnectez-vous.</p></div></div>';
+  }
+
+  function watchLoginThenReload() {
+    if (githubToken()) return;
+    var n = 0;
+    var iv = setInterval(function () {
+      n += 1;
+      if (githubToken()) {
+        clearInterval(iv);
+        global.location.reload();
+      }
+      if (n > 240) clearInterval(iv);
+    }, 1000);
+  }
+
   function boot() {
     if (global.__SONAR_CMS_READY) return global.__SONAR_CMS_READY;
     if (!global.CMS || typeof global.CMS.init !== 'function') {
@@ -265,18 +345,32 @@
 
     global.__SONAR_CMS_READY = Promise.all([
       fetch('/admin/config.yml', { cache: 'no-store' }).then(function (res) { return res.text(); }),
-      loadDomains()
+      loadDomains(),
+      loadMe()
     ]).then(function (parts) {
       var config = jsyaml.load(parts[0]);
       var file = parts[1] || { domains: [], subdomains: [] };
+      var me = parts[2] || {};
+      if (me.forbidden) {
+        showForbidden(me.message);
+        global.__SONAR_CMS_BOOTED = true;
+        return;
+      }
+      global.__SONAR_CMS_LOGIN = me.login || '';
+      global.__SONAR_CMS_ROLE = me.role || '';
+      global.__SONAR_CMS_SUPERADMIN = me.role === 'superadmin';
+      document.body.classList.toggle('sonar-role-superadmin', me.role === 'superadmin');
+      document.body.classList.toggle('sonar-role-admin', me.role === 'admin');
       global.__SONAR_MAIN_DOMAINS = file.domains || [];
       global.__SONAR_SUBDOMAINS = file.subdomains || [];
       global.__SONAR_DOMAINS = flattenDomains(file);
       config.load_config_file = false;
       patchConfig(config, global.__SONAR_DOMAINS);
       patchCategorySelect(config, global.__SONAR_DOMAINS);
+      applyRoleToConfig(config, me.role === 'admin' ? 'admin' : 'superadmin');
       global.CMS.init({ config: config });
       global.__SONAR_CMS_BOOTED = true;
+      if (me.anonymous) watchLoginThenReload();
     }).catch(function (err) {
       console.error('[sonar cms] init dynamique impossible, repli config.yml', err);
       global.CMS.init();

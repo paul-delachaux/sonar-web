@@ -671,6 +671,13 @@
 
   function tick() {
     scheduled = false;
+    if (global.__SONAR_CMS_ROLE === 'admin') {
+      hideOverlay();
+      var bar = document.getElementById('sonar-bulk-bar');
+      if (bar) bar.remove();
+      document.body.classList.remove('sonar-bulk-on');
+      return;
+    }
     var col = currentCollection();
     if (col !== lastCollection) {
       lastCollection = col;

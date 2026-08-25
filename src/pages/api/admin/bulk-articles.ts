@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { cmsGithubToken, requireCmsAdmin } from '../../../utils/admin-github';
+import { cmsGithubToken, requireCmsSuperadmin } from '../../../utils/admin-github';
 import { applyBulkGithub, applyBulkLocal, type BulkAction } from '../../../utils/admin-bulk';
 
 export const prerender = false;
@@ -13,7 +13,7 @@ function json(data: unknown, status = 200) {
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const auth = await requireCmsAdmin(request);
+    const auth = await requireCmsSuperadmin(request);
     if (!auth.ok) return json({ message: auth.message }, auth.status);
 
     const body = await request.json().catch(() => ({}));

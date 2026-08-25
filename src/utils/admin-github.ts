@@ -1,4 +1,9 @@
-const ALLOWED_LOGINS = new Set(['paul-delachaux', 'souslesonar-hash']);
+import { findAccount, type CmsRole } from './cms-accounts';
+import { loadCmsAccounts } from './cms-accounts-store';
+
+export type CmsAuthOk = { ok: true; login: string; role: CmsRole };
+export type CmsAuthErr = { ok: false; status: number; message: string };
+export type CmsAuth = CmsAuthOk | CmsAuthErr;
 
 export function cmsGithubToken(request: Request): string {
   const sources = [
@@ -15,37 +20,51 @@ export function cmsGithubToken(request: Request): string {
   return '';
 }
 
-export async function requireCmsAdmin(request: Request): Promise<
-  { ok: true } | { ok: false; status: number; message: string }
-> {
+async function githubLogin(token: string): Promise<string> {
+  const res = await fetch('https://api.github.com/user', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'le-sonar-admin',
+    },
+  });
+  if (!res.ok) throw new Error(res.status === 401 ? 'Session admin invalide.' : 'GitHub indisponible.');
+  const user = await res.json();
+  return String(user?.login || '').toLowerCase();
+}
+
+export async function requireCmsAdmin(request: Request): Promise<CmsAuth> {
   const token = cmsGithubToken(request);
 
   if (!token) {
-    if (import.meta.env.DEV) return { ok: true };
+    if (import.meta.env.DEV) return { ok: true, login: 'local-dev', role: 'superadmin' };
     return { ok: false, status: 401, message: 'Connectez-vous à l’admin GitHub.' };
   }
 
   try {
-    const res = await fetch('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'le-sonar-admin',
-      },
-    });
-    if (!res.ok) {
-      if (import.meta.env.DEV) return { ok: true };
+    const login = await githubLogin(token);
+    if (!login) {
       return { ok: false, status: 401, message: 'Session admin invalide.' };
     }
-    const user = await res.json();
-    const login = String(user?.login || '').toLowerCase();
-    if (!ALLOWED_LOGINS.has(login)) {
-      if (import.meta.env.DEV) return { ok: true };
+    const accounts = await loadCmsAccounts(token);
+    const account = findAccount(accounts, login);
+    if (!account) {
       return { ok: false, status: 403, message: 'Compte GitHub non autorisé.' };
     }
-    return { ok: true };
-  } catch {
-    if (import.meta.env.DEV) return { ok: true };
-    return { ok: false, status: 503, message: 'Vérification GitHub indisponible.' };
+    return { ok: true, login: account.login, role: account.role };
+  } catch (error) {
+    if (import.meta.env.DEV) return { ok: true, login: 'local-dev', role: 'superadmin' };
+    const message = error instanceof Error ? error.message : 'Vérification GitHub indisponible.';
+    const status = message.includes('invalide') ? 401 : 503;
+    return { ok: false, status, message };
   }
+}
+
+export async function requireCmsSuperadmin(request: Request): Promise<CmsAuth> {
+  const auth = await requireCmsAdmin(request);
+  if (!auth.ok) return auth;
+  if (auth.role !== 'superadmin') {
+    return { ok: false, status: 403, message: 'Réservé aux superadmins.' };
+  }
+  return auth;
 }

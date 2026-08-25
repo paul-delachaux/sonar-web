@@ -1,0 +1,14 @@
+{
+  "accounts": [
+    {
+      "login": "paul-delachaux",
+      "role": "superadmin",
+      "label": "Paul Delachaux"
+    },
+    {
+      "login": "souslesonar-hash",
+      "role": "admin",
+      "label": "souslesonar-hash"
+    }
+  ]
+}

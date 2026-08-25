@@ -615,17 +615,105 @@
       text-transform: none;
       vertical-align: middle;
     }
+
+    body.sonar-role-admin #sonar-bulk-bar,
+    body.sonar-role-admin #sonar-bulk-overlay,
+    body.sonar-role-admin #sonar-extra-cards { display: none !important; }
+
+    #sonar-accounts {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+    }
+    #sonar-accounts[hidden] { display: none !important; }
+    .sonar-acc-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(1, 0, 43, 0.55);
+    }
+    .sonar-acc-panel {
+      position: relative;
+      margin: 24px auto;
+      width: min(640px, calc(100vw - 32px));
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      padding: 0 0 28px;
+      font-family: Helvetica, Arial, sans-serif;
+    }
+    .sonar-acc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      background: #01002b;
+      color: #ffffff;
+      padding: 18px 24px;
+      border-radius: 10px 10px 0 0;
+    }
+    .sonar-acc-kicker { margin: 0 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #ff7900; }
+    .sonar-acc-header h2 { margin: 0; font-size: 1.15rem; color: #fff !important; font-weight: 800; }
+    .sonar-acc-close {
+      background: transparent; border: 1px solid rgba(255,255,255,0.35); color: #fff;
+      border-radius: 6px; padding: 7px 12px; cursor: pointer; font-weight: 700;
+    }
+    .sonar-acc-close:hover { border-color: #ff7900; color: #ff7900; }
+    .sonar-acc-body { padding: 18px 24px 0; }
+    .sonar-acc-status { color: #334155; margin: 0 0 12px; }
+    .sonar-acc-status[data-kind="err"] { color: #c93a3f; }
+    .sonar-acc-hint { color: #475569; font-size: 13px; line-height: 1.45; margin: 0 0 12px; }
+    .sonar-acc-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      background: #f8fafc;
+    }
+    .sonar-acc-card-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .sonar-acc-label { color: #64748b; font-weight: 500; }
+    .sonar-acc-you {
+      display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px;
+      background: #ffedd5; color: #c2410c; font-size: 11px; font-weight: 800;
+    }
+    .sonar-acc-meta { margin: 8px 0 0; color: #64748b; font-size: 12px; }
+    .sonar-acc-card select {
+      border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; font-weight: 700;
+    }
+    .sonar-acc-remove {
+      margin-top: 10px; background: #e5484d; border: none; color: #fff;
+      border-radius: 6px; padding: 7px 12px; font-weight: 700; cursor: pointer;
+    }
+    .sonar-acc-form {
+      margin-top: 18px; padding-top: 16px; border-top: 1px solid #e2e8f0;
+      display: grid; gap: 10px;
+    }
+    .sonar-acc-form h3 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .sonar-acc-form label { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: #334155; }
+    .sonar-acc-form input, .sonar-acc-form select {
+      padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 500;
+    }
+    .sonar-acc-check { display: flex !important; align-items: center; gap: 8px; font-weight: 600 !important; }
+    .sonar-acc-check input { width: auto; }
+    .sonar-acc-save {
+      justify-self: start; background: #ff7900; border: none; color: #fff;
+      border-radius: 6px; padding: 9px 16px; font-weight: 800; cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <script src="/admin/article-search.js?v=20260825f"></script>
+  <script src="/admin/article-search.js?v=20260825g"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/cms-boot.js?v=20260825f"></script>
-  <script src="/admin/domains-admin.js?v=20260825f"></script>
-  <script src="/admin/moderation.js?v=20260825f"></script>
-  <script src="/admin/bulk-admin.js?v=20260825f"></script>
-  <script src="/admin/revue-fields.js?v=20260825f"></script>
+  <script src="/admin/cms-boot.js?v=20260825g"></script>
+  <script src="/admin/domains-admin.js?v=20260825g"></script>
+  <script src="/admin/moderation.js?v=20260825g"></script>
+  <script src="/admin/bulk-admin.js?v=20260825g"></script>
+  <script src="/admin/revue-fields.js?v=20260825g"></script>
+  <script src="/admin/accounts-admin.js?v=20260825g"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -3903,7 +3991,12 @@
         }
 
         nestCategorySubdomains(sidebarContainer);
-        addModerationNav(sidebarContainer);
+        if (window.__SONAR_CMS_ROLE !== 'admin') {
+          addModerationNav(sidebarContainer);
+        }
+        if (window.SonarAccountsAdmin && window.SonarAccountsAdmin.addNav) {
+          window.SonarAccountsAdmin.addNav(sidebarContainer);
+        }
       }
 
       // Observer les changements dans le DOM sans cibler l'en-tête de page

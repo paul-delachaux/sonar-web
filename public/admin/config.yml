@@ -5,9 +5,6 @@ backend:
   branch: main
   base_url: https://sonar-oauth-media.vercel.app
   auth_endpoint: auth
-  allowed_users:
-    - paul-delachaux
-    - souslesonar-hash
 publish_mode: editorial_workflow  
 media_folder: "public/assets/uploads"
 public_folder: "/assets/uploads"

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { requireCmsAdmin } from '../../../utils/admin-github';
+import { requireCmsSuperadmin } from '../../../utils/admin-github';
 import { createServiceClient } from '../../../utils/service-client';
 import { supabase } from '../../../utils/supabase';
 
@@ -39,7 +39,7 @@ function reasonLabels(codes: string[]): string {
 }
 
 export const GET: APIRoute = async ({ request }) => {
-  const auth = await requireCmsAdmin(request);
+  const auth = await requireCmsSuperadmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
 
   const admin = createServiceClient();
@@ -142,7 +142,7 @@ export const GET: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  const auth = await requireCmsAdmin(request);
+  const auth = await requireCmsSuperadmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
 
   const admin = createServiceClient();
