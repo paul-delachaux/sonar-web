@@ -55,3 +55,8 @@ export function accountsError(accounts: CmsAccount[]): string | null {
 export function serializeAccounts(accounts: CmsAccount[]): string {
   return `${JSON.stringify({ accounts }, null, 2)}\n`;
 }
+
+/** Repli si le JSON n’est pas encore déployé ou illisible sur le serveur. */
+export const FALLBACK_ACCOUNTS: CmsAccount[] = [
+  { login: 'paul-delachaux', role: 'superadmin', label: 'Paul Delachaux' },
+];

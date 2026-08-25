@@ -1,7 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import bundledAccounts from '../data/cms-accounts.json';
 import {
   accountsError,
+  FALLBACK_ACCOUNTS,
   parseAccounts,
   serializeAccounts,
   type CmsAccount,
@@ -31,10 +33,13 @@ async function gh<T>(token: string, apiPath: string, init?: RequestInit): Promis
 export async function readLocalAccounts(): Promise<CmsAccount[]> {
   try {
     const raw = await fs.readFile(LOCAL_FILE, 'utf8');
-    return parseAccounts(JSON.parse(raw));
+    const parsed = parseAccounts(JSON.parse(raw));
+    if (parsed.length) return parsed;
   } catch {
-    return [];
+    /* JSON bundlé, puis repli */
   }
+  const bundled = parseAccounts(bundledAccounts);
+  return bundled.length ? bundled : FALLBACK_ACCOUNTS;
 }
 
 export async function readGithubAccounts(token: string): Promise<CmsAccount[] | null> {

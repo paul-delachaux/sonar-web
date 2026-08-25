@@ -263,6 +263,29 @@
     return /localhost|127\.0\.0\.1/.test(String(global.location.hostname || ''));
   }
 
+  function waitForGithubToken(maxMs) {
+    var token = githubToken();
+    if (token || maxMs <= 0) return Promise.resolve(token || '');
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      var iv = setInterval(function () {
+        var found = githubToken();
+        if (found || Date.now() - start >= maxMs) {
+          clearInterval(iv);
+          resolve(found || '');
+        }
+      }, 100);
+    });
+  }
+
+  function applyMe(me) {
+    global.__SONAR_CMS_LOGIN = me.login || '';
+    global.__SONAR_CMS_ROLE = me.role || '';
+    global.__SONAR_CMS_SUPERADMIN = me.role === 'superadmin';
+    document.body.classList.toggle('sonar-role-superadmin', me.role === 'superadmin');
+    document.body.classList.toggle('sonar-role-admin', me.role === 'admin');
+  }
+
   function loadMe() {
     var token = githubToken();
     if (!token) {
@@ -343,11 +366,13 @@
       return global.__SONAR_CMS_READY;
     }
 
-    global.__SONAR_CMS_READY = Promise.all([
-      fetch('/admin/config.yml', { cache: 'no-store' }).then(function (res) { return res.text(); }),
-      loadDomains(),
-      loadMe()
-    ]).then(function (parts) {
+    global.__SONAR_CMS_READY = waitForGithubToken(isLocalHost() ? 0 : 2500).then(function () {
+      return Promise.all([
+        fetch('/admin/config.yml', { cache: 'no-store' }).then(function (res) { return res.text(); }),
+        loadDomains(),
+        loadMe()
+      ]);
+    }).then(function (parts) {
       var config = jsyaml.load(parts[0]);
       var file = parts[1] || { domains: [], subdomains: [] };
       var me = parts[2] || {};
@@ -356,11 +381,7 @@
         global.__SONAR_CMS_BOOTED = true;
         return;
       }
-      global.__SONAR_CMS_LOGIN = me.login || '';
-      global.__SONAR_CMS_ROLE = me.role || '';
-      global.__SONAR_CMS_SUPERADMIN = me.role === 'superadmin';
-      document.body.classList.toggle('sonar-role-superadmin', me.role === 'superadmin');
-      document.body.classList.toggle('sonar-role-admin', me.role === 'admin');
+      applyMe(me);
       global.__SONAR_MAIN_DOMAINS = file.domains || [];
       global.__SONAR_SUBDOMAINS = file.subdomains || [];
       global.__SONAR_DOMAINS = flattenDomains(file);
@@ -370,7 +391,7 @@
       applyRoleToConfig(config, me.role === 'admin' ? 'admin' : 'superadmin');
       global.CMS.init({ config: config });
       global.__SONAR_CMS_BOOTED = true;
-      if (me.anonymous) watchLoginThenReload();
+      if (me.anonymous || !me.role) watchLoginThenReload();
     }).catch(function (err) {
       console.error('[sonar cms] init dynamique impossible, repli config.yml', err);
       global.CMS.init();
