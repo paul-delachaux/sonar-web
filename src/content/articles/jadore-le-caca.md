@@ -1,6 +1,6 @@
 ---
 reading_time: 5
-isVisible: false
+isVisible: true
 author: Victor Zhâ
 date: 2026-05-31T22:42:00.000+02:00
 author_interests: z
