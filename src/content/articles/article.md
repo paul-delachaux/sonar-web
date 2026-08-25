@@ -31,3 +31,5 @@ Ceci est le corps de mon article. Je peux écrire en **gras**, mettre des listes
 
 * Point 1
 * Point 2
+
+Voici le reste du texte
