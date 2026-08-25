@@ -124,6 +124,53 @@
     return '';
   }
 
+  function githubLoginFromValue(value, depth) {
+    if (value == null || depth > 5) return '';
+    if (typeof value === 'string') {
+      var login = value.trim().toLowerCase();
+      if (/^(github|gitlab|bitbucket|netlify|decap)$/.test(login)) return '';
+      if (/^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){0,38}$/.test(login)) return login;
+      return '';
+    }
+    if (typeof value !== 'object') return '';
+    var keys = ['login', 'username', 'user', 'name', 'nickname'];
+    for (var i = 0; i < keys.length; i++) {
+      var found = githubLoginFromValue(value[keys[i]], depth + 1);
+      if (found && found.indexOf(' ') === -1) return found;
+    }
+    return '';
+  }
+
+  function githubLogin() {
+    if (global.__SONAR_GH_LOGIN) return global.__SONAR_GH_LOGIN;
+    var keys = ['decap-cms-user', 'netlify-cms-user'];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var raw = global.localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        var found = githubLoginFromValue(JSON.parse(raw), 0);
+        if (found) {
+          global.__SONAR_GH_LOGIN = found;
+          return found;
+        }
+      } catch (e) {}
+    }
+    try {
+      var cms = global.CMS;
+      var store = cms && (cms.store || (cms.getStore && cms.getStore()));
+      if (store && typeof store.getState === 'function') {
+        var auth = store.getState().auth;
+        var user = auth && (typeof auth.get === 'function' ? auth.get('user') || auth.get('login') : auth.user || auth.login);
+        var found = githubLoginFromValue(user, 0);
+        if (found) {
+          global.__SONAR_GH_LOGIN = found;
+          return found;
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+
   function githubToken() {
     if (global.__SONAR_GH_TOKEN) return global.__SONAR_GH_TOKEN;
     var fromStore = tokenFromCmsStore();
@@ -220,6 +267,7 @@
     filterArticles: filterArticles,
     fetchArticles: fetchArticles,
     githubToken: githubToken,
+    githubLogin: githubLogin,
     authHeaders: authHeaders
   };
 })(window);

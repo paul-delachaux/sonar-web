@@ -278,40 +278,107 @@
     });
   }
 
+  function storedGithubLogin() {
+    var search = global.SonarArticleSearch;
+    if (search && typeof search.githubLogin === 'function') return search.githubLogin() || '';
+    return '';
+  }
+
+  function fetchGithubLogin(token) {
+    var stored = storedGithubLogin();
+    if (stored) return Promise.resolve(stored);
+    if (!token) return Promise.resolve('');
+    return fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'le-sonar-admin'
+      }
+    }).then(function (res) {
+      if (!res.ok) return '';
+      return res.json().then(function (user) {
+        var login = String(user && user.login || '').toLowerCase();
+        if (login) global.__SONAR_GH_LOGIN = login;
+        return login;
+      });
+    }).catch(function () { return ''; });
+  }
+
+  function fetchAccountList() {
+    return fetch('/api/cms-accounts', { cache: 'no-store' })
+      .then(function (res) { return res.ok ? res.json() : { accounts: [] }; })
+      .then(function (data) { return Array.isArray(data.accounts) ? data.accounts : []; })
+      .catch(function () { return []; });
+  }
+
+  function matchAccount(login, accounts) {
+    var needle = String(login || '').toLowerCase();
+    if (!needle) return null;
+    for (var i = 0; i < accounts.length; i++) {
+      if (accounts[i] && String(accounts[i].login || '').toLowerCase() === needle) return accounts[i];
+    }
+    if (needle === 'paul-delachaux') return { login: needle, role: 'superadmin', label: 'Paul Delachaux' };
+    return null;
+  }
+
+  function injectAccountsNav() {
+    var sidebar = document.querySelector('aside') || document.querySelector('[class*="Sidebar"]') || document.querySelector('[class*="sidebar"]');
+    if (sidebar && global.SonarAccountsAdmin && global.SonarAccountsAdmin.addNav) {
+      global.SonarAccountsAdmin.addNav(sidebar);
+    }
+  }
+
   function applyMe(me) {
     global.__SONAR_CMS_LOGIN = me.login || '';
     global.__SONAR_CMS_ROLE = me.role || '';
     global.__SONAR_CMS_SUPERADMIN = me.role === 'superadmin';
     document.body.classList.toggle('sonar-role-superadmin', me.role === 'superadmin');
     document.body.classList.toggle('sonar-role-admin', me.role === 'admin');
+    if (me.role === 'superadmin') injectAccountsNav();
   }
 
   function loadMe() {
     var token = githubToken();
-    if (!token) {
-      return Promise.resolve({
-        login: isLocalHost() ? 'local-dev' : '',
-        role: isLocalHost() ? 'superadmin' : '',
-        anonymous: !isLocalHost()
-      });
-    }
-    return fetch('/api/admin/me', { headers: authHeaders(), cache: 'no-store' })
-      .then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-          if (!res.ok) {
-            return {
-              login: '',
-              role: '',
-              forbidden: res.status === 403,
-              message: data.message || 'Accès refusé.'
-            };
-          }
-          return { login: data.login || '', role: data.role || 'admin', forbidden: false };
-        });
-      })
-      .catch(function () {
-        return { login: isLocalHost() ? 'local-dev' : '', role: isLocalHost() ? 'superadmin' : 'admin' };
-      });
+    return Promise.all([
+      token
+        ? fetch('/api/admin/me', { headers: authHeaders(), cache: 'no-store' })
+            .then(function (res) {
+              return res.json().catch(function () { return {}; }).then(function (data) {
+                if (res.ok && data.role) {
+                  return { login: data.login || '', role: data.role, forbidden: false };
+                }
+                return {
+                  login: data.login || '',
+                  role: '',
+                  forbidden: res.status === 403,
+                  message: data.message || ''
+                };
+              });
+            })
+            .catch(function () { return null; })
+        : Promise.resolve(null),
+      fetchAccountList(),
+      fetchGithubLogin(token)
+    ]).then(function (parts) {
+      var apiMe = parts[0];
+      var accounts = parts[1] || [];
+      var ghLogin = parts[2] || storedGithubLogin();
+      if (apiMe && apiMe.role) return apiMe;
+      var match = matchAccount(ghLogin, accounts);
+      if (match) return { login: match.login, role: match.role || 'admin', forbidden: false };
+      if (apiMe && apiMe.forbidden) return apiMe;
+      if (!token && !ghLogin) {
+        return {
+          login: isLocalHost() ? 'local-dev' : '',
+          role: isLocalHost() ? 'superadmin' : '',
+          anonymous: !isLocalHost()
+        };
+      }
+      if (ghLogin) {
+        return { login: ghLogin, role: '', forbidden: true, message: 'Compte GitHub non autorisé.' };
+      }
+      return { login: '', role: '', anonymous: true };
+    });
   }
 
   function applyRoleToConfig(config, role) {
@@ -336,16 +403,25 @@
   }
 
   function watchLoginThenReload() {
-    if (githubToken()) return;
+    if (global.__SONAR_CMS_ROLE === 'superadmin' || global.__SONAR_CMS_ROLE === 'admin') return;
     var n = 0;
     var iv = setInterval(function () {
       n += 1;
-      if (githubToken()) {
+      var token = githubToken();
+      if (!token && n < 240) return;
+      if (!token) {
         clearInterval(iv);
-        global.location.reload();
+        return;
       }
-      if (n > 240) clearInterval(iv);
-    }, 1000);
+      clearInterval(iv);
+      loadMe().then(function (me) {
+        if (!me || me.forbidden || !me.role) {
+          if (me && me.forbidden) showForbidden(me.message);
+          return;
+        }
+        applyMe(me);
+      });
+    }, 400);
   }
 
   function boot() {
