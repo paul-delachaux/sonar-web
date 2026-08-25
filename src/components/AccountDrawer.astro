@@ -196,6 +196,7 @@
   import { avatarInitial, avatarImgHtml } from '../utils/avatar';
   import { t as translate } from '../utils/i18n.js';
   import { formatCommentBody, formatLikeActors, formatReplyActor, commentPermalink, stripLeadingMentions } from '../utils/comment-text';
+  import { READ_LATER_DEFAULT_REMIND_DAYS, READ_LATER_SNOOZE_DAYS, remindAtFromDays } from '../data/read-later';
   import { accountHasCmsLink } from '../utils/cms-accounts';
 
   const FONT_KEY = 'sonar_article_font';
@@ -255,25 +256,25 @@
     if (usernameEl) usernameEl.textContent = account.username;
     if (emailEl) emailEl.textContent = account.email;
 
-    const cmsLink = document.getElementById('account-cms-link');
-    if (cmsLink) {
-      let show = false;
-      try {
-        const res = await fetch('/api/site-cms-access', { cache: 'no-store' });
-        const data = res.ok ? await res.json() : { siteAccess: [] };
-        show = accountHasCmsLink(account, Array.isArray(data.siteAccess) ? data.siteAccess : []);
-      } catch {
-        show = false;
-      }
-      cmsLink.hidden = !show;
-    }
-
     drawer.classList.add('is-open');
     drawer.setAttribute('aria-hidden', 'false');
     overlay.classList.add('is-open');
     syncUserButtons(true);
     void refreshNotifications();
     startNotifPoll();
+    void syncCmsLink(account);
+  }
+
+  async function syncCmsLink(account: Account) {
+    const cmsLink = document.getElementById('account-cms-link');
+    if (!cmsLink) return;
+    try {
+      const res = await fetch('/api/site-cms-access', { cache: 'no-store' });
+      const data = res.ok ? await res.json() : { siteAccess: [] };
+      cmsLink.hidden = !accountHasCmsLink(account, Array.isArray(data.siteAccess) ? data.siteAccess : []);
+    } catch {
+      cmsLink.hidden = true;
+    }
   }
 
   function openSubdrawer(panel: HTMLElement | null) {
