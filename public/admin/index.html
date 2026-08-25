@@ -618,7 +618,10 @@
 
     body.sonar-role-admin #sonar-bulk-bar,
     body.sonar-role-admin #sonar-bulk-overlay,
-    body.sonar-role-admin #sonar-extra-cards { display: none !important; }
+    body.sonar-role-admin #sonar-extra-cards,
+    body.sonar-role-admin [data-cms-group="Paramètres"],
+    body.sonar-role-admin a[href*="/collections/settings"],
+    body.sonar-role-admin a[href*="/collections/domains"] { display: none !important; }
 
     #sonar-accounts {
       position: fixed;
@@ -705,16 +708,16 @@
   </style>
 </head>
 <body>
-  <script src="/admin/articles-search.js?v=20260825n"></script>
-  <script src="/admin/article-search.js?v=20260825n"></script>
+  <script src="/admin/articles-search.js?v=20260825p"></script>
+  <script src="/admin/article-search.js?v=20260825p"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/cms-boot.js?v=20260825n"></script>
-  <script src="/admin/domains-admin.js?v=20260825n"></script>
-  <script src="/admin/moderation.js?v=20260825n"></script>
-  <script src="/admin/bulk-admin.js?v=20260825n"></script>
-  <script src="/admin/revue-fields.js?v=20260825n"></script>
-  <script src="/admin/accounts-admin.js?v=20260825n"></script>
+  <script src="/admin/cms-boot.js?v=20260825p"></script>
+  <script src="/admin/domains-admin.js?v=20260825p"></script>
+  <script src="/admin/moderation.js?v=20260825p"></script>
+  <script src="/admin/bulk-admin.js?v=20260825p"></script>
+  <script src="/admin/revue-fields.js?v=20260825p"></script>
+  <script src="/admin/accounts-admin.js?v=20260825p"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -3721,7 +3724,9 @@
           title: "Paramètres",
           collections: ["settings", "domains"]
         }
-      ];
+      ].filter(function (group) {
+        return window.__SONAR_CMS_ROLE !== 'admin' || group.title !== 'Paramètres';
+      });
 
       function addModerationNav(sidebarContainer) {
         if (sidebarContainer.querySelector('#cms-moderation-group')) return;
@@ -3992,6 +3997,15 @@
         }
 
         nestCategorySubdomains(sidebarContainer);
+        if (window.__SONAR_CMS_ROLE === 'admin') {
+          sidebarContainer.querySelectorAll('a[href*="/collections/settings"], a[href*="/collections/domains"]').forEach((link) => {
+            const row = link.closest('li') || link;
+            row.style.display = 'none';
+          });
+          sidebarContainer.querySelectorAll('[data-cms-group="Paramètres"]').forEach((header) => {
+            header.style.display = 'none';
+          });
+        }
         if (window.__SONAR_CMS_ROLE !== 'admin') {
           addModerationNav(sidebarContainer);
         }

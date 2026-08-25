@@ -433,6 +433,10 @@
           return;
         }
         applyMe(me);
+        if (me.role === 'superadmin' && !global.sessionStorage.getItem('sonar-cms-reloaded')) {
+          global.sessionStorage.setItem('sonar-cms-reloaded', '1');
+          global.location.reload();
+        }
       });
     }, 400);
   }
@@ -477,7 +481,7 @@
       config.load_config_file = false;
       patchConfig(config, global.__SONAR_DOMAINS);
       patchCategorySelect(config, global.__SONAR_DOMAINS);
-      applyRoleToConfig(config, me.role === 'admin' ? 'admin' : 'superadmin');
+      applyRoleToConfig(config, me.role === 'superadmin' ? 'superadmin' : 'admin');
       global.CMS.init({ config: config });
       global.__SONAR_CMS_BOOTED = true;
       if (me.anonymous || !me.role) watchLoginThenReload();
