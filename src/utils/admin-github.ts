@@ -69,3 +69,23 @@ export async function requireCmsAdmin(request: Request): Promise<CmsAuth> {
     const accounts = await loadCmsAccounts(token);
     const account = findAccount(accounts, login);
     if (account) return { ok: true, login: account.login, role: account.role };
+    if (await isGithubRepoAdmin(token, login)) {
+      return { ok: true, login, role: 'superadmin' };
+    }
+    return { ok: false, status: 403, message: 'Compte GitHub non autorisé.' };
+  } catch (error) {
+    if (import.meta.env.DEV) return { ok: true, login: 'local-dev', role: 'superadmin' };
+    const message = error instanceof Error ? error.message : 'Vérification GitHub indisponible.';
+    const status = message.includes('invalide') ? 401 : 503;
+    return { ok: false, status, message };
+  }
+}
+
+export async function requireCmsSuperadmin(request: Request): Promise<CmsAuth> {
+  const auth = await requireCmsAdmin(request);
+  if (!auth.ok) return auth;
+  if (auth.role !== 'superadmin') {
+    return { ok: false, status: 403, message: 'Réservé aux superadmins.' };
+  }
+  return auth;
+}
