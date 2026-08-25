@@ -12,12 +12,29 @@
   }
 
   function findSidebar() {
+    var group = document.querySelector('[data-cms-group]');
+    if (group && group.parentNode) return group.parentNode;
     var root = document.getElementById('nc-root') || document.body;
     var nodes = root.querySelectorAll('aside, [class*="Sidebar"], [class*="sidebar"]');
     for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].querySelector && nodes[i].querySelector('a[href*="collections"]')) return nodes[i];
     }
-    return document.querySelector('aside');
+    return document.querySelector('#nc-root aside') || document.querySelector('aside');
+  }
+
+  function showIdentity(login, role) {
+    var sidebar = findSidebar();
+    if (!sidebar) return;
+    var el = document.getElementById('cms-role-identity');
+    if (!el) {
+      el = document.createElement('p');
+      el.id = 'cms-role-identity';
+      el.style.cssText = 'margin:10px 8px 0;padding:8px 10px;border-radius:6px;background:#01002b;color:#ffb38a;font-size:11px;font-weight:700;letter-spacing:0.02em;';
+      sidebar.appendChild(el);
+    }
+    el.textContent = login
+      ? ('@' + login + ' · ' + (role === 'superadmin' ? 'superadmin' : role === 'admin' ? 'admin' : 'rôle inconnu'))
+      : 'Session GitHub en cours…';
   }
 
   function applyDetectedRole(login, role) {
@@ -27,15 +44,16 @@
     global.__SONAR_CMS_SUPERADMIN = role === 'superadmin';
     document.body.classList.toggle('sonar-role-superadmin', role === 'superadmin');
     document.body.classList.toggle('sonar-role-admin', role === 'admin');
+    showIdentity(login, role);
     if (role === 'superadmin') addAccountsNav(findSidebar());
   }
 
   function detectRole() {
+    showIdentity(global.__SONAR_CMS_LOGIN, global.__SONAR_CMS_ROLE);
     if (global.__SONAR_CMS_ROLE === 'superadmin') {
       addAccountsNav(findSidebar());
       return;
     }
-    if (global.__SONAR_CMS_ROLE === 'admin') return;
     var token = githubToken();
     var headers = authHeaders();
     var loginPromise = token
@@ -45,6 +63,11 @@
           return res.ok ? res.json().then(function (u) { return String(u.login || '').toLowerCase(); }) : '';
         }).catch(function () { return ''; })
       : Promise.resolve('');
+    var repoPromise = token
+      ? fetch('https://api.github.com/repos/paul-delachaux/sonar-web', {
+          headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }
+        }).then(function (res) { return res.ok ? res.json() : null; }).catch(function () { return null; })
+      : Promise.resolve(null);
     var mePromise = token
       ? fetch('/api/admin/me', { headers: headers, cache: 'no-store' })
           .then(function (res) { return res.ok ? res.json() : null; })
@@ -55,22 +78,34 @@
       .then(function (data) { return data.accounts || []; })
       .catch(function () { return []; });
 
-    Promise.all([mePromise, listPromise, loginPromise]).then(function (parts) {
+    Promise.all([mePromise, listPromise, loginPromise, repoPromise]).then(function (parts) {
       var me = parts[0];
       var list = parts[1] || [];
-      var login = (me && me.login) || parts[2] || '';
-      if (me && me.role) {
-        applyDetectedRole(me.login, me.role);
+      var login = String((me && me.login) || parts[2] || '').toLowerCase();
+      var repo = parts[3];
+      var repoAdmin = !!(repo && (
+        String(repo.owner && repo.owner.login || '').toLowerCase() === login ||
+        (repo.permissions && repo.permissions.admin)
+      ));
+      if (me && me.role === 'superadmin') {
+        applyDetectedRole(me.login, 'superadmin');
         return;
       }
-      login = String(login || '').toLowerCase();
+      if (repoAdmin && login) {
+        applyDetectedRole(login, 'superadmin');
+        return;
+      }
+      if (login === 'paul-delachaux') {
+        applyDetectedRole(login, 'superadmin');
+        return;
+      }
       for (var i = 0; i < list.length; i++) {
         if (list[i] && String(list[i].login || '').toLowerCase() === login) {
           applyDetectedRole(login, list[i].role || 'admin');
           return;
         }
       }
-      if (login === 'paul-delachaux') applyDetectedRole(login, 'superadmin');
+      if (me && me.role) applyDetectedRole(me.login, me.role);
     });
   }
 
@@ -419,9 +454,15 @@
     var iv = setInterval(function () {
       n += 1;
       detectRole();
-      if (document.getElementById('cms-accounts-group') || n > 90) {
+      if (document.getElementById('cms-accounts-group')) {
         clearInterval(iv);
+        return;
       }
+      if (global.__SONAR_CMS_ROLE === 'admin' && document.querySelector('[data-cms-group]') && n > 8) {
+        clearInterval(iv);
+        return;
+      }
+      if (n > 120) clearInterval(iv);
     }, 1000);
   }
   start();
