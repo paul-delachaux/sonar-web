@@ -52,11 +52,57 @@ export function accountsError(accounts: CmsAccount[]): string | null {
   return null;
 }
 
-export function serializeAccounts(accounts: CmsAccount[]): string {
-  return `${JSON.stringify({ accounts }, null, 2)}\n`;
+export function serializeAccounts(accounts: CmsAccount[], siteAccess: string[] = []): string {
+  return `${JSON.stringify({ accounts, siteAccess }, null, 2)}\n`;
+}
+
+const SITE_USERNAME = /^[a-z0-9_]{3,20}$/;
+const SITE_EMAIL = /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/;
+
+export function parseSiteAccess(data: unknown): string[] {
+  const raw = Array.isArray(data)
+    ? data
+    : data && typeof data === 'object'
+      ? (data as { siteAccess?: unknown }).siteAccess
+      : null;
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    const value = String(item || '').trim().replace(/^@/, '').toLowerCase();
+    if (!value || seen.has(value)) continue;
+    if (!SITE_USERNAME.test(value) && !SITE_EMAIL.test(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+export function accountHasCmsLink(
+  account: { username?: string | null; email?: string | null },
+  siteAccess: string[],
+): boolean {
+  const keys = [account.username, account.email]
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+  return keys.some((key) => siteAccess.includes(key));
+}
+
+export type CmsFile = {
+  accounts: CmsAccount[];
+  siteAccess: string[];
+};
+
+export function parseCmsFile(data: unknown): CmsFile {
+  return {
+    accounts: parseAccounts(data),
+    siteAccess: parseSiteAccess(data),
+  };
 }
 
 /** Repli si le JSON n’est pas encore déployé ou illisible sur le serveur. */
 export const FALLBACK_ACCOUNTS: CmsAccount[] = [
   { login: 'paul-delachaux', role: 'superadmin', label: 'Paul Delachaux' },
 ];
+
+export const FALLBACK_SITE_ACCESS: string[] = ['paul.delachaux@netcourrier.com'];

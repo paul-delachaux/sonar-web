@@ -6,10 +6,11 @@ import {
   isGithubLogin,
   normalizeLogin,
   parseAccounts,
+  parseSiteAccess,
 } from '../../../utils/cms-accounts';
 import {
   inviteGithubCollaborator,
-  loadCmsAccounts,
+  loadCmsFile,
   writeGithubAccounts,
   writeLocalAccounts,
 } from '../../../utils/cms-accounts-store';
@@ -26,8 +27,13 @@ function json(data: unknown, status = 200) {
 export const GET: APIRoute = async ({ request }) => {
   const auth = await requireCmsSuperadmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
-  const accounts = await loadCmsAccounts(cmsGithubToken(request) || undefined);
-  return json({ accounts, login: auth.login, role: auth.role });
+  const file = await loadCmsFile(cmsGithubToken(request) || undefined);
+  return json({
+    accounts: file.accounts,
+    siteAccess: file.siteAccess,
+    login: auth.login,
+    role: auth.role,
+  });
 };
 
 export const PUT: APIRoute = async ({ request }) => {
@@ -35,7 +41,13 @@ export const PUT: APIRoute = async ({ request }) => {
   if (!auth.ok) return json({ message: auth.message }, auth.status);
 
   const body = await request.json().catch(() => ({}));
-  const accounts = parseAccounts(body);
+  const current = await loadCmsFile(cmsGithubToken(request) || undefined);
+  const accounts = Object.prototype.hasOwnProperty.call(body, 'accounts')
+    ? parseAccounts(body)
+    : current.accounts;
+  const siteAccess = Object.prototype.hasOwnProperty.call(body, 'siteAccess')
+    ? parseSiteAccess(body)
+    : current.siteAccess;
   const error = accountsError(accounts);
   if (error) return json({ message: error }, 400);
 
@@ -46,10 +58,10 @@ export const PUT: APIRoute = async ({ request }) => {
 
   const token = cmsGithubToken(request);
   if (import.meta.env.DEV) {
-    await writeLocalAccounts(accounts);
+    await writeLocalAccounts(accounts, siteAccess);
   } else {
     if (!token) return json({ message: 'Connectez-vous à GitHub dans l’admin.' }, 401);
-    await writeGithubAccounts(token, accounts);
+    await writeGithubAccounts(token, accounts, siteAccess);
   }
 
   let invite: { ok: boolean; message: string } | null = null;
@@ -58,5 +70,5 @@ export const PUT: APIRoute = async ({ request }) => {
     invite = await inviteGithubCollaborator(token, inviteLogin);
   }
 
-  return json({ ok: true, accounts, invite });
+  return json({ ok: true, accounts, siteAccess, invite });
 };

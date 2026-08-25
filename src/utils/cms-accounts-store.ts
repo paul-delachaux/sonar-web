@@ -4,9 +4,11 @@ import bundledAccounts from '../data/cms-accounts.json';
 import {
   accountsError,
   FALLBACK_ACCOUNTS,
-  parseAccounts,
+  FALLBACK_SITE_ACCESS,
+  parseCmsFile,
   serializeAccounts,
   type CmsAccount,
+  type CmsFile,
 } from './cms-accounts';
 
 const REPO = 'paul-delachaux/sonar-web';
@@ -30,19 +32,35 @@ async function gh<T>(token: string, apiPath: string, init?: RequestInit): Promis
   return data;
 }
 
-export async function readLocalAccounts(): Promise<CmsAccount[]> {
+function bundledFile(): CmsFile {
+  const parsed = parseCmsFile(bundledAccounts);
+  return {
+    accounts: parsed.accounts.length ? parsed.accounts : FALLBACK_ACCOUNTS,
+    siteAccess: parsed.siteAccess.length ? parsed.siteAccess : FALLBACK_SITE_ACCESS,
+  };
+}
+
+export async function readLocalCmsFile(): Promise<CmsFile> {
   try {
     const raw = await fs.readFile(LOCAL_FILE, 'utf8');
-    const parsed = parseAccounts(JSON.parse(raw));
-    if (parsed.length) return parsed;
+    const parsed = parseCmsFile(JSON.parse(raw));
+    if (parsed.accounts.length) {
+      return {
+        accounts: parsed.accounts,
+        siteAccess: parsed.siteAccess,
+      };
+    }
   } catch {
     /* JSON bundlé, puis repli */
   }
-  const bundled = parseAccounts(bundledAccounts);
-  return bundled.length ? bundled : FALLBACK_ACCOUNTS;
+  return bundledFile();
 }
 
-export async function readGithubAccounts(token: string): Promise<CmsAccount[] | null> {
+export async function readLocalAccounts(): Promise<CmsAccount[]> {
+  return (await readLocalCmsFile()).accounts;
+}
+
+export async function readGithubCmsFile(token: string): Promise<CmsFile | null> {
   const res = await fetch(
     `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
     {
@@ -56,42 +74,59 @@ export async function readGithubAccounts(token: string): Promise<CmsAccount[] | 
   if (!res.ok) return null;
   const text = await res.text();
   try {
-    return parseAccounts(JSON.parse(text));
+    const parsed = parseCmsFile(JSON.parse(text));
+    if (!parsed.accounts.length) return null;
+    return parsed;
   } catch {
     return null;
   }
 }
 
-export async function loadCmsAccounts(token?: string): Promise<CmsAccount[]> {
+export async function readGithubAccounts(token: string): Promise<CmsAccount[] | null> {
+  const file = await readGithubCmsFile(token);
+  return file ? file.accounts : null;
+}
+
+export async function loadCmsFile(token?: string): Promise<CmsFile> {
   if (token) {
     try {
-      const remote = await readGithubAccounts(token);
-      if (remote && remote.length) return remote;
+      const remote = await readGithubCmsFile(token);
+      if (remote && remote.accounts.length) return remote;
     } catch {
       /* fichier local en repli */
     }
   }
-  return readLocalAccounts();
+  return readLocalCmsFile();
 }
 
-export async function writeLocalAccounts(accounts: CmsAccount[]): Promise<void> {
+export async function loadCmsAccounts(token?: string): Promise<CmsAccount[]> {
+  return (await loadCmsFile(token)).accounts;
+}
+
+export async function writeLocalAccounts(accounts: CmsAccount[], siteAccess?: string[]): Promise<void> {
   const error = accountsError(accounts);
   if (error) throw new Error(error);
-  await fs.writeFile(LOCAL_FILE, serializeAccounts(accounts), 'utf8');
+  const current = siteAccess ?? (await readLocalCmsFile()).siteAccess;
+  await fs.writeFile(LOCAL_FILE, serializeAccounts(accounts, current), 'utf8');
 }
 
-export async function writeGithubAccounts(token: string, accounts: CmsAccount[]): Promise<void> {
+export async function writeGithubAccounts(
+  token: string,
+  accounts: CmsAccount[],
+  siteAccess?: string[],
+): Promise<void> {
   const error = accountsError(accounts);
   if (error) throw new Error(error);
   const current = await gh<{ sha?: string }>(
     token,
     `/repos/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
   );
+  const access = siteAccess ?? (await loadCmsFile(token)).siteAccess;
   await gh(token, `/repos/${REPO}/contents/${FILE_PATH}`, {
     method: 'PUT',
     body: JSON.stringify({
       message: 'cms: mise à jour des comptes admin',
-      content: Buffer.from(serializeAccounts(accounts), 'utf8').toString('base64'),
+      content: Buffer.from(serializeAccounts(accounts, access), 'utf8').toString('base64'),
       sha: current.sha,
       branch: BRANCH,
     }),

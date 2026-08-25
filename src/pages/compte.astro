@@ -11,6 +11,14 @@ import MainLayout from '../layouts/Layout.astro';
       </p>
     </header>
 
+    <section class="account-card" data-section="cms" id="account-cms-card" hidden>
+      <h2 data-i18n="account_cms">Administration</h2>
+      <p class="section-help" data-i18n="account_cms_help">
+        Accédez à l’espace de rédaction et de publication.
+      </p>
+      <a href="/admin/" class="btn-primary" data-i18n="account_cms_open">Ouvrir l’admin</a>
+    </section>
+
     <section class="account-card" data-section="photo">
       <h2 data-i18n="account_photo_title">Photo de profil</h2>
       <form id="photo-form" class="account-form">
@@ -144,6 +152,7 @@ import MainLayout from '../layouts/Layout.astro';
   import { avatarInitial, avatarImgHtml, uploadAccountAvatar } from '../utils/avatar';
   import { isValidEmail, isStrongPassword, bindPasswordChecklist } from '../utils/auth-validation';
   import { t as translate } from '../utils/i18n.js';
+  import { accountHasCmsLink } from '../utils/cms-accounts';
 
   function currentLang(): 'FR' | 'EN' {
     return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
@@ -236,6 +245,16 @@ import MainLayout from '../layouts/Layout.astro';
       await syncEmailFromAuth();
       fillForms(account);
       page?.removeAttribute('hidden');
+      try {
+        const res = await fetch('/api/site-cms-access', { cache: 'no-store' });
+        const data = res.ok ? await res.json() : { siteAccess: [] };
+        const card = document.getElementById('account-cms-card');
+        if (card && accountHasCmsLink(account, Array.isArray(data.siteAccess) ? data.siteAccess : [])) {
+          card.removeAttribute('hidden');
+        }
+      } catch {
+        /* pas de lien admin */
+      }
     }
   } catch {
     window.location.replace(`/connexion?redirect=${encodeURIComponent('/compte')}`);
@@ -670,6 +689,10 @@ import MainLayout from '../layouts/Layout.astro';
     font-size: 0.9rem;
   }
 
+  .account-card[hidden] {
+    display: none !important;
+  }
+
   .btn-primary {
     align-self: flex-start;
     background-color: #ea580c;
@@ -680,6 +703,9 @@ import MainLayout from '../layouts/Layout.astro';
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
   }
 
   .btn-primary:hover {

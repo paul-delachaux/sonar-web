@@ -7,8 +7,17 @@
     },
     {
       "login": "souslesonar-hash",
-      "role": "admin",
+      "role": "superadmin",
       "label": "souslesonar-hash"
+    },
+    {
+      "login": "amazingrenaud",
+      "role": "admin",
+      "label": "Paul-test"
     }
+  ],
+  "siteAccess": [
+    "paul.delachaux@gmail.com"
   ]
 }
+

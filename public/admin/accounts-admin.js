@@ -3,6 +3,7 @@
  */
 (function (global) {
   var accounts = [];
+  var siteAccess = [];
   var busy = false;
 
   function readGithubSession() {
@@ -246,13 +247,22 @@
           '<p class="sonar-acc-hint">Pour qu’un nouveau compte puisse enregistrer des articles, il doit aussi être <strong>collaborateur Write</strong> du dépôt GitHub.</p>' +
           '<div id="sonar-acc-list"></div>' +
           '<form id="sonar-acc-form" class="sonar-acc-form">' +
-            '<h3>Ajouter un compte</h3>' +
+            '<h3>Ajouter un compte GitHub</h3>' +
             '<label>Login GitHub<input id="sonar-acc-login" type="text" autocomplete="off" spellcheck="false" placeholder="ex. jane-doe" required></label>' +
             '<label>Nom affiché (optionnel)<input id="sonar-acc-label" type="text" autocomplete="off" placeholder="Jane Doe"></label>' +
             '<label>Rôle<select id="sonar-acc-role"><option value="admin">Admin</option><option value="superadmin">Superadmin</option></select></label>' +
             '<label class="sonar-acc-check"><input id="sonar-acc-invite" type="checkbox" checked> Inviter comme collaborateur GitHub (Write)</label>' +
             '<button type="submit" class="sonar-acc-save">Ajouter</button>' +
           '</form>' +
+          '<div class="sonar-acc-form">' +
+            '<h3>Lien Admin depuis le site</h3>' +
+            '<p class="sonar-acc-hint">Pseudos ou e-mails des <strong>comptes du site</strong> (connexion lecteur). Ces personnes voient un lien « Administration » dans leur menu compte, qui ouvre /admin.</p>' +
+            '<div id="sonar-acc-site-list"></div>' +
+            '<form id="sonar-acc-site-form">' +
+              '<label>Pseudo ou e-mail du site<input id="sonar-acc-site-id" type="text" autocomplete="off" spellcheck="false" placeholder="ex. paul ou toi@email.com" required></label>' +
+              '<button type="submit" class="sonar-acc-save">Ajouter au menu compte</button>' +
+            '</form>' +
+          '</div>' +
         '</div>' +
       '</section>';
     document.body.appendChild(root);
@@ -262,6 +272,7 @@
       if (target && target.getAttribute && target.getAttribute('data-acc-close')) close();
     });
     document.getElementById('sonar-acc-form').addEventListener('submit', onAdd);
+    document.getElementById('sonar-acc-site-form').addEventListener('submit', onAddSiteAccess);
     return root;
   }
 
@@ -313,6 +324,30 @@
     });
   }
 
+  function renderSiteAccess() {
+    var wrap = document.getElementById('sonar-acc-site-list');
+    if (!wrap) return;
+    if (!siteAccess.length) {
+      wrap.innerHTML = '<p class="sonar-acc-empty">Aucun compte du site n’a le lien Admin.</p>';
+      return;
+    }
+    wrap.innerHTML = siteAccess.map(function (value) {
+      return (
+        '<article class="sonar-acc-card">' +
+          '<div class="sonar-acc-card-top">' +
+            '<strong>' + escapeHtml(value) + '</strong>' +
+            '<button type="button" class="sonar-acc-remove" data-site-remove="' + escapeHtml(value) + '">Retirer</button>' +
+          '</div>' +
+        '</article>'
+      );
+    }).join('');
+    wrap.querySelectorAll('[data-site-remove]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        removeSiteAccess(btn.getAttribute('data-site-remove'));
+      });
+    });
+  }
+
   function saveAccounts(next, inviteLogin) {
     if (busy) return Promise.resolve();
     busy = true;
@@ -320,12 +355,14 @@
     return fetch('/api/admin/accounts', {
       method: 'PUT',
       headers: authHeaders(),
-      body: JSON.stringify({ accounts: next, invite: inviteLogin || '' })
+      body: JSON.stringify({ accounts: next, siteAccess: siteAccess, invite: inviteLogin || '' })
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {
         if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
         accounts = data.accounts || next;
+        if (Array.isArray(data.siteAccess)) siteAccess = data.siteAccess;
         renderList();
+        renderSiteAccess();
         var extra = data.invite && data.invite.message ? ' ' + data.invite.message : '';
         setStatus('Enregistré.' + extra, data.invite && data.invite.ok === false ? 'err' : '');
         return data;
@@ -376,6 +413,51 @@
     });
   }
 
+  function saveSiteAccess(nextAccess) {
+    if (busy) return Promise.resolve();
+    busy = true;
+    setStatus('Enregistrement…');
+    return fetch('/api/admin/accounts', {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ accounts: accounts, siteAccess: nextAccess })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+        if (Array.isArray(data.accounts)) accounts = data.accounts;
+        siteAccess = Array.isArray(data.siteAccess) ? data.siteAccess : nextAccess;
+        renderList();
+        renderSiteAccess();
+        setStatus('Enregistré.');
+        return data;
+      });
+    }).catch(function (err) {
+      setStatus(err && err.message ? err.message : 'Enregistrement impossible.', 'err');
+    }).then(function (data) {
+      busy = false;
+      return data;
+    });
+  }
+
+  function removeSiteAccess(value) {
+    saveSiteAccess(siteAccess.filter(function (item) { return item !== value; }));
+  }
+
+  function onAddSiteAccess(event) {
+    event.preventDefault();
+    var el = document.getElementById('sonar-acc-site-id');
+    var value = String(el && el.value || '').trim().replace(/^@/, '').toLowerCase();
+    if (!value) return;
+    if (siteAccess.indexOf(value) !== -1) {
+      setStatus('Ce compte du site est déjà dans la liste.', 'err');
+      return;
+    }
+    saveSiteAccess(siteAccess.concat([value])).then(function (data) {
+      if (!data || !el) return;
+      el.value = '';
+    });
+  }
+
   function load() {
     setStatus('Chargement…');
     return fetch('/api/admin/accounts', { headers: authHeaders(), cache: 'no-store' })
@@ -383,7 +465,9 @@
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
           accounts = data.accounts || [];
+          siteAccess = Array.isArray(data.siteAccess) ? data.siteAccess : [];
           renderList();
+          renderSiteAccess();
           setStatus('');
         });
       })
