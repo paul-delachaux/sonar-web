@@ -9,6 +9,11 @@
       "login": "souslesonar-hash",
       "role": "superadmin",
       "label": "souslesonar-hash"
+    },
+    {
+      "login": "amazingrenaud",
+      "role": "admin",
+      "label": "Paul-test"
     }
   ]
 }
