@@ -138,10 +138,32 @@
     return config;
   }
 
-  function githubToken() {
+  function readGithubSession() {
+    var token = global.__SONAR_GH_TOKEN || '';
+    var login = global.__SONAR_GH_LOGIN || '';
     var search = global.SonarArticleSearch;
-    if (search && typeof search.githubToken === 'function') return search.githubToken();
-    return '';
+    if (search) {
+      if (!token && typeof search.githubToken === 'function') token = search.githubToken() || '';
+      if (!login && typeof search.githubLogin === 'function') login = search.githubLogin() || '';
+    }
+    var keys = ['decap-cms-user', 'netlify-cms-user', 'decap-cms.user', 'netlify-cms.user'];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var raw = global.localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        var data = JSON.parse(raw);
+        if (!data) continue;
+        if (!token) token = data.token || data.access_token || data.accessToken || '';
+        if (!login) login = String(data.login || (data.user && data.user.login) || '').toLowerCase();
+      } catch (e) {}
+    }
+    if (token) global.__SONAR_GH_TOKEN = token;
+    if (login) global.__SONAR_GH_LOGIN = login;
+    return { token: token, login: login };
+  }
+
+  function githubToken() {
+    return readGithubSession().token || '';
   }
 
   function parseDomainsFile(data) {
@@ -255,6 +277,7 @@
     if (token) {
       headers.Authorization = 'Bearer ' + token;
       headers['X-Sonar-GitHub'] = token;
+      headers['X-Github-Token'] = token;
     }
     return headers;
   }
@@ -279,9 +302,7 @@
   }
 
   function storedGithubLogin() {
-    var search = global.SonarArticleSearch;
-    if (search && typeof search.githubLogin === 'function') return search.githubLogin() || '';
-    return '';
+    return readGithubSession().login || '';
   }
 
   function fetchGithubLogin(token) {
@@ -442,7 +463,7 @@
       return global.__SONAR_CMS_READY;
     }
 
-    global.__SONAR_CMS_READY = waitForGithubToken(isLocalHost() ? 0 : 2500).then(function () {
+    global.__SONAR_CMS_READY = waitForGithubToken(isLocalHost() ? 0 : 8000).then(function () {
       return Promise.all([
         fetch('/admin/config.yml', { cache: 'no-store' }).then(function (res) { return res.text(); }),
         loadDomains(),

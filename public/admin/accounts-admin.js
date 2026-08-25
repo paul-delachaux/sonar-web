@@ -5,10 +5,32 @@
   var accounts = [];
   var busy = false;
 
-  function githubToken() {
+  function readGithubSession() {
+    var token = global.__SONAR_GH_TOKEN || '';
+    var login = global.__SONAR_GH_LOGIN || '';
     var search = global.SonarArticleSearch;
-    if (search && typeof search.githubToken === 'function') return search.githubToken() || '';
-    return '';
+    if (search) {
+      if (!token && typeof search.githubToken === 'function') token = search.githubToken() || '';
+      if (!login && typeof search.githubLogin === 'function') login = search.githubLogin() || '';
+    }
+    var keys = ['decap-cms-user', 'netlify-cms-user', 'decap-cms.user', 'netlify-cms.user'];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var raw = global.localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        var data = JSON.parse(raw);
+        if (!data) continue;
+        if (!token) token = data.token || data.access_token || data.accessToken || '';
+        if (!login) login = String(data.login || (data.user && data.user.login) || '').toLowerCase();
+      } catch (e) {}
+    }
+    if (token) global.__SONAR_GH_TOKEN = token;
+    if (login) global.__SONAR_GH_LOGIN = login;
+    return { token: token, login: login };
+  }
+
+  function githubToken() {
+    return readGithubSession().token || '';
   }
 
   function findSidebar() {
@@ -33,7 +55,7 @@
       sidebar.appendChild(el);
     }
     el.textContent = login
-      ? ('@' + login + ' · ' + (role === 'superadmin' ? 'superadmin' : role === 'admin' ? 'admin' : 'rôle inconnu'))
+      ? ('@' + login + ' · ' + (role === 'superadmin' ? 'superadmin' : role === 'admin' ? 'admin' : 'identification…'))
       : 'Session GitHub en cours…';
   }
 
@@ -49,23 +71,25 @@
   }
 
   function detectRole() {
-    showIdentity(global.__SONAR_CMS_LOGIN, global.__SONAR_CMS_ROLE);
+    var session = readGithubSession();
+    showIdentity(global.__SONAR_CMS_LOGIN || session.login, global.__SONAR_CMS_ROLE);
     if (global.__SONAR_CMS_ROLE === 'superadmin') {
       addAccountsNav(findSidebar());
       return;
     }
-    var token = githubToken();
+    var token = session.token;
+    var storedLogin = session.login;
     var headers = authHeaders();
     var loginPromise = token
       ? fetch('https://api.github.com/user', {
-          headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }
+          headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
         }).then(function (res) {
-          return res.ok ? res.json().then(function (u) { return String(u.login || '').toLowerCase(); }) : '';
-        }).catch(function () { return ''; })
-      : Promise.resolve('');
+          return res.ok ? res.json().then(function (u) { return String(u.login || '').toLowerCase(); }) : storedLogin;
+        }).catch(function () { return storedLogin; })
+      : Promise.resolve(storedLogin);
     var repoPromise = token
       ? fetch('https://api.github.com/repos/paul-delachaux/sonar-web', {
-          headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }
+          headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json' }
         }).then(function (res) { return res.ok ? res.json() : null; }).catch(function () { return null; })
       : Promise.resolve(null);
     var mePromise = token
@@ -81,7 +105,7 @@
     Promise.all([mePromise, listPromise, loginPromise, repoPromise]).then(function (parts) {
       var me = parts[0];
       var list = parts[1] || [];
-      var login = String((me && me.login) || parts[2] || '').toLowerCase();
+      var login = String((me && me.login) || parts[2] || storedLogin || '').toLowerCase();
       var repo = parts[3];
       var repoAdmin = !!(repo && (
         String(repo.owner && repo.owner.login || '').toLowerCase() === login ||
@@ -106,6 +130,7 @@
         }
       }
       if (me && me.role) applyDetectedRole(me.login, me.role);
+      if (login) showIdentity(login, global.__SONAR_CMS_ROLE);
     });
   }
 
@@ -122,7 +147,14 @@
     if (search && typeof search.authHeaders === 'function') {
       return search.authHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' });
     }
-    return { 'Content-Type': 'application/json', Accept: 'application/json' };
+    var headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    var token = githubToken();
+    if (token) {
+      headers.Authorization = 'Bearer ' + token;
+      headers['X-Sonar-GitHub'] = token;
+      headers['X-Github-Token'] = token;
+    }
+    return headers;
   }
 
   function escapeHtml(value) {
