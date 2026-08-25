@@ -720,6 +720,14 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     .article-tag { margin: 0 0 10px 0; }
     .sidebar-tag, .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
     .article-desc, .sidebar-desc, .card-desc { font-size: 0.95rem; line-height: 1.5; color: #c9c9d4; margin: 0; }
+    .sidebar-desc, .card-desc {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .article-une:hover h2, .article-sidebar:hover h3, .article-bottom-card:hover h3 { text-decoration: underline; }
     .scroll-interactive { opacity: 0; transform: translateY(50px); transition: opacity 0.1s ease-out, transform 0.1s ease-out; will-change: opacity, transform; }
     .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }

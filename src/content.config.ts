@@ -9,7 +9,7 @@ const articles = defineCollection({
     description: z.string().nullish().optional(), // Rend-le optionnel au cas où une brève n'a pas de description
 
     // --- NOUVEAU : TYPE DE LAYOUT ---
-    layout_type: z.enum(['classique', 'breve']).default('classique'),
+    layout_type: z.enum(['classique', 'breve', 'revue_musicale']).default('classique'),
 
     date: z.coerce.date(),
 
@@ -79,6 +79,39 @@ const articles = defineCollection({
         definition: z.string().nullish().optional(),
         term_en: z.string().nullish().optional(),
         definition_en: z.string().nullish().optional()
+      })
+    ).optional(),
+
+    revue_rows: z.array(
+      z.object({
+        left: z.object({
+          type: z.enum(['texte', 'image', 'audio']).default('texte'),
+          text: z.string().nullish().optional(),
+          text_en: z.string().nullish().optional(),
+          image: z.string().nullish().optional(),
+          tracks: z.array(
+            z.object({
+              file: z.string().nullish().optional(),
+              url: z.string().nullish().optional(),
+              title: z.string().nullish().optional(),
+              title_en: z.string().nullish().optional(),
+            })
+          ).optional(),
+        }).optional(),
+        right: z.object({
+          type: z.enum(['texte', 'image', 'audio']).default('texte'),
+          text: z.string().nullish().optional(),
+          text_en: z.string().nullish().optional(),
+          image: z.string().nullish().optional(),
+          tracks: z.array(
+            z.object({
+              file: z.string().nullish().optional(),
+              url: z.string().nullish().optional(),
+              title: z.string().nullish().optional(),
+              title_en: z.string().nullish().optional(),
+            })
+          ).optional(),
+        }).optional(),
       })
     ).optional(),
 

@@ -8,6 +8,7 @@ import DefinitionTooltips from '../../components/DefinitionTooltips.astro';
 import FavoriteStar from '../../components/FavoriteStar.astro';
 import ReadLaterClock from '../../components/ReadLaterClock.astro';
 import CategoryBadge from '../../components/CategoryBadge.astro';
+import RevueMusicaleLayout from '../../components/RevueMusicaleLayout.astro';
 import { supabase } from '../../utils/supabase';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
@@ -58,6 +59,7 @@ const markdownToHtml = (md: string) => {
 const { Content } = await render(article);
 
 const isBreve = article.data.layout_type === 'breve';
+const isRevue = article.data.layout_type === 'revue_musicale';
 
 const hasEn = Boolean(article.data.title_en && String(article.data.title_en).trim() !== "");
 const bodyEnHtml = article.data.body_en ? markdownToHtml(String(article.data.body_en)) : "";
@@ -155,7 +157,28 @@ const descEN = hasEn && article.data.description_en
 ---
 
 <MainLayout title={article.data.title}>
-  {isBreve ? (
+  {isRevue ? (
+    <RevueMusicaleLayout
+      slug={article.id}
+      titleFR={titleFR}
+      titleEN={titleEN}
+      descFR={descFR}
+      descEN={descEN}
+      authorName={currentAuthorName}
+      avatarUrl={authorInfo.avatarUrl}
+      readingTime={readingTime}
+      dateAfficheeFR={dateAfficheeFR}
+      dateAfficheeEN={dateAfficheeEN}
+      heureAfficheeFR={heureAfficheeFR}
+      heureAfficheeEN={heureAfficheeEN}
+      authorAboutFR={authorAboutFR}
+      authorAboutEN={authorAboutEN}
+      authorInterestsFR={authorInterestsFR}
+      authorInterestsEN={authorInterestsEN}
+      sources={article.data.consulted_sources || []}
+      rows={article.data.revue_rows || []}
+    />
+  ) : isBreve ? (
     <div class="breve-wrapper">
       <FavoriteStar slug={article.id} />
       <ReadLaterClock slug={article.id} title={titleFR} titleEn={titleEN} />

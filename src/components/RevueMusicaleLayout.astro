@@ -1,0 +1,854 @@
+---
+import FavoriteStar from './FavoriteStar.astro';
+import ReadLaterClock from './ReadLaterClock.astro';
+import { t } from '../utils/i18n.js';
+
+interface Track {
+  file?: string | null;
+  url?: string | null;
+  title?: string | null;
+  title_en?: string | null;
+}
+
+interface Cell {
+  type?: string | null;
+  text?: string | null;
+  text_en?: string | null;
+  image?: string | null;
+  tracks?: Track[] | null;
+}
+
+interface Row {
+  left?: Cell | null;
+  right?: Cell | null;
+}
+
+interface Source {
+  source_title: string;
+  source_title_en?: string | null;
+  source_url?: string | null;
+}
+
+interface Props {
+  slug: string;
+  titleFR: string;
+  titleEN: string;
+  descFR: string;
+  descEN: string;
+  authorName: string;
+  avatarUrl: string;
+  readingTime: number;
+  dateAfficheeFR: string;
+  dateAfficheeEN: string;
+  heureAfficheeFR: string;
+  heureAfficheeEN: string;
+  authorAboutFR: string;
+  authorAboutEN: string;
+  authorInterestsFR: string;
+  authorInterestsEN: string;
+  sources?: Source[];
+  rows?: Row[];
+}
+
+const {
+  slug,
+  titleFR,
+  titleEN,
+  descFR,
+  descEN,
+  authorName,
+  avatarUrl,
+  readingTime,
+  dateAfficheeFR,
+  dateAfficheeEN,
+  heureAfficheeFR,
+  heureAfficheeEN,
+  authorAboutFR,
+  authorAboutEN,
+  authorInterestsFR,
+  authorInterestsEN,
+  sources = [],
+  rows = [],
+} = Astro.props;
+
+const WAVE_BARS = 32;
+
+function markdownToHtml(md: string) {
+  const escaped = String(md || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  if (!escaped.trim()) return '';
+  return escaped
+    .split(/\n\n+/)
+    .map((block) => {
+      const withInline = block
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br/>');
+      return `<p>${withInline}</p>`;
+    })
+    .join('');
+}
+
+function cellType(cell: Cell | null | undefined) {
+  const type = String(cell?.type || 'texte');
+  if (type === 'image' || type === 'audio' || type === 'texte') return type;
+  return 'texte';
+}
+
+function youtubeIdFrom(value: string) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const match = raw.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?.*?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/
+  );
+  return match ? match[1] : '';
+}
+
+function tracksOf(cell: Cell | null | undefined) {
+  const listed = (cell?.tracks || [])
+    .filter((track) => track && (track.file || track.url || track.title || track.title_en))
+    .map((track) => {
+      const src = String(track.file || track.url || '').trim();
+      return {
+        src,
+        youtubeId: youtubeIdFrom(src),
+        title: String(track.title || '').trim(),
+        titleEn: String(track.title_en || track.title || '').trim(),
+      };
+    });
+  if (listed.length) return listed;
+  if (cellType(cell) === 'audio') {
+    return [{ src: '', youtubeId: '', title: '', titleEn: '' }];
+  }
+  return [];
+}
+
+function waveHeights(seed: string, count: number) {
+  let s = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    s ^= seed.charCodeAt(i);
+    s = Math.imul(s, 16777619);
+  }
+  const raw: number[] = [];
+  for (let i = 0; i < count; i += 1) {
+    s = Math.imul(s ^ (s >>> 13), 1274126177);
+    raw.push(0.18 + ((s >>> 0) / 4294967295) * 0.82);
+  }
+  return raw.map((value, i) => {
+    const prev = raw[(i + count - 1) % count];
+    const next = raw[(i + 1) % count];
+    return Math.round(8 + ((prev + value * 2.4 + next) / 4.4) * 20);
+  });
+}
+---
+
+<div class="revue-wrapper">
+  <FavoriteStar slug={slug} />
+  <ReadLaterClock slug={slug} title={titleFR} titleEn={titleEN} />
+
+  <article class="revue-layout">
+    <header class="revue-header">
+      <p class="revue-kicker" data-fr="CULTURE - REVUE MUSICALE" data-en="CULTURE - MUSIC REVIEW">
+        CULTURE - REVUE MUSICALE
+      </p>
+      <div class="revue-header-top">
+        <div class="revue-header-main">
+          <h1 class="revue-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
+          <a href="#author-info-section" class="author-meta-block revue-author-meta">
+            <img src={avatarUrl} alt={`Portrait de ${authorName}`} class="author-avatar" />
+            <div class="author-text-meta">
+              <p class="author-name">
+                <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}{authorName}
+              </p>
+              <p class="publication-date">
+                {readingTime}{" "}
+                <span data-i18n="read_time">{t('read_time', 'FR')}</span>
+                {" — "}
+                <span data-i18n="published_on">{t('published_on', 'FR')}</span>{" "}
+                <span data-fr={dateAfficheeFR} data-en={dateAfficheeEN}>{dateAfficheeFR}</span>{" "}
+                <span data-i18n="published_at">{t('published_at', 'FR')}</span>{" "}
+                <span data-fr={heureAfficheeFR} data-en={heureAfficheeEN}>{heureAfficheeFR}</span>
+              </p>
+            </div>
+          </a>
+        </div>
+        {descFR && (
+          <div class="revue-description" data-fr={descFR} data-en={descEN}>{descFR}</div>
+        )}
+      </div>
+    </header>
+
+    <div class="revue-rows">
+      {rows.map((row, rowIndex) => (
+        <div class="revue-row">
+          {(['left', 'right'] as const).map((side) => {
+            const cell = row[side];
+            const type = cellType(cell);
+            const textFR = String(cell?.text || '');
+            const textEN = String(cell?.text_en || textFR);
+            const tracks = tracksOf(cell);
+            return (
+              <div class={`revue-cell revue-cell-${type}`}>
+                {type === 'image' && cell?.image && (
+                  <img src={cell.image} alt="" class="revue-image" />
+                )}
+                {type === 'audio' && (
+                  <div class="revue-audio-stack">
+                    {tracks.map((track, trackIndex) => {
+                      const canPlay = Boolean(track.src);
+                      const label = track.title || `Piste ${trackIndex + 1}`;
+                      const heights = waveHeights(`${rowIndex}-${trackIndex}-${track.src || label}`, WAVE_BARS);
+                      return (
+                        <div
+                          class={`revue-audio${canPlay ? '' : ' is-empty'}`}
+                          data-src={track.youtubeId ? '' : track.src}
+                          data-youtube={track.youtubeId}
+                          tabindex={canPlay ? 0 : -1}
+                          aria-label={label}
+                          aria-disabled={canPlay ? undefined : 'true'}
+                        >
+                          <button type="button" class="revue-audio-toggle" aria-label={label} disabled={!canPlay}>
+                            <span class="revue-audio-play" aria-hidden="true"></span>
+                          </button>
+                          <span class="revue-wave" aria-hidden="true">
+                            {heights.map((h) => (
+                              <i style={`height:${h}px; --fill: 0`} />
+                            ))}
+                          </span>
+                          <span class="revue-audio-time">0:00</span>
+                          {(track.title || track.titleEn) && (
+                            <span class="revue-audio-title" data-fr={track.title || track.titleEn} data-en={track.titleEn || track.title}>
+                              {track.title || track.titleEn}
+                            </span>
+                          )}
+                          {!track.youtubeId && track.src && (
+                            <audio preload="metadata" src={track.src}></audio>
+                          )}
+                          {track.youtubeId && <div class="revue-yt-host"></div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {type === 'texte' && (
+                  <>
+                    <div class="revue-text" data-lang-content="FR" set:html={markdownToHtml(textFR)} />
+                    <div class="revue-text" data-lang-content="EN" hidden set:html={markdownToHtml(textEN)} />
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+
+    <footer id="author-info-section" class="article-footer-transparency">
+      <div class="transparency-card">
+        <div class="card-accent-bar"></div>
+        <h3 data-i18n="transparency_author">{t('transparency_author', 'FR')}</h3>
+        <p data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
+      </div>
+      <div class="transparency-card">
+        <div class="card-accent-bar"></div>
+        <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
+        {authorInterestsFR || authorInterestsEN ? (
+          <p data-fr={authorInterestsFR} data-en={authorInterestsEN}>{authorInterestsFR}</p>
+        ) : (
+          <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
+        )}
+      </div>
+      <div class="transparency-card">
+        <div class="card-accent-bar"></div>
+        <h3 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h3>
+        {sources.length > 0 ? (
+          <ul class="sources-list">
+            {sources.map((src) => {
+              const srcTitleFR = src.source_title;
+              const srcTitleEN = src.source_title_en || srcTitleFR;
+              return (
+                <li>
+                  {src.source_url ? (
+                    <a href={src.source_url} target="_blank" rel="noopener noreferrer" data-fr={srcTitleFR} data-en={srcTitleEN}>
+                      {srcTitleFR}
+                    </a>
+                  ) : (
+                    <span data-fr={srcTitleFR} data-en={srcTitleEN}>{srcTitleFR}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
+        )}
+      </div>
+    </footer>
+  </article>
+</div>
+
+<script>
+  type YTPlayer = {
+    playVideo: () => void;
+    pauseVideo: () => void;
+    seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+    getPlayerState: () => number;
+    getCurrentTime: () => number;
+    getDuration: () => number;
+    destroy?: () => void;
+  };
+
+  type RevuePlayerEl = HTMLElement & {
+    _ytPlayer?: YTPlayer | null;
+    _ytReady?: Promise<YTPlayer | null>;
+    _raf?: number;
+  };
+
+  function formatTime(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+    const total = Math.floor(seconds);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function setProgress(player: HTMLElement, current: number, duration: number) {
+    const ratio = duration > 0 ? Math.min(1, Math.max(0, current / duration)) : 0;
+    const bars = player.querySelectorAll<HTMLElement>('.revue-wave i');
+    const n = bars.length || 1;
+    bars.forEach((bar, i) => {
+      const start = i / n;
+      const end = (i + 1) / n;
+      let fill = 0;
+      if (ratio >= end) fill = 1;
+      else if (ratio > start) fill = (ratio - start) / (end - start);
+      bar.style.setProperty('--fill', String(fill));
+    });
+    const timeEl = player.querySelector('.revue-audio-time');
+    if (timeEl) {
+      timeEl.textContent = duration > 0
+        ? formatTime(current) + ' / ' + formatTime(duration)
+        : formatTime(current);
+    }
+  }
+
+  const AUDIO_PLAYER_MAX = 56;
+  const AUDIO_PLAYER_MIN = 44;
+  const AUDIO_GAP = 10;
+  const IMAGE_MIN = 200;
+
+  async function seekFromWave(player: RevuePlayerEl, event: MouseEvent) {
+    const wave = player.querySelector('.revue-wave');
+    if (!wave) return;
+    const rect = wave.getBoundingClientRect();
+    if (!rect.width) return;
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const youtubeId = player.getAttribute('data-youtube') || '';
+    const audio = player.querySelector('audio');
+    if (youtubeId) {
+      const yt = await ensureYtPlayer(player);
+      if (!yt) return;
+      const duration = yt.getDuration() || 0;
+      if (duration > 0) yt.seekTo(ratio * duration, true);
+      setProgress(player, ratio * duration, duration);
+      return;
+    }
+    if (audio && audio.duration) {
+      audio.currentTime = ratio * audio.duration;
+      setProgress(player, audio.currentTime, audio.duration);
+    }
+  }
+
+  function applyBarHeights(player: HTMLElement, heights: number[]) {
+    const bars = player.querySelectorAll<HTMLElement>('.revue-wave i');
+    bars.forEach((bar, i) => {
+      if (heights[i] == null) return;
+      bar.style.height = Math.round(heights[i]) + 'px';
+    });
+  }
+
+  async function paintRealWaveform(player: RevuePlayerEl) {
+    const src = player.getAttribute('data-src') || '';
+    if (!src || player.getAttribute('data-youtube')) return;
+    try {
+      const response = await fetch(src);
+      if (!response.ok) return;
+      const ctx = new AudioContext();
+      const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+      await ctx.close();
+      const data = buffer.getChannelData(0);
+      const bars = player.querySelectorAll('.revue-wave i').length || 32;
+      const block = Math.max(1, Math.floor(data.length / bars));
+      const values: number[] = [];
+      for (let i = 0; i < bars; i += 1) {
+        let sum = 0;
+        const start = i * block;
+        for (let j = 0; j < block; j += 1) sum += Math.abs(data[start + j] || 0);
+        values.push(sum / block);
+      }
+      const peak = Math.max(...values, 0.0001);
+      applyBarHeights(player, values.map((value) => 6 + (value / peak) * 22));
+    } catch {
+      /* forme d'onde aléatoire déjà en place */
+    }
+  }
+
+  let ytApiPromise: Promise<any> | null = null;
+  function loadYouTubeAPI() {
+    if (ytApiPromise) return ytApiPromise;
+    ytApiPromise = new Promise((resolve) => {
+      const existing = (window as any).YT;
+      if (existing && existing.Player) {
+        resolve(existing);
+        return;
+      }
+      const previous = (window as any).onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = () => {
+        if (typeof previous === 'function') previous();
+        resolve((window as any).YT);
+      };
+      if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(script);
+      }
+    });
+    return ytApiPromise;
+  }
+
+  function ensureYtPlayer(player: RevuePlayerEl) {
+    if (player._ytReady) return player._ytReady;
+    const videoId = player.getAttribute('data-youtube') || '';
+    const host = player.querySelector('.revue-yt-host');
+    if (!videoId || !host) {
+      player._ytReady = Promise.resolve(null);
+      return player._ytReady;
+    }
+    player._ytReady = loadYouTubeAPI().then((YT) => new Promise<YTPlayer | null>((resolve) => {
+      const instance = new YT.Player(host, {
+        videoId,
+        width: '240',
+        height: '135',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          playsinline: 1,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: () => {
+            player._ytPlayer = instance;
+            resolve(instance);
+          },
+          onStateChange: (event: { data: number }) => {
+            if (event.data === YT.PlayerState.ENDED) {
+              player.classList.remove('is-playing');
+              setProgress(player, instance.getDuration(), instance.getDuration());
+              stopTick(player);
+            }
+          },
+          onError: () => resolve(instance),
+        },
+      });
+    }));
+    return player._ytReady;
+  }
+
+  function stopTick(player: RevuePlayerEl) {
+    if (player._raf) {
+      cancelAnimationFrame(player._raf);
+      player._raf = 0;
+    }
+  }
+
+  function tick(player: RevuePlayerEl) {
+    const audio = player.querySelector('audio');
+    const yt = player._ytPlayer;
+    if (audio && !audio.paused) {
+      setProgress(player, audio.currentTime, audio.duration || 0);
+    } else if (yt && player.classList.contains('is-playing')) {
+      setProgress(player, yt.getCurrentTime(), yt.getDuration() || 0);
+    } else {
+      stopTick(player);
+      return;
+    }
+    player._raf = requestAnimationFrame(() => tick(player));
+  }
+
+  async function pauseAll(players: RevuePlayerEl[], except?: RevuePlayerEl) {
+    await Promise.all(players.map(async (other) => {
+      if (other === except) return;
+      const audio = other.querySelector('audio');
+      if (audio && !audio.paused) audio.pause();
+      if (other._ytPlayer) other._ytPlayer.pauseVideo();
+      other.classList.remove('is-playing');
+      stopTick(other);
+    }));
+  }
+
+  async function togglePlayer(player: RevuePlayerEl, players: RevuePlayerEl[]) {
+    if (player.classList.contains('is-empty')) return;
+    const youtubeId = player.getAttribute('data-youtube') || '';
+    const audio = player.querySelector('audio');
+
+    if (player.classList.contains('is-playing')) {
+      if (audio) audio.pause();
+      if (player._ytPlayer) player._ytPlayer.pauseVideo();
+      player.classList.remove('is-playing');
+      stopTick(player);
+      return;
+    }
+
+    await pauseAll(players, player);
+
+    if (youtubeId) {
+      const yt = await ensureYtPlayer(player);
+      if (!yt) return;
+      yt.playVideo();
+      player.classList.add('is-playing');
+      tick(player);
+      return;
+    }
+
+    if (audio && audio.src) {
+      try {
+        await audio.play();
+        player.classList.add('is-playing');
+        tick(player);
+      } catch {
+        player.classList.remove('is-playing');
+      }
+    }
+  }
+
+  function syncRevueRowHeights() {
+    document.querySelectorAll('.revue-row').forEach((row) => {
+      const cells = Array.from(row.querySelectorAll(':scope > .revue-cell')) as HTMLElement[];
+      cells.forEach((cell) => {
+        cell.style.height = '';
+        cell.querySelectorAll<HTMLElement>('.revue-audio').forEach((player) => {
+          player.style.height = '';
+        });
+      });
+      const textCell = cells.find((cell) => cell.classList.contains('revue-cell-texte'));
+      if (!textCell) return;
+      const visibleText = textCell.querySelector('.revue-text:not([hidden])') as HTMLElement | null;
+      const textHeight = Math.ceil((visibleText || textCell).getBoundingClientRect().height);
+
+      cells.forEach((cell) => {
+        if (cell === textCell) return;
+        if (cell.classList.contains('revue-cell-audio')) {
+          const players = Array.from(cell.querySelectorAll<HTMLElement>('.revue-audio'));
+          const count = Math.max(1, players.length);
+          const stackMax = count * AUDIO_PLAYER_MAX + Math.max(0, count - 1) * AUDIO_GAP;
+          if (textHeight < stackMax) {
+            const available = Math.max(AUDIO_PLAYER_MIN, textHeight - Math.max(0, count - 1) * AUDIO_GAP);
+            const each = Math.max(AUDIO_PLAYER_MIN, Math.min(AUDIO_PLAYER_MAX, Math.floor(available / count)));
+            players.forEach((player) => {
+              player.style.height = each + 'px';
+            });
+          }
+          return;
+        }
+        if (cell.classList.contains('revue-cell-image')) {
+          cell.style.height = Math.max(textHeight, IMAGE_MIN) + 'px';
+        }
+      });
+    });
+  }
+
+  function setupRevueAudio() {
+    const players = Array.from(document.querySelectorAll('.revue-audio')) as RevuePlayerEl[];
+    players.forEach((player) => {
+      if (player.dataset.bound === 'true') return;
+      player.dataset.bound = 'true';
+      const audio = player.querySelector('audio');
+      if (audio) {
+        audio.addEventListener('loadedmetadata', () => {
+          if (!player.classList.contains('is-playing')) {
+            setProgress(player, 0, audio.duration || 0);
+          }
+        });
+        audio.addEventListener('ended', () => {
+          player.classList.remove('is-playing');
+          setProgress(player, audio.duration || 0, audio.duration || 0);
+          stopTick(player);
+        });
+        void paintRealWaveform(player);
+      }
+
+      const toggle = player.querySelector('.revue-audio-toggle');
+      const wave = player.querySelector('.revue-wave');
+      toggle?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void togglePlayer(player, players);
+      });
+      wave?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void seekFromWave(player, event);
+      });
+      player.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        void togglePlayer(player, players);
+      });
+    });
+  }
+
+  function bootRevueLayout() {
+    setupRevueAudio();
+    const sync = () => syncRevueRowHeights();
+    sync();
+    requestAnimationFrame(sync);
+    window.addEventListener('resize', sync);
+    window.addEventListener('languageChanged', () => requestAnimationFrame(sync));
+    document.querySelectorAll('.revue-image').forEach((img) => {
+      if (!(img as HTMLImageElement).complete) {
+        img.addEventListener('load', sync);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootRevueLayout);
+  } else {
+    bootRevueLayout();
+  }
+</script>
+
+<style is:global>
+  .revue-wrapper {
+    position: relative;
+    background-color: #02001d;
+    max-width: 1200px;
+    margin: 40px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #ffffff;
+  }
+  .revue-layout { padding: 50px 40px; }
+  .revue-header {
+    border-bottom: 1px solid #ffffff;
+    padding-bottom: 28px;
+    margin-bottom: 36px;
+    text-align: left;
+  }
+  .revue-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 40px;
+  }
+  .revue-header-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .revue-kicker {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #ffffff;
+    text-align: left;
+  }
+  .revue-title {
+    margin: 0;
+    font-size: 2.1rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    text-align: left;
+  }
+  .revue-description {
+    width: min(420px, 42%);
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.55;
+    color: #ffffff;
+    white-space: pre-wrap;
+    text-align: left;
+  }
+  .revue-header .revue-author-meta {
+    margin: 0;
+    text-align: left;
+  }
+  .revue-rows { display: flex; flex-direction: column; gap: 28px; }
+  .revue-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    align-items: stretch;
+    margin-bottom: 50px;
+  }
+  .revue-cell {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .revue-cell-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    height: 200px;
+    overflow: hidden;
+  }
+  .revue-cell-audio {
+    min-height: 0;
+    justify-content: center;
+  }
+  .revue-row:not(:has(.revue-cell-texte)) .revue-cell-image {
+    min-height: 200px;
+  }
+  .revue-image {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 2px;
+  }
+  .revue-text { font-size: 1rem; line-height: 1.7; color: #ffffff; }
+  .revue-text[hidden] { display: none !important; }
+  .revue-text p { margin: 0 0 1em; }
+  .revue-text p:last-child { margin-bottom: 0; }
+  .revue-audio-stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .revue-audio {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 56px;
+    max-height: 56px;
+    min-height: 44px;
+    margin: 0;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 10px;
+    background: #ff7900;
+    color: #ffffff;
+    text-align: left;
+  }
+  .revue-audio-toggle {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .revue-audio-play {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 8px 0 8px 14px;
+    border-color: transparent transparent transparent #ffffff;
+    flex-shrink: 0;
+  }
+  .revue-audio.is-playing .revue-audio-play {
+    width: 12px;
+    height: 14px;
+    border: none;
+    background: linear-gradient(#fff, #fff) 0 0 / 4px 100% no-repeat,
+      linear-gradient(#fff, #fff) 8px 0 / 4px 100% no-repeat;
+  }
+  .revue-wave {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 28px;
+    min-width: 0;
+    cursor: pointer;
+  }
+  .revue-wave i {
+    display: block;
+    flex: 1;
+    min-width: 2px;
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 1px;
+    position: relative;
+    overflow: hidden;
+  }
+  .revue-wave i::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #ffffff;
+    transform: scaleX(var(--fill, 0));
+    transform-origin: left center;
+    border-radius: 1px;
+  }
+  .revue-audio-time {
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 4.8em;
+    text-align: right;
+    opacity: 0.95;
+  }
+  .revue-audio-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    max-width: 28%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .revue-audio audio,
+  .revue-yt-host {
+    position: absolute;
+    width: 240px;
+    height: 135px;
+    left: 0;
+    top: 0;
+    opacity: 0.001;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .revue-audio-toggle:disabled { cursor: default; }
+  .revue-audio.is-empty { cursor: default; }
+
+  @media (max-width: 968px) {
+    .revue-wrapper { margin: 0; border-radius: 0; }
+    .revue-layout { padding: 30px 22px; }
+    .revue-header-top { flex-direction: column; gap: 16px; }
+    .revue-description { width: 100%; }
+    .revue-title { font-size: 1.6rem; }
+    .revue-row { grid-template-columns: 1fr; gap: 18px; }
+    .revue-cell-image { min-height: 220px; }
+    .revue-cell-audio { min-height: 0; }
+  }
+</style>

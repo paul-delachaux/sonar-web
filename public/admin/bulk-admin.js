@@ -64,7 +64,7 @@
     if (/\/entries\//.test(hash) || /\/new(?:\?|$)/.test(hash)) return false;
     var col = currentCollection();
     if (!col || col === 'settings' || col === 'domains') return false;
-    return col === 'articles' || col === 'breves' || col === 'contenus_visibles' || col === 'contenus_masques' || col.indexOf('articles_') === 0;
+    return col === 'articles' || col === 'breves' || col === 'revues_musicales' || col === 'contenus_visibles' || col === 'contenus_masques' || col.indexOf('articles_') === 0;
   }
 
   function slugFromHref(href) {
@@ -388,7 +388,7 @@
     title.textContent = 'Aussi dans les sous-domaines';
     host.appendChild(title);
     items.forEach(function (article) {
-      var dest = collectionNameFor(article.category) || (article.layout_type === 'breve' ? 'breves' : 'articles');
+      var dest = collectionNameFor(article.category) || (article.layout_type === 'breve' ? 'breves' : article.layout_type === 'revue_musicale' ? 'revues_musicales' : 'articles');
       var card = document.createElement('div');
       card.className = 'sonar-extra-card';
       var link = document.createElement('a');

@@ -618,13 +618,14 @@
   </style>
 </head>
 <body>
-  <script src="/admin/article-search.js?v=20260825d"></script>
+  <script src="/admin/article-search.js?v=20260825f"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/cms-boot.js?v=20260825d"></script>
-  <script src="/admin/domains-admin.js?v=20260825d"></script>
-  <script src="/admin/moderation.js?v=20260825d"></script>
-  <script src="/admin/bulk-admin.js?v=20260825d"></script>
+  <script src="/admin/cms-boot.js?v=20260825f"></script>
+  <script src="/admin/domains-admin.js?v=20260825f"></script>
+  <script src="/admin/moderation.js?v=20260825f"></script>
+  <script src="/admin/bulk-admin.js?v=20260825f"></script>
+  <script src="/admin/revue-fields.js?v=20260825f"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -1068,6 +1069,7 @@
           add(collection);
           add('articles');
           add('breves');
+          add('revues_musicales');
           var nameOf = window.SonarDomainCollectionName || function (slug) {
             return 'articles_' + String(slug || '').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
           };
@@ -2752,6 +2754,130 @@
       }
     });
 
+    const REVUE_PREVIEW_CSS = PREVIEW_STYLES + `
+      .revue-wrapper { background-color: #02001d; max-width: 1200px; margin: 0 auto; border-radius: 8px; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+      .revue-layout { padding: 40px 30px; }
+      .revue-header { border-bottom: 1px solid #fff; padding-bottom: 24px; margin-bottom: 28px; text-align: left; }
+      .revue-header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; }
+      .revue-header-main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+      .revue-kicker { margin: 0 0 8px; font-size: 1rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; text-align: left; }
+      .revue-title { margin: 0; font-size: 1.8rem; font-weight: 800; line-height: 1.15; text-align: left; }
+      .revue-description { width: 38%; flex-shrink: 0; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; text-align: left; }
+      .revue-header .author-meta-block { margin: 0; text-align: left; }
+      .revue-rows { display: flex; flex-direction: column; gap: 22px; }
+      .revue-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+      .revue-cell { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+      .revue-cell-image { min-height: 200px; display: flex; align-items: center; justify-content: center; }
+      .revue-image { width: 100%; max-height: 280px; display: block; object-fit: contain; object-position: center; }
+      .revue-text { font-size: 0.95rem; line-height: 1.65; white-space: pre-wrap; }
+      .revue-audio { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #ff7900; color: #fff; margin: 0 0 8px; height: 56px; max-height: 56px; box-sizing: border-box; }
+      .revue-audio-play { width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 12px; border-color: transparent transparent transparent #fff; flex-shrink: 0; }
+      .revue-wave { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 24px; }
+      .revue-wave i { display: block; flex: 1; background: #fff; border-radius: 1px; opacity: 0.85; }
+      .revue-audio-time { font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+      .revue-audio-title { font-size: 0.8rem; font-weight: 700; }
+    `;
+
+    const RevuePreview = createClass({
+      render: function() {
+        const entry = this.props.entry;
+        const title = entry.getIn(['data', 'title']) || 'Titre de la revue';
+        const description = entry.getIn(['data', 'description']) || '';
+        const author = entry.getIn(['data', 'author']) || 'Auteur Anonyme';
+        const readingTime = entry.getIn(['data', 'reading_time']) || 5;
+        const authorInfo = getAuthorAboutInterests(entry);
+        const dateFormatted = formatDateFR(entry.getIn(['data', 'date']));
+        const avatarUrl = getAuthorAvatar(author);
+        const rawRows = entry.getIn(['data', 'revue_rows']);
+        const rows = rawRows && rawRows.toJS ? rawRows.toJS() : (Array.isArray(rawRows) ? rawRows : []);
+
+        function previewWave(seed) {
+          var bars = [];
+          var s = 2166136261;
+          var str = String(seed || 'wave');
+          for (var w = 0; w < str.length; w += 1) s = Math.imul(s ^ str.charCodeAt(w), 16777619);
+          for (var b = 0; b < 28; b += 1) {
+            s = Math.imul(s ^ (s >>> 13), 1274126177);
+            var barH = 8 + ((s >>> 0) / 4294967295) * 16;
+            bars.push(h('i', { key: b, style: { height: Math.round(barH) + 'px' } }));
+          }
+          return h('span', { className: 'revue-wave' }, bars);
+        }
+
+        function renderCell(cell) {
+          const item = cell || {};
+          const type = item.type || 'texte';
+          if (type === 'image' && item.image) {
+            return h('div', { className: 'revue-cell revue-cell-image' }, h('img', { src: item.image, className: 'revue-image', alt: '' }));
+          }
+          if (type === 'audio') {
+            const tracks = Array.isArray(item.tracks) ? item.tracks : [];
+            const list = tracks.length ? tracks : [{ title: 'Piste audio' }];
+            return h('div', { className: 'revue-cell revue-cell-audio' },
+              list.map(function (track, i) {
+                return h('div', { key: i, className: 'revue-audio' },
+                  h('span', { className: 'revue-audio-play' }),
+                  previewWave((track.title || '') + i),
+                  h('span', { className: 'revue-audio-time' }, '0:00'),
+                  h('span', { className: 'revue-audio-title' }, track.title || track.title_en || 'Piste audio')
+                );
+              })
+            );
+          }
+          return h('div', { className: 'revue-cell revue-text' }, item.text || '');
+        }
+
+        return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh' } },
+          h('style', {}, REVUE_PREVIEW_CSS),
+          h('div', { className: 'revue-wrapper' },
+            h('article', { className: 'revue-layout' },
+              h('header', { className: 'revue-header' },
+                h('p', { className: 'revue-kicker' }, 'CULTURE - REVUE MUSICALE'),
+                h('div', { className: 'revue-header-top' },
+                  h('div', { className: 'revue-header-main' },
+                    h('h1', { className: 'revue-title' }, title),
+                    h('div', { className: 'author-meta-block' },
+                      h('img', { src: avatarUrl, className: 'author-avatar', alt: 'Avatar' }),
+                      h('div', { className: 'author-text-meta' },
+                        h('p', { className: 'author-name' }, 'Par ' + author),
+                        h('p', { className: 'publication-date' }, readingTime + ' min de lecture — Publié le ' + dateFormatted.date + ' à ' + dateFormatted.time)
+                      )
+                    )
+                  ),
+                  description && h('div', { className: 'revue-description' }, description)
+                )
+              ),
+              h('div', { className: 'revue-rows' },
+                (rows.length ? rows : [{}]).map(function (row, i) {
+                  return h('div', { key: i, className: 'revue-row' },
+                    renderCell(row.left),
+                    renderCell(row.right)
+                  );
+                })
+              ),
+              h('footer', { className: 'article-footer-transparency' },
+                h('div', { className: 'transparency-card' },
+                  h('div', { className: 'card-accent-bar' }),
+                  h('h3', {}, "À propos de l'auteur"),
+                  h('p', {}, authorInfo.about)
+                ),
+                h('div', { className: 'transparency-card' },
+                  h('div', { className: 'card-accent-bar' }),
+                  h('h3', {}, "Déclaration d'intérêt"),
+                  h('p', {}, authorInfo.interests || "L'auteur déclare n'avoir aucun conflit d'intérêt.")
+                ),
+                h('div', { className: 'transparency-card' },
+                  h('div', { className: 'card-accent-bar' }),
+                  h('h3', {}, 'Sources consultables'),
+                  renderSourcesList(entry) || h('p', {}, 'Aucune source externe enregistrée.')
+                )
+              )
+            )
+          )
+        );
+      }
+    });
+
     function renderHomeEmpty(className, label) {
       return h('div', { className: (className || '') + ' home-empty' },
         h('p', {}, label)
@@ -3079,6 +3205,7 @@
 
     CMS.registerPreviewTemplate("articles", ArticlePreview);
     CMS.registerPreviewTemplate("breves", BrevePreview);
+    CMS.registerPreviewTemplate("revues_musicales", RevuePreview);
     CMS.registerPreviewTemplate("settings", SettingsPreview);
     CMS.registerPreviewTemplate("homepage", HomepagePreview);
     CMS.registerPreviewTemplate("domains", createClass({
@@ -3485,7 +3612,7 @@
       const SIDEBAR_GROUPS = [
         {
           title: "Création d'articles",
-          collections: ["articles", "breves"]
+          collections: ["articles", "breves", "revues_musicales"]
         },
         {
           title: "Catégories",

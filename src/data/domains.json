@@ -52,6 +52,14 @@
       "slug": "budget-2027",
       "parent": "politique",
       "order": 2
+    },
+    {
+      "visible": true,
+      "label": "Revue musicale",
+      "labelEn": "Music review",
+      "slug": "revue-musicale",
+      "parent": "culture",
+      "order": 1
     }
   ]
 }

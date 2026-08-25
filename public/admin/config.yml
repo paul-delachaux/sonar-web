@@ -241,6 +241,134 @@ collections:
       - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
 
   # ==========================================
+  # 2b. COLLECTION : REVUES MUSICALES
+  # ==========================================
+  - name: "revues_musicales"
+    label: "Revues musicales"
+    label_singular: "Revue musicale"
+    folder: "src/content/articles"
+    create: true
+    slug: "{{slug}}"
+    filter: { field: "layout_type", value: "revue_musicale" }
+    fields:
+      - { name: "layout_type", widget: "hidden", default: "revue_musicale" }
+      - { name: "category", widget: "hidden", default: "revue-musicale" }
+
+      - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
+      - { name: "title", label: "Titre (FR)", widget: "string" }
+      - { name: "description", label: "Description (FR)", widget: "text" }
+
+      - { name: "version_en_sep", widget: "separator", label: "🇬🇧 Version Anglaise (Optionnelle)", collapsed: false, required: false }
+      - { name: "title_en", label: "Titre (EN)", widget: "string", required: false }
+      - { name: "description_en", label: "Description (EN)", widget: "text", required: false }
+
+      - { label: "LIGNES DU LAYOUT (2 blocs par ligne)", name: "sep_rows", widget: "separator", required: false }
+      - label: "Lignes"
+        name: "revue_rows"
+        widget: "list"
+        label_singular: "Ligne"
+        summary: "{{left.type}} · {{right.type}}"
+        required: false
+        hint: "Chaque ligne a deux blocs. Pour chacun, choisis Texte, Image ou Audio. Tu peux mettre du texte des deux côtés."
+        fields:
+          - label: "Bloc gauche"
+            name: "left"
+            widget: "object"
+            collapsed: false
+            fields:
+              - label: "Type de bloc"
+                name: "type"
+                widget: "select"
+                default: "texte"
+                options:
+                  - { label: "Texte", value: "texte" }
+                  - { label: "Image", value: "image" }
+                  - { label: "Audio", value: "audio" }
+              - { label: "Texte (FR)", name: "text", widget: "markdown", required: false }
+              - { label: "Texte (EN)", name: "text_en", widget: "markdown", required: false }
+              - { label: "Image", name: "image", widget: "image", required: false }
+              - label: "Pistes audio"
+                name: "tracks"
+                widget: "list"
+                required: false
+                summary: "{{title}} {{file}} {{url}}"
+                hint: "Fichier mp3, ou URL YouTube / fichier audio en ligne."
+                fields:
+                  - { label: "Fichier audio (mp3)", name: "file", widget: "file", required: false, hint: "Upload d'un mp3/wav. Pour YouTube, utilise le champ URL ci-dessous." }
+                  - { label: "URL YouTube ou audio", name: "url", widget: "string", required: false, hint: "Colle un lien YouTube (youtube.com/watch ou youtu.be) ou l'URL directe d'un mp3." }
+                  - { label: "Titre (FR)", name: "title", widget: "string", required: false }
+                  - { label: "Titre (EN)", name: "title_en", widget: "string", required: false }
+          - label: "Bloc droit"
+            name: "right"
+            widget: "object"
+            collapsed: false
+            fields:
+              - label: "Type de bloc"
+                name: "type"
+                widget: "select"
+                default: "texte"
+                options:
+                  - { label: "Texte", value: "texte" }
+                  - { label: "Image", value: "image" }
+                  - { label: "Audio", value: "audio" }
+              - { label: "Texte (FR)", name: "text", widget: "markdown", required: false }
+              - { label: "Texte (EN)", name: "text_en", widget: "markdown", required: false }
+              - { label: "Image", name: "image", widget: "image", required: false }
+              - label: "Pistes audio"
+                name: "tracks"
+                widget: "list"
+                required: false
+                summary: "{{title}} {{file}} {{url}}"
+                hint: "Fichier mp3, ou URL YouTube / fichier audio en ligne."
+                fields:
+                  - { label: "Fichier audio (mp3)", name: "file", widget: "file", required: false, hint: "Upload d'un mp3/wav. Pour YouTube, utilise le champ URL ci-dessous." }
+                  - { label: "URL YouTube ou audio", name: "url", widget: "string", required: false, hint: "Colle un lien YouTube (youtube.com/watch ou youtu.be) ou l'URL directe d'un mp3." }
+                  - { label: "Titre (FR)", name: "title", widget: "string", required: false }
+                  - { label: "Titre (EN)", name: "title_en", widget: "string", required: false }
+
+      - { label: "INFORMATIONS GÉNÉRALES", name: "sep_article", widget: "separator", required: false }
+      - { label: "Date de publication", name: "date", widget: "datetime" }
+      - label: "Auteur de l'article"
+        name: "author"
+        widget: "select"
+        options:
+          - { label: "Victor Zhâ", value: "Victor Zhâ" }
+          - { label: "Paul Delachaux", value: "Paul Delachaux" }
+      - label: "Informations sur l'auteur"
+        name: "author_info"
+        widget: "list"
+        required: false
+        collapsed: false
+        max: 1
+        fields:
+          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
+          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
+          - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
+          - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
+          - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
+          - { label: "Partenaires (EN)", name: "author_partners_en", widget: "text", required: false }
+      - { label: "Temps de lecture (minutes)", name: "reading_time", widget: "number", default: 5, value_type: "int" }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+      - { label: "Image de miniature", name: "image", widget: "image", hint: "Miniature d'accueil et de la page Culture" }
+      - label: "Sources consultables"
+        name: "consulted_sources"
+        widget: "list"
+        summary: "{{fields.source_title}}"
+        required: false
+        fields:
+          - { label: "Nom de la source (FR)", name: "source_title", widget: "string" }
+          - { label: "Nom de la source (EN)", name: "source_title_en", widget: "string", required: false }
+          - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
+
+      - { label: "CONFIGURATION GRAPHIQUE DE LA MINIATURE (optionnel)", name: "sep_miniature", widget: "separator", required: false, collapsed: true }
+      - { label: "Image Fond Miniature", name: "thumbnail_bg", widget: "image", required: false }
+      - label: "Aperçu et textes de la miniature (glisser-déposer)"
+        name: "thumbnail_layout"
+        widget: "thumbnail-editor"
+        required: false
+      - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
+
+  # ==========================================
   # 3. VUES FILTRÉES : ARTICLES PAR CATÉGORIE
   # ==========================================
   - name: "articles_politique"

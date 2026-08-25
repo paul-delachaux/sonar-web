@@ -118,7 +118,7 @@
     var generated = list.map(makeArticlesCollection);
     var insertAt = 0;
     config.collections.forEach(function (col, index) {
-      if (col && (col.name === 'articles' || col.name === 'breves')) insertAt = index + 1;
+      if (col && (col.name === 'articles' || col.name === 'breves' || col.name === 'revues_musicales')) insertAt = index + 1;
     });
     generated.forEach(function (col, i) {
       config.collections.splice(insertAt + i, 0, col);
