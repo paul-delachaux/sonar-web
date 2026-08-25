@@ -709,16 +709,16 @@
   </style>
 </head>
 <body>
-  <script src="/admin/articles-search.js?v=20260825q"></script>
-  <script src="/admin/article-search.js?v=20260825q"></script>
+  <script src="/admin/articles-search.js?v=20260825r"></script>
+  <script src="/admin/article-search.js?v=20260825r"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/cms-boot.js?v=20260825q"></script>
-  <script src="/admin/domains-admin.js?v=20260825q"></script>
-  <script src="/admin/moderation.js?v=20260825q"></script>
-  <script src="/admin/bulk-admin.js?v=20260825q"></script>
-  <script src="/admin/revue-fields.js?v=20260825q"></script>
-  <script src="/admin/accounts-admin.js?v=20260825q"></script>
+  <script src="/admin/cms-boot.js?v=20260825r"></script>
+  <script src="/admin/domains-admin.js?v=20260825r"></script>
+  <script src="/admin/moderation.js?v=20260825r"></script>
+  <script src="/admin/bulk-admin.js?v=20260825r"></script>
+  <script src="/admin/revue-fields.js?v=20260825r"></script>
+  <script src="/admin/accounts-admin.js?v=20260825r"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -728,64 +728,17 @@
           return;
         }
           console.log("=== CMS LOADED ===");
-          
+
+          // Après une publication, Decap peut garder un état périmé : un 2e
+          // enregistrement du même champ ne part plus. Un reload à ce moment-là
+          // suffit ; on évite de recharger à chaque sauvegarde ou navigation.
           window.CMS.registerEventListener({
-            name: 'prePublish',
-            handler: ({ entry }) => console.log('Entry:', entry.toJS()),
-          });
-
-          // 🔁 Après une sauvegarde/publication, Decap CMS reste parfois "bloqué" et ne détecte
-          // plus les modifications suivantes (bug connu de Decap CMS). Un rechargement complet
-          // (location.reload()) corrige le problème mais est très lent.
-          // Astuce plus légère : on simule une navigation vers la liste de la collection puis un
-          // retour immédiat sur la même entrée (comme un clic "retour" suivi d'un clic pour
-          // rouvrir l'entrée) : Decap recharge alors les données fraîches depuis GitHub, sans
-          // recharger toute la page/l'application.
-          // Sert à ignorer les hashchange générés par softRefreshCurrentEntry elle-même
-          // (sinon le détecteur "retour en arrière" plus bas déclencherait un rechargement
-          // complet à chaque fois, ce qui annulerait l'astuce légère).
-          let isSoftRefreshing = false;
-
-          function softRefreshCurrentEntry() {
-            const hash = window.location.hash; // ex: #/collections/articles/entries/mon-article
-            const match = hash.match(/^#\/collections\/([^/]+)\/entries\//);
-            if (!match) return; // on n'est plus sur une page d'édition d'entrée, on ne touche à rien
-
-            isSoftRefreshing = true;
-            const listHash = '#/collections/' + match[1];
-            window.location.hash = listHash;
-            setTimeout(() => {
-              window.location.hash = hash;
-              setTimeout(() => { isSoftRefreshing = false; }, 50);
-            }, 100);
-          }
-
-          ['postSave', 'postPublish'].forEach((eventName) => {
-            window.CMS.registerEventListener({
-              name: eventName,
-              handler: ({ entry }) => {
-                console.log('CMS ' + eventName + ' :', entry.toJS());
-                setTimeout(softRefreshCurrentEntry, 100);
-              },
-            });
-          });
-
-          // 🔙 Quand on quitte l'édition d'une entrée (bouton "retour" prévu par Decap, bouton
-          // "retour" du navigateur, clic sur le nom de la collection dans la sidebar...), on force
-          // un vrai rechargement complet. On n'est plus en train de taper à ce moment-là, donc ça
-          // ne coupe jamais la frappe, et ça garantit un état 100% frais au prochain passage sur
-          // une entrée. On détecte ce changement via l'URL plutôt que via un bouton précis, pour
-          // que ça marche quel que soit le moyen utilisé pour "revenir en arrière".
-          let previousHash = window.location.hash;
-          window.addEventListener('hashchange', () => {
-            const newHash = window.location.hash;
-            const wasEditingEntry = /^#\/collections\/[^/]+\/entries\//.test(previousHash);
-            const isStillEditingEntry = /^#\/collections\/[^/]+\/entries\//.test(newHash);
-            previousHash = newHash;
-
-            if (wasEditingEntry && !isStillEditingEntry && !isSoftRefreshing) {
-              window.location.reload();
-            }
+            name: 'postPublish',
+            handler: function () {
+              setTimeout(function () {
+                window.location.reload();
+              }, 400);
+            },
           });
       };
       startWhenReady();

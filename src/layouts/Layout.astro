@@ -1253,11 +1253,17 @@ const articleTitlesJson = JSON.stringify(
             }
 
             html[data-article-font="serif"] .prose-content,
-            html[data-article-font="serif"] .prose-content h2 {
+            html[data-article-font="serif"] .prose-content h2,
+            html[data-article-font="serif"] .revue-text,
+            html[data-article-font="serif"] .revue-description,
+            html[data-article-font="serif"] .revue-title {
                 font-family: 'Libre Baskerville', Baskerville, Georgia, serif !important;
             }
             html[data-article-font="editorial"] .prose-content,
-            html[data-article-font="editorial"] .prose-content h2 {
+            html[data-article-font="editorial"] .prose-content h2,
+            html[data-article-font="editorial"] .revue-text,
+            html[data-article-font="editorial"] .revue-description,
+            html[data-article-font="editorial"] .revue-title {
                 font-family: Georgia, 'Times New Roman', serif !important;
             }
             html[data-article-font-size="small"] .prose-content {
@@ -1266,11 +1272,29 @@ const articleTitlesJson = JSON.stringify(
             html[data-article-font-size="small"] .prose-content h2 {
                 font-size: 1.4rem !important;
             }
+            html[data-article-font-size="small"] .revue-text {
+                font-size: 0.88rem !important;
+            }
+            html[data-article-font-size="small"] .revue-description {
+                font-size: 0.85rem !important;
+            }
+            html[data-article-font-size="small"] .revue-title {
+                font-size: 1.8rem !important;
+            }
             html[data-article-font-size="large"] .prose-content {
                 font-size: 1.55rem !important;
             }
             html[data-article-font-size="large"] .prose-content h2 {
                 font-size: 2rem !important;
+            }
+            html[data-article-font-size="large"] .revue-text {
+                font-size: 1.22rem !important;
+            }
+            html[data-article-font-size="large"] .revue-description {
+                font-size: 1.12rem !important;
+            }
+            html[data-article-font-size="large"] .revue-title {
+                font-size: 2.45rem !important;
             }
         </style>
         <script is:inline>
