@@ -49,13 +49,32 @@
     ];
   }
 
+  function escapeRe(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function childSlugs(parentSlug) {
+    return (global.__SONAR_SUBDOMAINS || []).filter(function (sub) {
+      return sub && sub.parent === parentSlug && sub.slug;
+    }).map(function (sub) { return sub.slug; });
+  }
+
   function makeArticlesCollection(domain) {
     var slug = domain.slug;
+    var values = [slug];
+    if (!domain.parent) {
+      childSlugs(slug).forEach(function (child) {
+        if (child && values.indexOf(child) === -1) values.push(child);
+      });
+    }
+    var filter = values.length === 1
+      ? { field: 'category', value: values[0] }
+      : { field: 'category', pattern: '^(' + values.map(escapeRe).join('|') + ')$' };
     return {
       name: domainCollectionName(slug),
       label: domain.label || slug,
       folder: 'src/content/articles',
-      filter: { field: 'category', value: slug },
+      filter: filter,
       create: false,
       fields: [
         { label: 'Titre', name: 'title', widget: 'string' },

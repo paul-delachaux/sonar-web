@@ -1,9 +1,11 @@
 (function (global) {
   function captureAuth(name, value) {
     if (!name || !value) return;
-    if (!/^authorization$/i.test(String(name))) return;
-    var match = String(value).match(/^(?:Bearer|token)\s+(.+)/i);
-    if (match && match[1]) global.__SONAR_GH_TOKEN = match[1].trim();
+    if (!/^authorization$/i.test(String(name)) && !/^x-sonar-github$/i.test(String(name))) return;
+    var raw = String(value).trim();
+    var match = raw.match(/^(?:Bearer|token)\s+(.+)/i);
+    var token = (match ? match[1] : raw).trim();
+    if (token) global.__SONAR_GH_TOKEN = token;
   }
 
   if (typeof global.fetch === 'function' && !global.fetch.__sonarWrap) {
@@ -28,6 +30,18 @@
     global.fetch.__sonarWrap = true;
   }
 
+  if (global.Headers && global.Headers.prototype && !global.Headers.prototype.__sonarWrap) {
+    ['append', 'set'].forEach(function (method) {
+      var orig = global.Headers.prototype[method];
+      if (typeof orig !== 'function') return;
+      global.Headers.prototype[method] = function (name, value) {
+        captureAuth(name, value);
+        return orig.apply(this, arguments);
+      };
+    });
+    global.Headers.prototype.__sonarWrap = true;
+  }
+
   if (global.XMLHttpRequest && !global.XMLHttpRequest.prototype.__sonarWrap) {
     var origSet = global.XMLHttpRequest.prototype.setRequestHeader;
     global.XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
@@ -37,14 +51,18 @@
     global.XMLHttpRequest.prototype.__sonarWrap = true;
   }
 
+  function asToken(value) {
+    if (value == null) return '';
+    if (typeof value !== 'string') return '';
+    var trimmed = value.trim();
+    if (!trimmed || trimmed.length < 12) return '';
+    if (/^(null|undefined|true|false)$/i.test(trimmed)) return '';
+    return trimmed;
+  }
+
   function pickToken(value, depth) {
-    if (value == null || depth > 5) return '';
-    if (typeof value === 'string') {
-      var trimmed = value.trim();
-      if (/^(gho_|ghp_|ghu_|github_pat_)/.test(trimmed)) return trimmed;
-      if (trimmed.length > 24 && /^[A-Za-z0-9_\-.]+$/.test(trimmed)) return trimmed;
-      return '';
-    }
+    if (value == null || depth > 6) return '';
+    if (typeof value === 'string') return asToken(value);
     if (typeof value !== 'object') return '';
     var keys = ['token', 'access_token', 'accessToken', 'oauth_token', 'oauthToken'];
     for (var i = 0; i < keys.length; i++) {
@@ -52,6 +70,38 @@
       if (found) return found;
     }
     return '';
+  }
+
+  function tokenFromKnownKeys() {
+    var keys = ['decap-cms-user', 'netlify-cms-user'];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var raw = global.localStorage.getItem(keys[i]);
+        if (!raw) continue;
+        var data = JSON.parse(raw);
+        var token = pickToken(data, 0);
+        if (token) return token;
+      } catch (e) {}
+    }
+    return '';
+  }
+
+  function tokenFromCmsStore() {
+    try {
+      var cms = global.CMS;
+      if (!cms) return '';
+      var store = cms.store || (cms.getStore && cms.getStore());
+      if (!store || typeof store.getState !== 'function') return '';
+      var state = store.getState();
+      var auth = state.auth || (state.get && state.get('auth'));
+      if (!auth) return '';
+      if (typeof auth.get === 'function') {
+        return asToken(auth.get('token') || auth.get('access_token') || '');
+      }
+      return asToken(auth.token || auth.access_token || '');
+    } catch (e) {
+      return '';
+    }
   }
 
   function scanStorage(storage) {
@@ -76,6 +126,16 @@
 
   function githubToken() {
     if (global.__SONAR_GH_TOKEN) return global.__SONAR_GH_TOKEN;
+    var fromStore = tokenFromCmsStore();
+    if (fromStore) {
+      global.__SONAR_GH_TOKEN = fromStore;
+      return fromStore;
+    }
+    var fromKnown = tokenFromKnownKeys();
+    if (fromKnown) {
+      global.__SONAR_GH_TOKEN = fromKnown;
+      return fromKnown;
+    }
     var fromLocal = scanStorage(global.localStorage);
     if (fromLocal) {
       global.__SONAR_GH_TOKEN = fromLocal;
@@ -87,6 +147,16 @@
       return fromSession;
     }
     return '';
+  }
+
+  function authHeaders(extra) {
+    var headers = extra ? Object.assign({}, extra) : {};
+    var token = githubToken();
+    if (token) {
+      headers.Authorization = 'Bearer ' + token;
+      headers['X-Sonar-GitHub'] = token;
+    }
+    return headers;
   }
 
   function compileQuery(raw) {
@@ -130,10 +200,7 @@
 
   function fetchArticles() {
     if (global.__sonarArticlesPromise) return global.__sonarArticlesPromise;
-    var headers = { Accept: 'application/json' };
-    var token = githubToken();
-    if (token) headers.Authorization = 'Bearer ' + token;
-    global.__sonarArticlesPromise = fetch('/api/admin/articles', { headers: headers })
+    global.__sonarArticlesPromise = fetch('/api/admin/articles', { headers: authHeaders({ Accept: 'application/json' }) })
       .then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (!res.ok) throw new Error(data.message || 'Impossible de charger les articles (HTTP ' + res.status + ')');
@@ -152,6 +219,7 @@
     matchArticle: matchArticle,
     filterArticles: filterArticles,
     fetchArticles: fetchArticles,
-    githubToken: githubToken
+    githubToken: githubToken,
+    authHeaders: authHeaders
   };
 })(window);

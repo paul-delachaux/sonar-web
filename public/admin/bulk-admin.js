@@ -20,6 +20,20 @@
     return '';
   }
 
+  function authHeaders() {
+    var search = global.SonarArticleSearch;
+    if (search && typeof search.authHeaders === 'function') {
+      return search.authHeaders({ Accept: 'application/json', 'Content-Type': 'application/json' });
+    }
+    var headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
+    var token = githubToken();
+    if (token) {
+      headers.Authorization = 'Bearer ' + token;
+      headers['X-Sonar-GitHub'] = token;
+    }
+    return headers;
+  }
+
   function currentCollection() {
     var hash = String(global.location.hash || '');
     var match = hash.match(/#\/collections\/([^/?#]+)/);
@@ -145,7 +159,7 @@
       }
       hit.style.display = 'flex';
       hit.style.top = Math.round(rect.top) + 'px';
-      hit.style.left = Math.round(rect.left - 8) + 'px';
+      hit.style.left = Math.round(rect.left + 8) + 'px';
       hit.style.height = Math.max(Math.round(rect.height), 44) + 'px';
     });
   }
@@ -153,10 +167,12 @@
   function injectChecks() {
     var host = overlay();
     if (!isListView()) {
+      document.body.classList.remove('sonar-bulk-on');
       host.style.display = 'none';
       host.innerHTML = '';
       return;
     }
+    document.body.classList.add('sonar-bulk-on');
     host.style.display = '';
     var links = entryLinks();
     var wanted = Object.create(null);
@@ -194,13 +210,13 @@
 
   function extrasHost() {
     var bar = document.getElementById('sonar-bulk-bar');
-    if (!bar) return null;
+    if (!bar || !bar.parentNode) return null;
     var el = document.getElementById('sonar-extra-cards');
     if (!el) {
       el = document.createElement('div');
       el.id = 'sonar-extra-cards';
       el.className = 'sonar-extra-wrap';
-      bar.appendChild(el);
+      bar.parentNode.insertBefore(el, bar.nextSibling);
     }
     return el;
   }
@@ -306,9 +322,11 @@
   function placeBar() {
     var existing = document.getElementById('sonar-bulk-bar');
     if (!isListView()) {
+      document.body.classList.remove('sonar-bulk-on');
       if (existing) existing.style.display = 'none';
       return;
     }
+    document.body.classList.add('sonar-bulk-on');
     if (existing) {
       existing.style.display = '';
       return;
@@ -360,12 +378,9 @@
     busy = true;
     refreshBar();
     setStatus('Enregistrement…');
-    var token = githubToken();
-    var headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = 'Bearer ' + token;
     fetch('/api/admin/bulk-articles', {
       method: 'POST',
-      headers: headers,
+      headers: authHeaders(),
       body: JSON.stringify({ action: action, slugs: slugs })
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {

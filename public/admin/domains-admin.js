@@ -64,9 +64,17 @@
   }
 
   function fetchArticlesDirect() {
-    var headers = { Accept: 'application/json' };
-    var token = githubToken();
-    if (token) headers.Authorization = 'Bearer ' + token;
+    var search = global.SonarArticleSearch;
+    var headers = search && typeof search.authHeaders === 'function'
+      ? search.authHeaders({ Accept: 'application/json' })
+      : { Accept: 'application/json' };
+    if (!headers.Authorization) {
+      var token = githubToken();
+      if (token) {
+        headers.Authorization = 'Bearer ' + token;
+        headers['X-Sonar-GitHub'] = token;
+      }
+    }
     return fetch('/api/admin/articles', { headers: headers }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {
         if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);

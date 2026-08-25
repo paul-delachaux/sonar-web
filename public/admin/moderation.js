@@ -8,6 +8,11 @@
   };
 
   function githubToken() {
+    var search = window.SonarArticleSearch;
+    if (search && typeof search.githubToken === 'function') {
+      var fromSearch = search.githubToken();
+      if (fromSearch) return fromSearch;
+    }
     var keys = ['decap-cms-user', 'netlify-cms-user'];
     for (var i = 0; i < keys.length; i++) {
       try {
@@ -21,9 +26,16 @@
   }
 
   function authHeaders() {
+    var search = window.SonarArticleSearch;
+    if (search && typeof search.authHeaders === 'function') {
+      return search.authHeaders({ 'Content-Type': 'application/json' });
+    }
     var headers = { 'Content-Type': 'application/json' };
     var token = githubToken();
-    if (token) headers.Authorization = 'Bearer ' + token;
+    if (token) {
+      headers.Authorization = 'Bearer ' + token;
+      headers['X-Sonar-GitHub'] = token;
+    }
     return headers;
   }
 

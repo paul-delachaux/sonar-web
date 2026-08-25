@@ -1,11 +1,24 @@
 const ALLOWED_LOGINS = new Set(['paul-delachaux', 'souslesonar-hash']);
 
+export function cmsGithubToken(request: Request): string {
+  const sources = [
+    request.headers.get('Authorization') || '',
+    request.headers.get('X-Sonar-GitHub') || '',
+  ];
+  for (const source of sources) {
+    const trimmed = source.trim();
+    if (!trimmed) continue;
+    const match = trimmed.match(/^(?:Bearer|token)\s+(.+)$/i);
+    if (match) return match[1].trim();
+    if (trimmed.length > 8) return trimmed;
+  }
+  return '';
+}
+
 export async function requireCmsAdmin(request: Request): Promise<
   { ok: true } | { ok: false; status: number; message: string }
 > {
-  const header = request.headers.get('Authorization') || '';
-  const tokenMatch = header.match(/^(?:Bearer|token)\s+(.+)$/i);
-  const token = tokenMatch ? tokenMatch[1].trim() : '';
+  const token = cmsGithubToken(request);
 
   if (!token) {
     if (import.meta.env.DEV) return { ok: true };

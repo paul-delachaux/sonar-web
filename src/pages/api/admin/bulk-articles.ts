@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { requireCmsAdmin } from '../../../utils/admin-github';
+import { cmsGithubToken, requireCmsAdmin } from '../../../utils/admin-github';
 import { applyBulkGithub, applyBulkLocal, type BulkAction } from '../../../utils/admin-bulk';
 
 export const prerender = false;
@@ -9,12 +9,6 @@ function json(data: unknown, status = 200) {
     status,
     headers: { 'Cache-Control': 'no-store', 'Content-Type': 'application/json' },
   });
-}
-
-function requestToken(request: Request): string {
-  const header = request.headers.get('Authorization') || '';
-  const match = header.match(/^(?:Bearer|token)\s+(.+)$/i);
-  return match ? match[1].trim() : '';
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -32,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
     if (!slugs.length) return json({ message: 'Aucun contenu sélectionné.' }, 400);
 
-    const token = requestToken(request);
+    const token = cmsGithubToken(request);
     if (import.meta.env.DEV) {
       const local = await applyBulkLocal(action, slugs);
       return json({ ok: true, source: 'local', ...local });
