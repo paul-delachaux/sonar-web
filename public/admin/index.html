@@ -524,11 +524,19 @@
     .sonar-bulk-visible { background: #1D9E75; }
     .sonar-bulk-hide { background: #64748b; }
     .sonar-bulk-remove { background: #e5484d; }
-    .sonar-bulk-status { width: 100%; margin: 0; font-size: 12px; font-weight: 600; color: #ffb38a; }
+    .sonar-bulk-status {
+      width: 100%;
+      min-height: 18px;
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffb38a;
+    }
     body.sonar-bulk-on #nc-root aside ~ * a[href*="/entries/"] {
       box-sizing: border-box;
       padding-left: 52px !important;
     }
+    .sonar-native-hidden { display: none !important; }
     #sonar-bulk-overlay {
       position: fixed;
       inset: 0;
@@ -539,13 +547,13 @@
       position: absolute;
       width: 36px;
       margin: 0;
-      padding: 16px 0 0;
+      padding: 0;
       border: none;
       background: transparent;
       cursor: pointer;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      align-items: center;
       pointer-events: auto;
     }
     .sonar-bulk-box {
@@ -610,13 +618,13 @@
   </style>
 </head>
 <body>
-  <script src="/admin/article-search.js?v=20260825c"></script>
+  <script src="/admin/article-search.js?v=20260825d"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/cms-boot.js?v=20260825c"></script>
-  <script src="/admin/domains-admin.js?v=20260825c"></script>
-  <script src="/admin/moderation.js?v=20260825c"></script>
-  <script src="/admin/bulk-admin.js?v=20260825c"></script>
+  <script src="/admin/cms-boot.js?v=20260825d"></script>
+  <script src="/admin/domains-admin.js?v=20260825d"></script>
+  <script src="/admin/moderation.js?v=20260825d"></script>
+  <script src="/admin/bulk-admin.js?v=20260825d"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {

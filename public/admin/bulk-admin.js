@@ -18,6 +18,7 @@
   var busy = false;
   var scheduled = false;
   var posFrame = 0;
+  var layoutObs = null;
 
   function isLocalHost() {
     return /localhost|127\.0\.0\.1/.test(String(global.location.hostname || ''));
@@ -100,7 +101,7 @@
     if (!col) return [];
     var needle = '/collections/' + col + '/entries/';
     var native = Array.prototype.filter.call(document.querySelectorAll('#nc-root a[href*="' + needle + '"]'), function (link) {
-      return !link.closest('aside') && !link.closest('.sonar-bulk-bar') && !link.closest('.sonar-extra-card');
+      return !link.closest('aside') && !link.closest('.sonar-bulk-bar') && !link.closest('.sonar-extra-card') && !link.closest('.sonar-native-hidden');
     });
     var extra = Array.prototype.slice.call(document.querySelectorAll('.sonar-extra-card a[data-slug]'));
     return native.concat(extra);
@@ -113,6 +114,7 @@
   function setStatus(text) {
     var node = document.getElementById('sonar-bulk-status');
     if (node) node.textContent = text || '';
+    onScroll();
   }
 
   function refreshBar() {
@@ -156,6 +158,43 @@
     if (!host) return;
     host.style.display = 'none';
     host.innerHTML = '';
+  }
+
+  function nativeCardHost(link) {
+    var parent = link.parentElement;
+    if (!parent) return link;
+    var nested = parent.querySelectorAll('a[href*="/entries/"]');
+    if (nested.length === 1 && parent !== document.body && parent.tagName !== 'MAIN') return parent;
+    return link;
+  }
+
+  function revealHiddenNatives() {
+    Array.prototype.forEach.call(document.querySelectorAll('.sonar-native-hidden'), function (el) {
+      el.classList.remove('sonar-native-hidden');
+    });
+  }
+
+  function hideNativeDuplicates(slugs) {
+    revealHiddenNatives();
+    var col = currentCollection();
+    if (!col || !slugs) return;
+    var needle = '/collections/' + col + '/entries/';
+    Array.prototype.forEach.call(document.querySelectorAll('#nc-root a[href*="' + needle + '"]'), function (link) {
+      if (link.closest('aside') || link.closest('.sonar-extra-card') || link.closest('.sonar-bulk-bar')) return;
+      var slug = slugFromLink(link);
+      if (!slug || !slugs[slug]) return;
+      nativeCardHost(link).classList.add('sonar-native-hidden');
+    });
+  }
+
+  function observeLayout() {
+    if (!global.ResizeObserver) return;
+    if (!layoutObs) {
+      layoutObs = new ResizeObserver(function () { onScroll(); });
+    }
+    var bar = document.getElementById('sonar-bulk-bar');
+    var column = bar && bar.parentNode;
+    if (column && column !== document.body) layoutObs.observe(column);
   }
 
   function syncHits() {
@@ -326,11 +365,15 @@
   function renderExtras(items) {
     if (!items.length) {
       extrasKey = '';
+      revealHiddenNatives();
       var empty = document.getElementById('sonar-extra-cards');
       if (empty) empty.remove();
       injectChecks();
       return;
     }
+    var hidden = Object.create(null);
+    items.forEach(function (article) { if (article && article.slug) hidden[article.slug] = true; });
+    hideNativeDuplicates(hidden);
     var host = extrasHost();
     if (!host) return;
     var key = items.map(function (article) { return article.slug; }).join('|');
@@ -360,6 +403,7 @@
       host.appendChild(card);
     });
     injectChecks();
+    onScroll();
   }
 
   function loadExtras() {
@@ -370,6 +414,7 @@
       extrasLoading = false;
       extrasSource = null;
       extrasLoadedFor = '';
+      revealHiddenNatives();
       return;
     }
     var col = currentCollection();
@@ -383,6 +428,8 @@
       if (host) host.remove();
       extrasKey = '';
       extrasLoading = false;
+      revealHiddenNatives();
+      injectChecks();
       return;
     }
     var labels = Object.create(null);
@@ -390,14 +437,8 @@
 
     function apply(articles) {
       if (currentCollection() !== col) return;
-      var already = Object.create(null);
-      entryLinks().forEach(function (link) {
-        if (link.closest('.sonar-extra-card')) return;
-        var slug = slugFromLink(link);
-        if (slug) already[slug] = true;
-      });
       var extras = (articles || []).filter(function (article) {
-        return article && labels[article.category] && !already[article.slug];
+        return article && labels[article.category];
       }).map(function (article) {
         var copy = {};
         Object.keys(article).forEach(function (key) { copy[key] = article[key]; });
@@ -413,21 +454,9 @@
     }
     if (extrasLoading) return;
     extrasLoading = true;
-    var loader;
-    if (isLocalHost()) {
-      loader = Promise.all([
-        articlesFromLocalApi(),
-        githubToken() ? articlesFromGithub() : Promise.resolve([])
-      ]).then(function (parts) {
-        var bySlug = Object.create(null);
-        [].concat(parts[0] || [], parts[1] || []).forEach(function (article) {
-          if (article && article.slug) bySlug[article.slug] = article;
-        });
-        return Object.keys(bySlug).map(function (slug) { return bySlug[slug]; });
-      });
-    } else {
-      loader = articlesFromGithub();
-    }
+    var loader = githubToken()
+      ? articlesFromGithub()
+      : (isLocalHost() ? articlesFromLocalApi() : Promise.resolve([]));
     loader.then(function (articles) {
       extrasLoading = false;
       extrasSource = articles || [];
@@ -652,8 +681,10 @@
       extrasLoadedFor = '';
       setStatus('');
       hideOverlay();
+      revealHiddenNatives();
     }
     placeBar();
+    observeLayout();
     injectChecks();
     loadExtras();
   }
