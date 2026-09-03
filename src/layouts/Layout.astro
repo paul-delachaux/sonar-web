@@ -375,17 +375,92 @@ const articleTitlesJson = JSON.stringify(
                 font-weight: 600;
                 padding: 8px 26px;
             }
-            .footer-links .nav-domain-subs-list {
-                list-style: none;
-                margin: 4px 0 10px 14px;
+            .footer-nav {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .footer-nav > a,
+            .footer-nav .nav-domain-row a {
+                display: inline-flex;
+                align-items: center;
+                min-height: 0;
                 padding: 0;
+                color: #b0c0d2;
             }
-            .footer-links .nav-domain-subs-list li {
-                margin-bottom: 6px;
+            .footer-nav .nav-domain {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                min-height: 0;
+                width: 100%;
             }
-            .footer-links .nav-domain-subs-list a {
+            .footer-nav .nav-domain-row {
+                display: flex;
+                align-items: center;
+                width: 100%;
+                min-height: 0;
+                justify-content: flex-start;
+            }
+            .footer-nav .nav-domain-row a {
+                flex: 0 1 auto;
+                z-index: auto;
+            }
+            .footer-nav .nav-domain-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                width: 28px;
+                height: 28px;
+                margin: 0 0 0 2px;
+                padding: 0;
+                border: none;
+                background: transparent;
+                color: #b0c0d2;
+                cursor: pointer;
+            }
+            .footer-nav .nav-domain-toggle:hover,
+            .footer-nav .nav-domain-toggle:hover svg {
                 color: #ff8826;
+            }
+            .footer-nav .nav-domain-toggle svg {
+                width: 16px;
+                height: 16px;
+                transition: transform 0.2s ease;
+            }
+            .footer-nav .nav-domain.is-open .nav-domain-toggle svg {
+                transform: rotate(180deg);
+            }
+            .footer-nav .nav-domain:hover .nav-domain-subs,
+            .footer-nav .nav-domain:focus-within .nav-domain-subs {
+                display: none;
+            }
+            .footer-nav .nav-domain-subs {
+                display: none;
+                position: static;
+                transform: none;
+                min-width: 0;
+                padding: 4px 0 0px 14px;
+                margin-bottom: 0px;
+                background: transparent;
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .footer-nav .nav-domain-subs::before {
+                content: none;
+            }
+            .footer-nav .nav-domain.is-open .nav-domain-subs,
+            .footer-nav .nav-domain.is-open:hover .nav-domain-subs,
+            .footer-nav .nav-domain.is-open:focus-within .nav-domain-subs {
+                display: flex;
+            }
+            .footer-nav .nav-domain-subs a {
+                color: #b0c0d2;
                 font-style: italic;
+                font-size: 0.92rem;
+                padding: 4px 0;
             }
 
             .header-v2-left,
@@ -890,16 +965,11 @@ const articleTitlesJson = JSON.stringify(
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }
-            .footer-links ul {
-                list-style: none;
-                padding: 0;
-                margin: 0;
-            }
-            .footer-links li {
+            .footer-nav > a,
+            .footer-nav .nav-domain {
                 margin-bottom: 10px;
             }
             .footer-links a {
-                display: inline-block;
                 color: #b0c0d2;
                 text-decoration: none;
                 transition: color 0.3s ease, transform 0.2s ease;
@@ -907,6 +977,9 @@ const articleTitlesJson = JSON.stringify(
             .footer-links a:hover {
                 color: #ff8826; 
                 transform: translateY(-2px);
+            }
+            .footer-nav .nav-domain-subs a:hover {
+                transform: none;
             }
             .footer-contact p {
                 margin: 0;
@@ -1187,6 +1260,16 @@ const articleTitlesJson = JSON.stringify(
                     gap: 30px;
                     text-align: center;
                 }
+                .footer-nav {
+                    align-items: center;
+                }
+                .footer-nav .nav-domain-row {
+                    justify-content: center;
+                }
+                .footer-nav .nav-domain-subs {
+                    align-items: center;
+                    padding-left: 0;
+                }
                 .footer-contact {
                     align-items: center;
                 }
@@ -1445,10 +1528,10 @@ const articleTitlesJson = JSON.stringify(
                 
                 <div class="footer-links">
                     <h4 data-i18n="footer_nav_title">Navigation</h4>
-                    <ul>
-                        <li><a href="/" data-i18n="nav_home">Accueil</a></li>
-                        <NavDomains as="list" />
-                    </ul>
+                    <nav class="footer-nav" aria-label="Navigation">
+                        <a href="/" data-i18n="nav_home">Accueil</a>
+                        <NavDomains />
+                    </nav>
                 </div>
 
                 <div class="footer-contact">
@@ -1625,6 +1708,27 @@ const articleTitlesJson = JSON.stringify(
                 return { closeSearch, isSearchOpen };
             }
 
+            function setupDomainToggles(root) {
+                if (!root) return;
+                root.querySelectorAll('.nav-domain-toggle').forEach((btn) => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const item = btn.closest('.nav-domain');
+                        if (!item) return;
+                        const willOpen = !item.classList.contains('is-open');
+                        root.querySelectorAll('.nav-domain.is-open').forEach((other) => {
+                            if (other === item) return;
+                            other.classList.remove('is-open');
+                            const otherBtn = other.querySelector('.nav-domain-toggle');
+                            if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+                        });
+                        item.classList.toggle('is-open', willOpen);
+                        btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                    });
+                });
+            }
+
             // --- HEADER ACCUEIL (v2) : menu catégories + recherche d'articles ---
             function setupHeaderV2() {
                 const header = document.querySelector('.header-v2');
@@ -1690,23 +1794,7 @@ const articleTitlesJson = JSON.stringify(
                     menuPanel.querySelectorAll('.hv2-menu-links a').forEach((link) => {
                         link.addEventListener('click', closeMenu);
                     });
-                    menuPanel.querySelectorAll('.nav-domain-toggle').forEach((btn) => {
-                        btn.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const item = btn.closest('.nav-domain');
-                            if (!item) return;
-                            const willOpen = !item.classList.contains('is-open');
-                            menuPanel.querySelectorAll('.nav-domain.is-open').forEach((other) => {
-                                if (other === item) return;
-                                other.classList.remove('is-open');
-                                const otherBtn = other.querySelector('.nav-domain-toggle');
-                                if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
-                            });
-                            item.classList.toggle('is-open', willOpen);
-                            btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-                        });
-                    });
+                    setupDomainToggles(menuPanel);
                     menuPanel.addEventListener('click', (e) => e.stopPropagation());
                 }
 
@@ -1855,6 +1943,7 @@ const articleTitlesJson = JSON.stringify(
                 setupHeaderV2();
                 setupInnerHeaderSearch();
                 setupStickyHeader();
+                setupDomainToggles(document.querySelector('.footer-nav'));
 
                 // Sélecteur FR / EN à deux boutons séparés (header accueil + header compact)
                 document.querySelectorAll('.hv2-lang-btn').forEach(btn => {

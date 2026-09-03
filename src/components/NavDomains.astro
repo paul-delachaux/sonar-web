@@ -1,56 +1,35 @@
 ---
 import { getVisibleDomains, getVisibleSubdomains } from '../data/domains';
 
-interface Props {
-    as?: 'links' | 'list';
-}
-
-const { as = 'links' } = Astro.props;
 const items = getVisibleDomains().map((d) => ({
     ...d,
     subs: getVisibleSubdomains(d.slug),
 }));
 ---
 
-{as === 'list'
-    ? items.map((d) => (
-        <li class="nav-domain-item">
-            <a href={`/${d.slug}`} data-fr={d.label} data-en={d.labelEn}>{d.label}</a>
-            {d.subs.length > 0 && (
-                <ul class="nav-domain-subs-list">
-                    {d.subs.map((s) => (
-                        <li>
-                            <a href={`/${s.slug}`} data-fr={s.label} data-en={s.labelEn}>{s.label}</a>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </li>
-    ))
-    : items.map((d) =>
-        d.subs.length === 0 ? (
-            <a href={`/${d.slug}`} data-fr={d.label} data-en={d.labelEn}>{d.label}</a>
-        ) : (
-            <div class="nav-domain">
-                <div class="nav-domain-row">
-                    <a href={`/${d.slug}`} data-fr={d.label} data-en={d.labelEn}>{d.label}</a>
-                    <button
-                        type="button"
-                        class="nav-domain-toggle"
-                        aria-expanded="false"
-                        aria-label={`Afficher les sous-domaines de ${d.label}`}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                </div>
-                <div class="nav-domain-subs">
-                    {d.subs.map((s) => (
-                        <a href={`/${s.slug}`} data-fr={s.label} data-en={s.labelEn}>{s.label}</a>
-                    ))}
-                </div>
+{items.map((d) =>
+    d.subs.length === 0 ? (
+        <a href={`/${d.slug}`} data-fr={d.label} data-en={d.labelEn}>{d.label}</a>
+    ) : (
+        <div class="nav-domain">
+            <div class="nav-domain-row">
+                <a href={`/${d.slug}`} data-fr={d.label} data-en={d.labelEn}>{d.label}</a>
+                <button
+                    type="button"
+                    class="nav-domain-toggle"
+                    aria-expanded="false"
+                    aria-label={`Afficher les sous-domaines de ${d.label}`}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
             </div>
-        )
+            <div class="nav-domain-subs">
+                {d.subs.map((s) => (
+                    <a href={`/${s.slug}`} data-fr={s.label} data-en={s.labelEn}>{s.label}</a>
+                ))}
+            </div>
+        </div>
     )
-}
+)}
