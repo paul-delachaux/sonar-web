@@ -1,6 +1,6 @@
 ---
 layout_type: breve
-title: "Groenland : un accord diplomatique qui soulage des tensions entre alliés "
+title: "Groenland : un accord diplomatique qui soulage des tensions entre alliés"
 description: Sous la pression des tensions mondiales et de la quête de
   ressources critiques, Washington conclut un accord majeur avec le Danemark et
   le Groenland. Derrière l'annonce d'un triomphe diplomatique pour Donald Trump,
