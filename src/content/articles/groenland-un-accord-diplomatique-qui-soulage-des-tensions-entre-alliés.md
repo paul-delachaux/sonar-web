@@ -14,7 +14,7 @@ body_en: ""
 date: 2026-09-23T09:19:00.000+02:00
 author: Victor Zhâ
 author_info:
-  - author_about: Aucune information fournie pour le moment.
+  - author_about: ""
     author_about_en: No information provided at this time.
 category: politique
 image: /assets/uploads/20260919144907-4512.avif
