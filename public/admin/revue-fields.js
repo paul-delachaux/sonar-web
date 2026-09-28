@@ -41,7 +41,12 @@
     if (!label) return true;
     if (label === TYPE_LABEL) return true;
     if (type === 'texte') return label.indexOf('texte') !== -1;
-    if (type === 'image') return label === 'image' || label.indexOf('image') === 0;
+    if (type === 'image') {
+      return label === 'image'
+        || label.indexOf('image') === 0
+        || label.indexOf('légende') !== -1
+        || label.indexOf('legende') !== -1;
+    }
     if (type === 'audio') return label.indexOf('piste') !== -1;
     return true;
   }

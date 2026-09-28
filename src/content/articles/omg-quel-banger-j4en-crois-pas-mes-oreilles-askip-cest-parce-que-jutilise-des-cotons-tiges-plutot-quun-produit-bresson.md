@@ -50,6 +50,7 @@ revue_rows:
     right:
       type: image
       image: /assets/uploads/palantir-technologies.png.webp
+      image_caption: Super Image
   - left:
       type: texte
       text: Lorem Ipsum is simply dummy text of the printing and typesetting industry.

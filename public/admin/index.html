@@ -717,7 +717,7 @@
   <script src="/admin/domains-admin.js?v=20260825r"></script>
   <script src="/admin/moderation.js?v=20260825r"></script>
   <script src="/admin/bulk-admin.js?v=20260825r"></script>
-  <script src="/admin/revue-fields.js?v=20260825r"></script>
+  <script src="/admin/revue-fields.js?v=20260928a"></script>
   <script src="/admin/accounts-admin.js?v=20260825r"></script>
 
   <script type="text/javascript">
@@ -2813,8 +2813,10 @@
       .revue-rows { display: flex; flex-direction: column; gap: 22px; }
       .revue-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
       .revue-cell { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
-      .revue-cell-image { min-height: 200px; display: flex; align-items: center; justify-content: center; }
+      .revue-cell-image { min-height: 200px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
+      .revue-figure { display: flex; flex-direction: column; width: 100%; margin: 0; }
       .revue-image { width: 100%; max-height: 280px; display: block; object-fit: contain; object-position: center; }
+      .revue-caption { margin: 8px 0 0; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; }
       .revue-text { font-size: 0.95rem; line-height: 1.65; white-space: pre-wrap; }
       .revue-audio { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #ff7900; color: #fff; margin: 0 0 8px; height: 56px; max-height: 56px; box-sizing: border-box; }
       .revue-audio-play { width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 12px; border-color: transparent transparent transparent #fff; flex-shrink: 0; }
@@ -2854,7 +2856,13 @@
           const item = cell || {};
           const type = item.type || 'texte';
           if (type === 'image' && item.image) {
-            return h('div', { className: 'revue-cell revue-cell-image' }, h('img', { src: item.image, className: 'revue-image', alt: '' }));
+            const caption = item.image_caption || item.image_caption_en || '';
+            return h('div', { className: 'revue-cell revue-cell-image' },
+              h('figure', { className: 'revue-figure' },
+                h('img', { src: item.image, className: 'revue-image', alt: caption }),
+                caption && h('figcaption', { className: 'revue-caption' }, caption)
+              )
+            );
           }
           if (type === 'audio') {
             const tracks = Array.isArray(item.tracks) ? item.tracks : [];

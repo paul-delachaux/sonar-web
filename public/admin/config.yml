@@ -284,6 +284,8 @@ collections:
               - { label: "Texte (FR)", name: "text", widget: "markdown", required: false }
               - { label: "Texte (EN)", name: "text_en", widget: "markdown", required: false }
               - { label: "Image", name: "image", widget: "image", required: false }
+              - { label: "Légende de l'image (FR)", name: "image_caption", widget: "string", required: false }
+              - { label: "Légende de l'image (EN)", name: "image_caption_en", widget: "string", required: false }
               - label: "Pistes audio"
                 name: "tracks"
                 widget: "list"
@@ -311,6 +313,8 @@ collections:
               - { label: "Texte (FR)", name: "text", widget: "markdown", required: false }
               - { label: "Texte (EN)", name: "text_en", widget: "markdown", required: false }
               - { label: "Image", name: "image", widget: "image", required: false }
+              - { label: "Légende de l'image (FR)", name: "image_caption", widget: "string", required: false }
+              - { label: "Légende de l'image (EN)", name: "image_caption_en", widget: "string", required: false }
               - label: "Pistes audio"
                 name: "tracks"
                 widget: "list"

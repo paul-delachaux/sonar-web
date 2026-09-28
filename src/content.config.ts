@@ -89,6 +89,8 @@ const articles = defineCollection({
           text: z.string().nullish().optional(),
           text_en: z.string().nullish().optional(),
           image: z.string().nullish().optional(),
+          image_caption: z.string().nullish().optional(),
+          image_caption_en: z.string().nullish().optional(),
           tracks: z.array(
             z.object({
               file: z.string().nullish().optional(),
@@ -103,6 +105,8 @@ const articles = defineCollection({
           text: z.string().nullish().optional(),
           text_en: z.string().nullish().optional(),
           image: z.string().nullish().optional(),
+          image_caption: z.string().nullish().optional(),
+          image_caption_en: z.string().nullish().optional(),
           tracks: z.array(
             z.object({
               file: z.string().nullish().optional(),
