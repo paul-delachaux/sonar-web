@@ -4,7 +4,7 @@ category: revue-musicale
 title: "In Absentia "
 description: o
 title_en: In Absentia
-description_en: "\n"
+description_en: La description là
 revue_rows:
   - left:
       type: texte
