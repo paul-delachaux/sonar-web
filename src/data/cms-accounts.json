@@ -14,10 +14,14 @@
       "login": "amazingrenaud",
       "role": "admin",
       "label": "Paul-test"
+    },
+    {
+      "login": "amauritoss",
+      "role": "admin",
+      "label": "A Mort Y"
     }
   ],
   "siteAccess": [
     "paul.delachaux@gmail.com"
   ]
 }
-
