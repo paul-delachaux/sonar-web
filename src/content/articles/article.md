@@ -11,7 +11,7 @@ consulted_sources:
   - source_title: Source
     source_title_en: Source mais en anglais
     source_url: http://localhost:4321/articles/article
-isVisible: true
+isVisible: false
 author: Paul Delachaux
 image_position: 0
 date: 2026-06-18T11:36:00.000+02:00

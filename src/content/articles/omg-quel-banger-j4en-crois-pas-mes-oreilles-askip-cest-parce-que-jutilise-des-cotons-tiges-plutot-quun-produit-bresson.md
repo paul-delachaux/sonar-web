@@ -97,7 +97,7 @@ author_info:
   - author_about: C'est une super personne
     author_about_en: That a very bad person
 reading_time: 50
-isVisible: true
+isVisible: false
 image: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSZr49geTJzJ4onT2ydrAuVK_Ude7GyCyYkfCMHEWmjQ&s=10
 use_thumbnail: false
 ---

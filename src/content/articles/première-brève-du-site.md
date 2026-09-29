@@ -29,7 +29,7 @@ description_en: Description of the first short item. Basically, I need a fairly
   long text to verify that the display is working correctly and that I am
   satisfied with my work.
 author: Paul Delachaux
-isVisible: true
+isVisible: false
 author_about_en: That guy is incredibly handsome, on top of being super smart.
 layout_type: breve
 title: Première brève du site

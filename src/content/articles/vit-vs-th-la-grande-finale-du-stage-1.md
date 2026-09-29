@@ -6,7 +6,7 @@ category: culture
 image: https://upload.wikimedia.org/wikipedia/fr/thumb/6/69/Team_Heretics.png/960px-Team_Heretics.png
 reading_time: 5
 isHero: true
-isVisible: true
+isVisible: false
 author: Paul Delachaux
 author_about: Super
 author_interests: non

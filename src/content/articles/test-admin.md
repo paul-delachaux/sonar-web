@@ -3,7 +3,7 @@ title: Test admin
 date: 2026-05-07T17:15:00.000+02:00
 reading_time: 5
 isHero: false
-isVisible: true
+isVisible: false
 author: Paul Delachaux
 author_about: Super
 author_interests: non

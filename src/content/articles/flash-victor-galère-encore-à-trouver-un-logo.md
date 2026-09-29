@@ -1,7 +1,7 @@
 ---
 title: "Flash : Victor galère encore à trouver un logo "
 date: 2026-05-19T12:04:00.000+02:00
-isVisible: true
+isVisible: false
 author: Victor Zhâ
 reading_time: 5
 author_about: C'est victor

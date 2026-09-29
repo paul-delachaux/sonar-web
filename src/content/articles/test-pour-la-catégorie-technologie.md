@@ -7,7 +7,7 @@ body_en: I love technology.
 date: 2026-08-10T14:32:00.000+02:00
 category: technologie
 image: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1H64sFnvAjER6foHCwizk5w5x01tXYXvBilGMcceYsg&s=10
-isVisible: true
+isVisible: false
 author: Paul Delachaux
 reading_time: 5
 author_about: Travailleur acharné...

@@ -7,7 +7,7 @@ body_en: czqehafrziugvnofpqrhgzu
 date: 2026-06-08T10:34:00.000+02:00
 category: politique
 image: /assets/uploads/ussop-giga-chad.png
-isVisible: true
+isVisible: false
 author: Paul Delachaux
 reading_time: 5
 author_about: d

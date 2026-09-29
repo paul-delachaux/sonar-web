@@ -7,7 +7,7 @@ image: /assets/uploads/capture_decran_2026-05-07_a_15.20.30.png
 overlay_opacity: 75
 reading_time: 5
 isHero: false
-isVisible: true
+isVisible: false
 author: Victor Zhâ
 ---
 Incroyable ça marche !!

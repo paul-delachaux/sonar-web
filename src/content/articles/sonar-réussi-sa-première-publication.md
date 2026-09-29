@@ -3,7 +3,7 @@ title: "Sonar réussi sa première publication "
 date: 2026-05-15T19:02:00.000+02:00
 reading_time: 5
 isHero: false
-isVisible: true
+isVisible: false
 author: Victor Zhâ
 author_about: Super
 author_interests: non

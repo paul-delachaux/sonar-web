@@ -5,7 +5,7 @@ date: 2026-08-05T13:23:00.000+02:00
 author: Paul Delachaux
 reading_time: 5
 title_size: 24
-isVisible: true
+isVisible: false
 thumbnail_descs:
   - x: 20
     y: 80
