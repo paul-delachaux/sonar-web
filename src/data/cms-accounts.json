@@ -14,6 +14,11 @@
       "login": "amazingrenaud",
       "role": "admin",
       "label": "Paul-test"
+    },
+    {
+      "login": "amauritoss",
+      "role": "admin",
+      "label": "Amaury"
     }
   ],
   "siteAccess": [
