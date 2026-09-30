@@ -706,6 +706,25 @@
       justify-self: start; background: #ff7900; border: none; color: #fff;
       border-radius: 6px; padding: 9px 16px; font-weight: 800; cursor: pointer;
     }
+    #sonar-logs {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+    }
+    #sonar-logs[hidden] { display: none !important; }
+    .sonar-log-panel { width: min(860px, calc(100vw - 32px)); }
+    .sonar-log-toolbar { display: flex; gap: 8px; margin: 0 0 14px; }
+    .sonar-log-message { margin: 8px 0 0; color: #0f172a; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+    .sonar-log-more {
+      margin-top: 8px; background: transparent; border: 1px solid #cbd5e1; color: #334155;
+      border-radius: 6px; padding: 5px 10px; font-weight: 700; cursor: pointer;
+    }
+    .sonar-log-stack {
+      margin: 8px 0 0; padding: 10px 12px; background: #0f172a; color: #e2e8f0;
+      border-radius: 6px; font-size: 12px; line-height: 1.4; overflow: auto; max-height: 240px;
+    }
+    .sonar-log-card .sonar-acc-remove { margin-top: 0; }
   </style>
 </head>
 <body>
@@ -718,7 +737,8 @@
   <script src="/admin/moderation.js?v=20260825r"></script>
   <script src="/admin/bulk-admin.js?v=20260825r"></script>
   <script src="/admin/revue-fields.js?v=20260928a"></script>
-  <script src="/admin/accounts-admin.js?v=20260825r"></script>
+  <script src="/admin/accounts-admin.js?v=20260930b"></script>
+  <script src="/admin/cms-logs.js?v=20260930b"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -3973,6 +3993,9 @@
         }
         if (window.SonarAccountsAdmin && window.SonarAccountsAdmin.addNav) {
           window.SonarAccountsAdmin.addNav(sidebarContainer);
+        }
+        if (window.SonarCmsLogs && window.SonarCmsLogs.addNav) {
+          window.SonarCmsLogs.addNav(sidebarContainer);
         }
       }
 

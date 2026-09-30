@@ -214,7 +214,9 @@ collections:
 
       - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
-
+      - { label: "Tweet à intégrer (Optionnel)", name: "tweet_url", widget: "string", required: false, hint: "Colle l'URL complète du tweet, ex: https://x.com/nom_utilisateur/status/123456789" }
+      - { label: "Position du tweet (après le paragraphe N)", name: "tweet_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = le tweet apparaît au-dessus de tout le texte. 1, 2, 3... = il apparaît après ce paragraphe." }
+      
       - label: "Sources consultables"
         name: "consulted_sources"
         widget: "list"

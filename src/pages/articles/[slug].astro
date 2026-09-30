@@ -218,7 +218,7 @@ const descEN = hasEn && article.data.description_en
             )}
 
             {article.data.tweet_url && (
-              <div class="tweet-embed-wrapper">
+              <div class="tweet-embed-wrapper" id="tweet-embed-mount" data-tweet-position={tweetPos}>
                 <Tweet id={article.data.tweet_url} theme="dark" />
               </div>
             )}

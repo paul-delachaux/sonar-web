@@ -487,17 +487,54 @@
     if (root) root.hidden = true;
   }
 
+  function placeAfter(node, afterEl) {
+    if (!node || !afterEl || !afterEl.parentNode) return;
+    if (node.parentNode === afterEl.parentNode && node.previousSibling === afterEl) return;
+    afterEl.parentNode.insertBefore(node, afterEl.nextSibling);
+  }
+
+  function ensureLogsNav(accountsItem) {
+    if (!accountsItem || !accountsItem.parentNode) return null;
+    var logsItem = document.getElementById('cms-logs-nav');
+    if (!logsItem) {
+      logsItem = document.createElement('button');
+      logsItem.type = 'button';
+      logsItem.id = 'cms-logs-nav';
+      logsItem.className = 'cms-moderation-item';
+      logsItem.style.paddingLeft = '10px';
+      logsItem.style.display = 'flex';
+      logsItem.innerHTML = '<span>Logs CMS</span>';
+      logsItem.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (global.SonarCmsLogs) global.SonarCmsLogs.open();
+      });
+    }
+    logsItem.style.display = accountsItem.style.display || 'flex';
+    placeAfter(logsItem, accountsItem);
+    return logsItem;
+  }
+
   function addAccountsNav(sidebarContainer) {
     if (!isSuperadmin()) return;
     var groups = document.querySelectorAll('#cms-accounts-group');
     var items = document.querySelectorAll('#cms-accounts-nav');
+    var logs = document.querySelectorAll('#cms-logs-nav');
     if (groups.length > 1) {
       for (var g = 1; g < groups.length; g++) groups[g].remove();
     }
     if (items.length > 1) {
       for (var n = 1; n < items.length; n++) items[n].remove();
     }
-    if (document.getElementById('cms-accounts-group')) return;
+    if (logs.length > 1) {
+      for (var l = 1; l < logs.length; l++) logs[l].remove();
+    }
+
+    var existingGroup = document.getElementById('cms-accounts-group');
+    var existingItem = document.getElementById('cms-accounts-nav');
+    if (existingGroup && existingItem) {
+      ensureLogsNav(existingItem);
+      return;
+    }
     if (!sidebarContainer) return;
 
     var header = document.createElement('div');
@@ -538,10 +575,13 @@
       var arrow = header.querySelector('.arrow');
       if (arrow) arrow.textContent = collapsed ? '►' : '▼';
       item.style.display = collapsed ? 'none' : 'flex';
+      var logsItem = document.getElementById('cms-logs-nav');
+      if (logsItem) logsItem.style.display = collapsed ? 'none' : 'flex';
     });
 
     sidebarContainer.appendChild(header);
     sidebarContainer.appendChild(item);
+    ensureLogsNav(item);
   }
 
   var hideObs = new MutationObserver(function (mutations) {
@@ -580,7 +620,9 @@
     var iv = setInterval(function () {
       n += 1;
       detectRole();
-      if (document.getElementById('cms-accounts-group')) {
+      var accNav = document.getElementById('cms-accounts-nav');
+      var logNav = document.getElementById('cms-logs-nav');
+      if (accNav && logNav && accNav.parentNode === logNav.parentNode) {
         clearInterval(iv);
         return;
       }
