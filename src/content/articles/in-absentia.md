@@ -21,7 +21,8 @@ revue_rows:
     right:
       type: image
   - left:
-      type: texte
+      type: image
+      image: /assets/uploads/2d5e5e08abf3a16dbfe9837538c47866.jpg
     right:
       type: texte
       text: "Porcupine Tree merely started off as a joke, it was an imaginary band
@@ -133,12 +134,15 @@ revue_rows:
         orchestral arrangements such as the string sections on .3 and Collapse
         the Light Into Earth.
     right:
-      type: texte
+      type: image
       text: ""
+      image: /assets/uploads/capture-d’écran-2026-10-09-à-21.22.04.png
   - left:
-      type: texte
+      type: image
       text: ""
       text_en: ""
+      image: /assets/uploads/images.jpeg
+      image_caption: couvertureI d'n Absentia sur Instagram @stereogrammaudio
     right:
       type: texte
       text: Richard Barbieri’s synth work on this record is really masterful, it adds
@@ -196,7 +200,10 @@ revue_rows:
     right:
       type: texte
   - left:
-      type: texte
+      type: image
+      image: /assets/uploads/capture-d’écran-2026-10-09-à-21.51.26.png
+      image_caption: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
+      image_caption_en: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
     right:
       type: texte
       text: "In Absentia’s emotional landscape shifts inside the spectrum of a
@@ -251,7 +258,8 @@ revue_rows:
     right:
       type: texte
   - left:
-      type: texte
+      type: image
+      image: /assets/uploads/d461d3ff9519387f2730ff39168b8996.jpg
     right:
       type: texte
       text: Sound of Muzak elegises the quiet devaluation of music. Steven is drawing
@@ -381,9 +389,19 @@ revue_rows:
         conveys that feeling of absence the most, where the protagonist reaches
         the point of no return.
     right:
-      type: texte
+      type: image
+      image: /assets/uploads/capture-d’écran-2026-10-09-à-21.56.17.png
+      image_caption: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
+      image_caption_en: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
   - left:
-      type: texte
+      type: audio
+      tracks:
+        - file: https://www.youtube.com/watch?v=6mQTDlQQ5RE
+          title_en: Led Zeppelin’s Moby Dick
+        - file: https://www.youtube.com/watch?v=2N_xP67utPk
+          title_en: Deep Purple’s Rat Bat Blue
+        - file: https://www.youtube.com/watch?v=mQ86jyGy5Ks
+          title_en: Bobby Parker’s Watch Your Step
     right:
       type: texte
       text: The song is slowly building up, starting off with mellotron choirs and a
