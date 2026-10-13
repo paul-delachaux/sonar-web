@@ -725,6 +725,49 @@
       border-radius: 6px; font-size: 12px; line-height: 1.4; overflow: auto; max-height: 240px;
     }
     .sonar-log-card .sonar-acc-remove { margin-top: 0; }
+    #sonar-media-toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 12000;
+      max-width: min(420px, calc(100vw - 32px));
+      background: #01002b;
+      color: #fff;
+      border-left: 4px solid #ff7900;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font: 600 13px/1.4 Helvetica, Arial, sans-serif;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+    }
+    #sonar-media-toast[hidden] { display: none !important; }
+    #sonar-media-toast[data-kind="err"] { border-left-color: #e5484d; }
+    #sonar-media-bar {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      z-index: 11000;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      max-width: min(560px, calc(100vw - 36px));
+      background: #01002b;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: 600 12px/1.4 Helvetica, Arial, sans-serif;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+    }
+    #sonar-media-bar span { opacity: 0.9; }
+    #sonar-media-multi {
+      background: #ff7900;
+      border: none;
+      color: #fff;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -739,6 +782,7 @@
   <script src="/admin/revue-fields.js?v=20260928a"></script>
   <script src="/admin/accounts-admin.js?v=20260930b"></script>
   <script src="/admin/cms-logs.js?v=20260930b"></script>
+  <script src="/admin/cms-media.js?v=20261013b"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -2023,6 +2067,14 @@
 
     const PREVIEW_IMG_PLACEHOLDER = "/assets/uploads/default-placeholder.jpg";
 
+    function sonarMediaUrl(path) {
+      if (!path) return PREVIEW_IMG_PLACEHOLDER;
+      if (window.SonarCmsMedia && typeof window.SonarCmsMedia.url === 'function') {
+        return window.SonarCmsMedia.url(path) || path;
+      }
+      return path;
+    }
+
     function toPlain(value) {
       if (value == null) return value;
       if (typeof value.toJS === 'function') return value.toJS();
@@ -2575,7 +2627,7 @@
         const title = entry.getIn(['data', 'title']) || "Titre de l'article";
         const image = entry.getIn(['data', 'image']);
         const articleImage = entry.getIn(['data', 'article_image']);
-        const heroImage = articleImage || image || "/assets/uploads/default-placeholder.jpg";
+        const heroImage = sonarMediaUrl(articleImage || image || PREVIEW_IMG_PLACEHOLDER);
         const imageCaption = getImageCaption(entry);
         const imagePos = getImagePosition(entry);
         const tweetUrl = entry.getIn(['data', 'tweet_url']);
@@ -2730,7 +2782,7 @@
 
         const title = entry.getIn(['data', 'title']) || "Titre de la brève";
         const image = entry.getIn(['data', 'image']);
-        const heroImage = image || "/assets/uploads/default-placeholder.jpg";
+        const heroImage = sonarMediaUrl(image || PREVIEW_IMG_PLACEHOLDER);
         const imageCaption = getImageCaption(entry);
         const imagePos = getImagePosition(entry);
 
@@ -2879,7 +2931,7 @@
             const caption = item.image_caption || item.image_caption_en || '';
             return h('div', { className: 'revue-cell revue-cell-image' },
               h('figure', { className: 'revue-figure' },
-                h('img', { src: item.image, className: 'revue-image', alt: caption }),
+                h('img', { src: sonarMediaUrl(item.image), className: 'revue-image', alt: caption }),
                 caption && h('figcaption', { className: 'revue-caption' }, caption)
               )
             );
@@ -2969,7 +3021,7 @@
           article.description ? h('p', { className: 'sidebar-desc' }, article.description) : null
         ),
         h('div', { className: 'card-dynamic-spacer' },
-          h('img', { src: article.image, alt: '', className: 'spacer-img' })
+          h('img', { src: sonarMediaUrl(article.image), alt: '', className: 'spacer-img' })
         )
       );
     }
@@ -3017,7 +3069,7 @@
           article.description ? h('p', { className: 'article-desc' }, article.description) : null
         ),
         h('div', { className: 'image-wrapper' },
-          h('img', { src: article.image, alt: '' })
+          h('img', { src: sonarMediaUrl(article.image), alt: '' })
         )
       );
     }
