@@ -13,6 +13,8 @@
   var failed = {};
   var live = {};
   var waitingForDraft = [];
+  var pickedMedia = {};
+  var overlayChecks = {};
   var STORE_KEY = 'sonar-cms-media-urls';
   var LIVE_KEY = 'sonar-cms-media-live';
 
@@ -739,45 +741,87 @@
     }
   }
 
-  function selectedMediaNames(root) {
-    var names = [];
-    var seen = {};
-    var boxes = (root || document).querySelectorAll('.sonar-media-check:checked');
-    for (var i = 0; i < boxes.length; i++) {
-      var name = boxes[i].getAttribute('data-name');
-      if (name && !seen[name]) {
-        seen[name] = true;
-        names.push(name);
-      }
-    }
-    return names;
+  function selectedMediaNames() {
+    return Object.keys(pickedMedia).filter(function (name) { return pickedMedia[name]; });
   }
 
-  function enhanceMediaCards(root) {
-    if (!root || !root.querySelectorAll) return;
-    var nodes = root.querySelectorAll('p, span, h2, h3, figcaption, strong, small');
-    for (var i = 0; i < nodes.length; i++) {
-      var text = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
-      if (!/\.(png|jpe?g|gif|webp|avif|svg|mp3|wav|pdf)$/i.test(text)) continue;
-      var card = nodes[i];
-      var found = null;
-      for (var d = 0; d < 8 && card; d++) {
-        if (card.querySelector && card.querySelector('img, video, audio')) {
-          found = card;
-          break;
+  function findMediaCards(root) {
+    var cards = [];
+    if (!root || !root.querySelectorAll) return cards;
+    var paras = root.querySelectorAll('p');
+    for (var i = 0; i < paras.length; i++) {
+      var text = (paras[i].textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text || text.length > 200) continue;
+      if (!/\.(png|jpe?g|gif|webp|avif|svg|mp3|wav|pdf)(\.|$)/i.test(text) && !/\.[a-z0-9]{2,5}$/i.test(text)) continue;
+      if (text.indexOf(' ') !== -1 && text.indexOf('.') === -1) continue;
+      var el = paras[i].parentElement;
+      if (!el) continue;
+      cards.push({ el: el, name: fileNameFromPath(text) });
+    }
+    return cards;
+  }
+
+  function removeCheckOverlay() {
+    var overlay = document.getElementById('sonar-media-checks');
+    if (overlay) overlay.remove();
+    overlayChecks = {};
+  }
+
+  function syncCheckboxes(root) {
+    if (!root) {
+      removeCheckOverlay();
+      return;
+    }
+    var overlay = document.getElementById('sonar-media-checks');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sonar-media-checks';
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(overlay);
+    }
+    var cards = findMediaCards(root);
+    var still = {};
+    for (var i = 0; i < cards.length; i++) {
+      (function (card) {
+        still[card.name] = true;
+        var rect = card.el.getBoundingClientRect();
+        var box = overlayChecks[card.name];
+        if (!box) {
+          box = document.createElement('input');
+          box.type = 'checkbox';
+          box.className = 'sonar-media-check';
+          box.setAttribute('data-name', card.name);
+          box.checked = !!pickedMedia[card.name];
+          box.title = 'Inclure dans la suppression multiple';
+          box.addEventListener('mousedown', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+          });
+          box.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            pickedMedia[card.name] = !pickedMedia[card.name];
+            box.checked = !!pickedMedia[card.name];
+          });
+          overlay.appendChild(box);
+          overlayChecks[card.name] = box;
         }
-        card = card.parentElement;
-      }
-      if (!found || found.querySelector('.sonar-media-check')) continue;
-      var box = document.createElement('input');
-      box.type = 'checkbox';
-      box.className = 'sonar-media-check';
-      box.setAttribute('data-name', fileNameFromPath(text));
-      box.title = 'Inclure dans la suppression multiple';
-      box.addEventListener('click', function (event) {
-        event.stopPropagation();
-      });
-      found.insertBefore(box, found.firstChild);
+        var visible = rect.width > 24 && rect.height > 24 && rect.bottom > 80 && rect.top < window.innerHeight - 8;
+        box.style.left = Math.round(rect.left + 8) + 'px';
+        box.style.top = Math.round(rect.top + 8) + 'px';
+        box.style.display = visible ? 'block' : 'none';
+        box.checked = !!pickedMedia[card.name];
+      })(cards[i]);
+    }
+    Object.keys(overlayChecks).forEach(function (name) {
+      if (still[name]) return;
+      overlayChecks[name].remove();
+      delete overlayChecks[name];
+    });
+    if (!root.__sonarMediaScroll) {
+      root.__sonarMediaScroll = true;
+      root.addEventListener('scroll', function () { syncCheckboxes(root); }, true);
+      global.addEventListener('resize', function () { syncCheckboxes(root); });
     }
   }
 
@@ -794,7 +838,7 @@
     del.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopPropagation();
-      var names = selectedMediaNames(root);
+      var names = selectedMediaNames();
       if (!names.length) {
         toast('Coche les images à supprimer (cases en haut à gauche des vignettes).', 'err');
         return;
@@ -807,8 +851,10 @@
         }
         toast('Suppression de ' + names.length + ' fichier(s)…');
         return deletePathsBatch(names, target.branch).then(function (result) {
+          names.forEach(function (name) { delete pickedMedia[name]; });
           toast(names.length + ' fichier(s) supprimé(s) (un commit).');
           watchDeploy(result, target.kind);
+          syncCheckboxes(root);
         });
       }).catch(function (err) {
         toast((err && err.message) || 'Échec de la suppression.', 'err');
@@ -827,9 +873,10 @@
       if (existing) existing.remove();
       var oldDel = document.getElementById('sonar-media-delete');
       if (oldDel) oldDel.remove();
+      removeCheckOverlay();
       return;
     }
-    enhanceMediaCards(root);
+    syncCheckboxes(root);
     if (!existing || !root.contains(existing)) {
       if (existing) existing.remove();
       var anchor = findInsertAnchor(root);

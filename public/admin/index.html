@@ -766,14 +766,21 @@
       margin-right: 8px;
       white-space: nowrap;
     }
+    #sonar-media-checks {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2147483645;
+    }
     .sonar-media-check {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      z-index: 6;
-      width: 16px;
-      height: 16px;
+      position: fixed;
+      z-index: 2147483646;
+      width: 18px;
+      height: 18px;
+      margin: 0;
       cursor: pointer;
+      pointer-events: auto;
+      accent-color: #ff7900;
     }
     #sonar-deploy-banner {
       position: fixed;
