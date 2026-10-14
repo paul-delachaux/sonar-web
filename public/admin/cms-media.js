@@ -9,6 +9,8 @@
   var MEDIA_DIR = 'public/assets/uploads';
   var PUBLIC_PREFIX = '/assets/uploads/';
   var cache = {};
+  var inflight = {};
+  var failed = {};
   var waitingForDraft = [];
 
   function githubToken() {
@@ -32,13 +34,13 @@
   }
 
   function authHeaders(extra) {
-    var headers = extra ? Object.assign({}, extra) : {};
+    var headers = {};
     var token = githubToken();
     if (token) {
       headers.Authorization = 'Bearer ' + token;
       headers.Accept = 'application/vnd.github+json';
-      headers['User-Agent'] = 'le-sonar-admin';
     }
+    if (extra) Object.assign(headers, extra);
     return headers;
   }
 
@@ -71,7 +73,33 @@
     if (!path || !url) return;
     cache[path] = url;
     var name = fileNameFromPath(path);
-    if (name) cache[publicPathFor(name)] = url;
+    if (name) {
+      cache[name] = url;
+      cache[publicPathFor(name)] = url;
+      cache[repoPathFor(name)] = url;
+      delete failed[name];
+      delete failed[publicPathFor(name)];
+    }
+  }
+
+  function blobFromBase64(b64, mime) {
+    var binary = atob(String(b64 || '').replace(/\n/g, ''));
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime || 'application/octet-stream' });
+  }
+
+  function guessMime(name) {
+    var n = String(name || '').toLowerCase();
+    if (/\.png$/.test(n)) return 'image/png';
+    if (/\.jpe?g$/.test(n)) return 'image/jpeg';
+    if (/\.webp$/.test(n)) return 'image/webp';
+    if (/\.gif$/.test(n)) return 'image/gif';
+    if (/\.avif$/.test(n)) return 'image/avif';
+    if (/\.svg$/.test(n)) return 'image/svg+xml';
+    if (/\.mp3$/.test(n)) return 'audio/mpeg';
+    if (/\.wav$/.test(n)) return 'audio/wav';
+    return 'application/octet-stream';
   }
 
   function rememberFile(file) {
@@ -313,49 +341,107 @@
     });
   }
 
+  function cachedUrl(path) {
+    var s = String(path || '');
+    if (!s) return '';
+    if (cache[s]) return cache[s];
+    var name = fileNameFromPath(s);
+    if (name && cache[name]) return cache[name];
+    var named = publicPathFor(name);
+    if (cache[named]) return cache[named];
+    var repo = repoPathFor(name);
+    if (cache[repo]) return cache[repo];
+    return '';
+  }
+
   function syncUrl(path) {
     if (!path) return path;
     var s = String(path);
-    if (/^(blob:|data:|https?:)/i.test(s)) return s;
-    if (cache[s]) return cache[s];
-    var named = publicPathFor(fileNameFromPath(s));
-    if (cache[named]) return cache[named];
+    if (/^(blob:|data:)/i.test(s)) return s;
+    var hit = cachedUrl(s);
+    if (hit) return hit;
+    if (isUploadPath(s)) {
+      resolve(s).then(function (url) {
+        if (url && url !== s) scheduleRewrite();
+      });
+    }
     return s;
+  }
+
+  function fetchGitHubBlob(repoPath, ref) {
+    var url = 'https://api.github.com/repos/' + REPO + '/contents/' + encodeRepoPath(repoPath) + '?ref=' + encodeURIComponent(ref);
+    return fetch(url, {
+      headers: authHeaders({ Accept: 'application/vnd.github.raw' })
+    }).then(function (res) {
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error('GitHub HTTP ' + res.status);
+      var ct = String(res.headers.get('content-type') || '').toLowerCase();
+      if (ct.indexOf('json') !== -1) {
+        return res.json().then(function (data) {
+          if (data && data.content && data.encoding === 'base64') {
+            return blobFromBase64(data.content, guessMime(repoPath));
+          }
+          if (data && data.sha) {
+            return gitJson('/git/blobs/' + data.sha).then(function (blob) {
+              if (blob && blob.content) return blobFromBase64(blob.content, guessMime(repoPath));
+              return null;
+            });
+          }
+          return null;
+        });
+      }
+      return res.blob().then(function (blob) {
+        if (!blob || !blob.size) return null;
+        if ((blob.type || '').indexOf('json') !== -1) return null;
+        return blob;
+      });
+    });
   }
 
   function resolve(path) {
     var s = String(path || '');
     if (!s) return Promise.resolve(s);
     if (/^(blob:|data:)/i.test(s)) return Promise.resolve(s);
-    if (cache[s]) return Promise.resolve(cache[s]);
-    var named = publicPathFor(fileNameFromPath(s));
-    if (cache[named]) return Promise.resolve(cache[named]);
-    if (!isUploadPath(s) && s.indexOf('http') === 0) return Promise.resolve(s);
+    var hit = cachedUrl(s);
+    if (hit) return Promise.resolve(hit);
+    if (!isUploadPath(s) && /^https?:/i.test(s)) return Promise.resolve(s);
     if (!isUploadPath(s)) return Promise.resolve(s);
 
+    var named = publicPathFor(fileNameFromPath(s));
+    if (failed[named]) return Promise.resolve(s);
+    if (inflight[named]) return inflight[named];
+
     var token = githubToken();
-    var repoPath = repoPathFor(fileNameFromPath(s));
     if (!token) return Promise.resolve(s);
 
+    var repoPath = repoPathFor(fileNameFromPath(s));
     var refs = [];
     var ctx = entryContext();
     if (ctx && ctx.slug) refs.push(cmsBranchName(ctx.collection, ctx.slug));
     refs.push(DEFAULT_BRANCH);
 
     function tryRef(i) {
-      if (i >= refs.length) return Promise.resolve(s);
-      return fetch('https://api.github.com/repos/' + REPO + '/contents/' + encodeRepoPath(repoPath) + '?ref=' + encodeURIComponent(refs[i]), {
-        headers: authHeaders({ Accept: 'application/vnd.github.raw' })
-      }).then(function (res) {
-        if (!res.ok) return tryRef(i + 1);
-        return res.blob().then(function (blob) {
-          var url = URL.createObjectURL(blob);
-          remember(named, url);
-          return url;
-        });
+      if (i >= refs.length) {
+        failed[named] = true;
+        return Promise.resolve(s);
+      }
+      return fetchGitHubBlob(repoPath, refs[i]).then(function (blob) {
+        if (!blob) return tryRef(i + 1);
+        var url = URL.createObjectURL(blob);
+        remember(s, url);
+        remember(named, url);
+        return url;
       }).catch(function () { return tryRef(i + 1); });
     }
-    return tryRef(0);
+
+    inflight[named] = tryRef(0).then(function (url) {
+      delete inflight[named];
+      return url;
+    }, function (err) {
+      delete inflight[named];
+      throw err;
+    });
+    return inflight[named];
   }
 
   function openMultiPicker() {
@@ -469,31 +555,86 @@
     anchor.parent.insertBefore(btn, anchor.before);
   }
 
+  function previewRoots() {
+    var roots = [];
+    var main = document.getElementById('nc-root') || document.body;
+    if (main) roots.push(main);
+    var frames = document.querySelectorAll('iframe');
+    for (var i = 0; i < frames.length; i++) {
+      try {
+        var doc = frames[i].contentDocument;
+        if (doc && doc.body && roots.indexOf(doc.body) === -1) roots.push(doc.body);
+        bindRoot(doc);
+      } catch (e) {}
+    }
+    return roots;
+  }
+
+  function rewriteEl(el) {
+    if (!el || el.nodeType !== 1) return;
+    if (el.tagName === 'IMG' || el.tagName === 'SOURCE' || el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
+      var src = el.getAttribute('src') || el.getAttribute('srcset') || '';
+      if (!src || /^(blob:|data:)/i.test(src)) return;
+      if (!isUploadPath(src) && src.indexOf(PUBLIC_PREFIX) !== 0) return;
+      var hit = cachedUrl(src);
+      if (hit) {
+        if (el.getAttribute('src') !== hit) el.setAttribute('src', hit);
+        return;
+      }
+      resolve(src).then(function (next) {
+        if (next && next !== src && el.getAttribute('src') !== next) el.setAttribute('src', next);
+      });
+      return;
+    }
+    var bg = el.style && el.style.backgroundImage || '';
+    var match = bg.match(/url\(["']?([^"')]+)["']?\)/);
+    if (!match || /^(blob:|data:)/i.test(match[1]) || !isUploadPath(match[1])) return;
+    var bgHit = cachedUrl(match[1]);
+    if (bgHit) {
+      el.style.backgroundImage = 'url("' + bgHit + '")';
+      return;
+    }
+    resolve(match[1]).then(function (next) {
+      if (next) el.style.backgroundImage = 'url("' + next + '")';
+    });
+  }
+
   function rewritePreview() {
-    var root = document.getElementById('nc-root') || document.body;
-    if (!root) return;
-    var imgs = root.querySelectorAll('img');
-    for (var i = 0; i < imgs.length; i++) {
-      (function (img) {
-        var src = img.getAttribute('src') || '';
-        if (!isUploadPath(src) && src.indexOf(PUBLIC_PREFIX) !== 0) return;
-        if (/^(blob:|data:)/i.test(src)) return;
-        resolve(src).then(function (next) {
-          if (next && img.getAttribute('src') !== next) img.src = next;
-        });
-      })(imgs[i]);
+    var roots = previewRoots();
+    for (var r = 0; r < roots.length; r++) {
+      var root = roots[r];
+      var media = root.querySelectorAll('img, source, video, audio, [style*="assets/uploads"]');
+      for (var i = 0; i < media.length; i++) rewriteEl(media[i]);
     }
-    var nodes = root.querySelectorAll('[style*="assets/uploads"]');
-    for (var n = 0; n < nodes.length; n++) {
-      (function (el) {
-        var bg = el.style.backgroundImage || '';
-        var match = bg.match(/url\(["']?([^"')]+)["']?\)/);
-        if (!match || !isUploadPath(match[1])) return;
-        resolve(match[1]).then(function (next) {
-          if (next) el.style.backgroundImage = 'url("' + next + '")';
-        });
-      })(nodes[n]);
-    }
+  }
+
+  function onMediaError(event) {
+    var el = event.target;
+    if (!el || !el.tagName) return;
+    if (el.tagName !== 'IMG' && el.tagName !== 'VIDEO' && el.tagName !== 'AUDIO' && el.tagName !== 'SOURCE') return;
+    var src = el.getAttribute('src') || '';
+    if (!src || /^(blob:|data:)/i.test(src)) return;
+    if (!isUploadPath(src) && src.indexOf(PUBLIC_PREFIX) !== 0) return;
+    resolve(src).then(function (next) {
+      if (next && next !== src) el.setAttribute('src', next);
+    });
+  }
+
+  function bindRoot(target) {
+    var node = target && target.nodeType === 9 ? target : (target && target.ownerDocument) || target;
+    if (!node) return;
+    if (node.__sonarMediaBound) return;
+    node.__sonarMediaBound = true;
+    var observeNode = node.body || node;
+    try {
+      new MutationObserver(scheduleRewrite).observe(observeNode, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src', 'srcset', 'style']
+      });
+    } catch (e) {}
+    node.addEventListener('error', onMediaError, true);
   }
 
   var rewriteTimer = null;
@@ -524,12 +665,12 @@
     removeGlobalChrome();
     ensureMediaLibraryButton();
     hookCmsEvents();
-    if (document.body) {
-      new MutationObserver(scheduleRewrite).observe(document.body, { childList: true, subtree: true });
-    }
+    bindRoot(document);
+    rewritePreview();
     global.addEventListener('hashchange', function () {
       ensureMediaLibraryButton();
       flushWaitingForDraft();
+      scheduleRewrite();
     });
   }
 
