@@ -69,6 +69,7 @@
     document.body.classList.toggle('sonar-role-admin', role === 'admin');
     showIdentity(login, role);
     if (role === 'superadmin') addAccountsNav(findSidebar());
+    if (role === 'admin') installNetworkGuard();
   }
 
   function detectRole() {
@@ -166,6 +167,17 @@
       .replace(/"/g, '&quot;');
   }
 
+  function reportBlocked(message, url) {
+    if (global.SonarCmsLogs && typeof global.SonarCmsLogs.report === 'function') {
+      global.SonarCmsLogs.report({
+        source: 'guard',
+        message: message,
+        extra: { url: url || '' }
+      });
+    }
+    return Promise.reject(new Error(message));
+  }
+
   function installNetworkGuard() {
     if (!isSimpleAdmin() || global.fetch.__sonarRoleGuard) return;
     var orig = global.fetch;
@@ -178,20 +190,20 @@
       var method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
       if (/api\.github\.com/i.test(url)) {
         if (/\/merge(\?|$)/.test(url) && (method === 'PUT' || method === 'POST')) {
-          return Promise.reject(new Error('Publication réservée aux superadmins.'));
+          return reportBlocked('Publication réservée aux superadmins.', url);
         }
         if (method === 'DELETE' && /\/contents\//.test(url)) {
-          return Promise.reject(new Error('Suppression réservée aux superadmins.'));
+          return reportBlocked('Suppression réservée aux superadmins.', url);
         }
         if (/\/git\/refs\/heads\/main(\?|$)/.test(url) && (method === 'PATCH' || method === 'POST' || method === 'PUT')) {
-          return Promise.reject(new Error('Action réservée aux superadmins.'));
+          return reportBlocked('Action réservée aux superadmins.', url);
         }
         if ((method === 'PUT' || method === 'PATCH') && /\/contents\/src\/data\//.test(url)) {
-          return Promise.reject(new Error('Paramètres réservés aux superadmins.'));
+          return reportBlocked('Paramètres réservés aux superadmins.', url);
         }
       }
       if (/\/api\/admin\/(bulk-articles|comments|reports|accounts)(\?|$)/.test(url) && method !== 'GET') {
-        return Promise.reject(new Error('Action réservée aux superadmins.'));
+        return reportBlocked('Action réservée aux superadmins.', url);
       }
       return orig.apply(this, arguments);
     };

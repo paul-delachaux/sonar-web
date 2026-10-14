@@ -60,12 +60,12 @@
     if (!t.trim()) return true;
     if (t.indexOf('/api/admin/logs') !== -1) return true;
     return (
-      /is required|est requis|required field|champ obligatoire|can't be blank|ne peut pas être vide|fields have errors|this field is|ce champ est|please fill|veuillez remplir|veuillez renseigner|must be a number|n'est pas un nombre|widget is|réservée aux superadmins|reservee aux superadmins/.test(t)
+      /is required|est requis|required field|champ obligatoire|can't be blank|ne peut pas être vide|fields have errors|this field is|ce champ est|please fill|veuillez remplir|veuillez renseigner|must be a number|n'est pas un nombre|widget is/.test(t)
     );
   }
 
   function looksSerious(text) {
-    return /failed to persist|failed to load|failed to save|failed to publish|github|api_error|networkerror|typeerror|unexpected|forbidden|conflict|status 4|status 5|\b409\b|\b422\b|\b500\b|\b502\b|\b503\b|yaml|syntaxerror|cannot read|undefined is not|rate limit|ruleset|not allowed|unauthorized|\b401\b|\b403\b|erreur serveur|impossible de/.test(String(text || '').toLowerCase());
+    return /failed to persist|failed to load|failed to save|failed to publish|github|api_error|networkerror|typeerror|unexpected|forbidden|conflict|status 4|status 5|\b409\b|\b422\b|\b500\b|\b502\b|\b503\b|yaml|syntaxerror|cannot read|undefined is not|rate limit|ruleset|not allowed|unauthorized|\b401\b|\b403\b|erreur serveur|impossible de|r[eé]serv[éee]/.test(String(text || '').toLowerCase());
   }
 
   function readQueue() {
