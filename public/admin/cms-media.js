@@ -288,6 +288,51 @@
     });
   }
 
+  function deletePathsBatch(paths, branch) {
+    var token = githubToken();
+    if (!token) return Promise.reject(new Error('Session GitHub absente : reconnecte-toi à l’admin.'));
+    var unique = [];
+    var seen = {};
+    (paths || []).forEach(function (path) {
+      var name = fileNameFromPath(path);
+      if (!name || seen[name]) return;
+      seen[name] = true;
+      unique.push(name);
+    });
+    if (!unique.length) return Promise.resolve({ paths: [], sha: '' });
+
+    return getHeadSha(branch).then(function (headSha) {
+      return gitJson('/git/commits/' + headSha).then(function (commit) {
+        var baseTree = commit.tree && commit.tree.sha;
+        var treeItems = unique.map(function (name) {
+          return { path: repoPathFor(name), mode: '100644', type: 'blob', sha: null };
+        });
+        return gitJson('/git/trees', {
+          method: 'POST',
+          body: { base_tree: baseTree, tree: treeItems }
+        }).then(function (tree) {
+          var message = unique.length === 1
+            ? 'media: suppression ' + unique[0]
+            : 'media: suppression de ' + unique.length + ' fichiers';
+          return gitJson('/git/commits', {
+            method: 'POST',
+            body: { message: message, tree: tree.sha, parents: [headSha] }
+          });
+        }).then(function (newCommit) {
+          return gitJson('/git/refs/heads/' + encodeRef(branch), {
+            method: 'PATCH',
+            body: { sha: newCommit.sha }
+          }).then(function () {
+            return {
+              paths: unique.map(function (name) { return publicPathFor(name); }),
+              sha: newCommit.sha
+            };
+          });
+        });
+      });
+    });
+  }
+
   function commitFilesBatch(files, branch) {
     var token = githubToken();
     if (!token) return Promise.reject(new Error('Session GitHub absente : reconnecte-toi à l’admin.'));
@@ -694,6 +739,85 @@
     }
   }
 
+  function selectedMediaNames(root) {
+    var names = [];
+    var seen = {};
+    var boxes = (root || document).querySelectorAll('.sonar-media-check:checked');
+    for (var i = 0; i < boxes.length; i++) {
+      var name = boxes[i].getAttribute('data-name');
+      if (name && !seen[name]) {
+        seen[name] = true;
+        names.push(name);
+      }
+    }
+    return names;
+  }
+
+  function enhanceMediaCards(root) {
+    if (!root || !root.querySelectorAll) return;
+    var nodes = root.querySelectorAll('p, span, h2, h3, figcaption, strong, small');
+    for (var i = 0; i < nodes.length; i++) {
+      var text = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/\.(png|jpe?g|gif|webp|avif|svg|mp3|wav|pdf)$/i.test(text)) continue;
+      var card = nodes[i];
+      var found = null;
+      for (var d = 0; d < 8 && card; d++) {
+        if (card.querySelector && card.querySelector('img, video, audio')) {
+          found = card;
+          break;
+        }
+        card = card.parentElement;
+      }
+      if (!found || found.querySelector('.sonar-media-check')) continue;
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.className = 'sonar-media-check';
+      box.setAttribute('data-name', fileNameFromPath(text));
+      box.title = 'Inclure dans la suppression multiple';
+      box.addEventListener('click', function (event) {
+        event.stopPropagation();
+      });
+      found.insertBefore(box, found.firstChild);
+    }
+  }
+
+  function ensureDeleteButton(root) {
+    if (document.getElementById('sonar-media-delete')) return;
+    var importBtn = document.getElementById('sonar-media-multi');
+    var parent = (importBtn && importBtn.parentNode) || (root && findInsertAnchor(root) && findInsertAnchor(root).parent);
+    if (!parent) return;
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.id = 'sonar-media-delete';
+    del.textContent = 'Supprimer la sélection';
+    del.title = 'Un seul commit GitHub, un seul build Vercel';
+    del.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var names = selectedMediaNames(root);
+      if (!names.length) {
+        toast('Coche les images à supprimer (cases en haut à gauche des vignettes).', 'err');
+        return;
+      }
+      if (!global.confirm('Supprimer ' + names.length + ' fichier(s) en un seul commit GitHub ?')) return;
+      detectTarget().then(function (target) {
+        if (!target.branch) {
+          toast('Ouvre un article (et enregistre le brouillon) pour supprimer. Un admin ne peut pas écrire sur main.', 'err');
+          return;
+        }
+        toast('Suppression de ' + names.length + ' fichier(s)…');
+        return deletePathsBatch(names, target.branch).then(function (result) {
+          toast(names.length + ' fichier(s) supprimé(s) (un commit).');
+          watchDeploy(result, target.kind);
+        });
+      }).catch(function (err) {
+        toast((err && err.message) || 'Échec de la suppression.', 'err');
+      });
+    });
+    if (importBtn && importBtn.nextSibling) parent.insertBefore(del, importBtn.nextSibling);
+    else parent.appendChild(del);
+  }
+
   function ensureMediaLibraryButton() {
     removeGlobalChrome();
     patchLibraryFileInputs(document);
@@ -701,24 +825,29 @@
     var existing = document.getElementById('sonar-media-multi');
     if (!root) {
       if (existing) existing.remove();
+      var oldDel = document.getElementById('sonar-media-delete');
+      if (oldDel) oldDel.remove();
       return;
     }
-    if (existing && root.contains(existing)) return;
-    if (existing) existing.remove();
-    var anchor = findInsertAnchor(root);
-    if (!anchor) return;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'sonar-media-multi';
-    btn.setAttribute('data-sonar-media-lib', '1');
-    btn.textContent = 'Importer plusieurs images';
-    btn.title = 'Un seul commit GitHub, un seul build Vercel';
-    btn.addEventListener('click', function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      openMultiPicker();
-    });
-    anchor.parent.insertBefore(btn, anchor.before);
+    enhanceMediaCards(root);
+    if (!existing || !root.contains(existing)) {
+      if (existing) existing.remove();
+      var anchor = findInsertAnchor(root);
+      if (!anchor) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'sonar-media-multi';
+      btn.setAttribute('data-sonar-media-lib', '1');
+      btn.textContent = 'Importer plusieurs images';
+      btn.title = 'Un seul commit GitHub, un seul build Vercel';
+      btn.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        openMultiPicker();
+      });
+      anchor.parent.insertBefore(btn, anchor.before);
+    }
+    ensureDeleteButton(root);
   }
 
   function previewRoots() {

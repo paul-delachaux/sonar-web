@@ -754,6 +754,27 @@
       white-space: nowrap;
     }
     #sonar-media-multi:hover { filter: brightness(1.05); }
+    #sonar-media-delete {
+      background: #e5484d;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      padding: 0 16px;
+      height: 36px;
+      font: 700 14px/36px Helvetica, Arial, sans-serif;
+      cursor: pointer;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+    .sonar-media-check {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 6;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
     #sonar-deploy-banner {
       position: fixed;
       top: 56px;
@@ -787,6 +808,10 @@
       cursor: pointer;
       white-space: nowrap;
     }
+    #sonar-deploy-banner:not([data-kind="ok"]) #sonar-deploy-refresh {
+      display: none !important;
+    }
+    #sonar-deploy-banner[data-kind="save"] { border-left-color: #7aa2ff; }
     #sonar-deploy-close {
       background: transparent;
       border: none;
