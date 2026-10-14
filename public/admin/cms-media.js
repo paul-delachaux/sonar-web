@@ -14,7 +14,6 @@
   var live = {};
   var waitingForDraft = [];
   var pickedMedia = {};
-  var overlayChecks = {};
   var checkTimer = null;
   var STORE_KEY = 'sonar-cms-media-urls';
   var LIVE_KEY = 'sonar-cms-media-live';
@@ -759,14 +758,12 @@
     style.id = 'sonar-media-check-css';
     style.textContent = [
       '.sonar-media-check{',
-      'position:absolute!important;top:8px!important;left:8px!important;z-index:2147483646!important;',
+      'position:absolute!important;top:8px!important;left:8px!important;z-index:20!important;',
       'width:22px!important;height:22px!important;margin:0!important;padding:0!important;',
       'cursor:pointer!important;accent-color:#ff7900;background:#fff!important;border:1px solid #111!important;',
       'opacity:1!important;visibility:visible!important;display:block!important;pointer-events:auto!important;',
       'appearance:auto!important;-webkit-appearance:checkbox!important;',
-      '}',
-      '#sonar-media-checks{position:fixed;inset:0;z-index:2147483646;pointer-events:none;}',
-      '#sonar-media-checks .sonar-media-check{position:fixed!important;pointer-events:auto!important;}'
+      '}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -806,53 +803,25 @@
     return box;
   }
 
-  function ensureBodyOverlay() {
-    var overlay = document.getElementById('sonar-media-checks');
-    if (overlay) return overlay;
-    overlay = document.createElement('div');
-    overlay.id = 'sonar-media-checks';
-    document.body.appendChild(overlay);
-    return overlay;
-  }
-
   function injectCardCheckboxes() {
     ensureCheckStyles();
+    var leftover = document.getElementById('sonar-media-checks');
+    if (leftover) leftover.remove();
     var wraps = document.querySelectorAll('[class*="CardImageWrapper"]');
-    if (!wraps.length) {
-      var dead = document.getElementById('sonar-media-checks');
-      if (dead) dead.remove();
-      return;
-    }
-    var overlay = ensureBodyOverlay();
+    if (!wraps.length) return;
     var seen = {};
     for (var i = 0; i < wraps.length; i++) {
       var wrap = wraps[i];
       var name = cardFileName(wrap);
       if (!name || seen[name]) continue;
       seen[name] = true;
-      if (!wrap.querySelector('.sonar-media-check')) {
-        wrap.insertBefore(makeCheckbox(name), wrap.firstChild);
-      }
       var inner = wrap.querySelector('.sonar-media-check');
-      if (inner) inner.checked = !!pickedMedia[name];
-      var rect = wrap.getBoundingClientRect();
-      var overlayBox = overlayChecks[name];
-      if (!overlayBox || overlayBox.parentNode !== overlay) {
-        overlayBox = makeCheckbox(name);
-        overlay.appendChild(overlayBox);
-        overlayChecks[name] = overlayBox;
+      if (!inner) {
+        inner = makeCheckbox(name);
+        wrap.insertBefore(inner, wrap.firstChild);
       }
-      var visible = rect.width > 40 && rect.height > 40 && rect.bottom > 0 && rect.top < global.innerHeight;
-      overlayBox.checked = !!pickedMedia[name];
-      overlayBox.style.left = Math.round(rect.left + 8) + 'px';
-      overlayBox.style.top = Math.round(rect.top + 8) + 'px';
-      overlayBox.style.display = visible ? 'block' : 'none';
+      inner.checked = !!pickedMedia[name];
     }
-    Object.keys(overlayChecks).forEach(function (name) {
-      if (seen[name]) return;
-      overlayChecks[name].remove();
-      delete overlayChecks[name];
-    });
     updateDeleteLabel();
   }
 
@@ -861,8 +830,8 @@
     function tick() {
       if (!document.querySelector('[class*="CardImageWrapper"]')) {
         checkTimer = null;
-        var dead = document.getElementById('sonar-media-checks');
-        if (dead) dead.remove();
+        var leftover = document.getElementById('sonar-media-checks');
+        if (leftover) leftover.remove();
         return;
       }
       injectCardCheckboxes();
