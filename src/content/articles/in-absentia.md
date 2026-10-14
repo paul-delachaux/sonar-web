@@ -2,7 +2,7 @@
 layout_type: revue_musicale
 category: revue-musicale
 title: "In Absentia "
-description: o
+description: "-"
 title_en: In Absentia
 description_en: La description là
 revue_rows:
