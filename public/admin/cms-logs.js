@@ -29,6 +29,11 @@
     return headers;
   }
 
+  function githubToken() {
+    var headers = authHeaders();
+    return String(headers.Authorization || headers['X-Sonar-GitHub'] || '').replace(/^(?:Bearer|token)\s+/i, '');
+  }
+
   function isSuperadmin() {
     return global.__SONAR_CMS_ROLE === 'superadmin';
   }
@@ -114,17 +119,18 @@
     if (sending) return;
     var queue = readQueue();
     if (!queue.length) return;
+    if (!githubToken()) return;
     sending = true;
     var next = queue[0];
     fetch('/api/admin/logs', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify(next),
-      cache: 'no-store'
+      cache: 'no-store',
+      keepalive: true
     }).then(function (res) {
       sending = false;
-      if (res.status === 401 || res.status === 403) return;
-      if (res.status >= 500) return;
+      if (res.status === 401 || res.status === 403 || res.status >= 500) return;
       if (res.ok) {
         writeQueue(readQueue().slice(1));
         setTimeout(flushQueue, 80);
@@ -220,8 +226,13 @@
       });
     }
 
-    setInterval(flushQueue, 15000);
+    setInterval(flushQueue, 3000);
     flushQueue();
+    if (global.__SONAR_CMS_READY && typeof global.__SONAR_CMS_READY.then === 'function') {
+      global.__SONAR_CMS_READY.then(function () { flushQueue(); }).catch(function () {});
+    }
+    setTimeout(flushQueue, 1500);
+    setTimeout(flushQueue, 6000);
   }
 
   function inspectFetch(url, res) {
@@ -280,7 +291,7 @@
         '</div>' +
         '<div class="sonar-acc-body">' +
           '<p class="sonar-acc-status" id="sonar-log-status">Chargement…</p>' +
-          '<p class="sonar-acc-hint">Erreurs techniques captées dans l’admin (sauvegarde GitHub, JS, API). Les messages « champ obligatoire » ne sont pas enregistrés. Les erreurs passées, avant cette page, n’existent plus.</p>' +
+          '<p class="sonar-acc-hint">Journal partagé : chaque compte admin et superadmin envoie ici ses erreurs techniques (GitHub, JS, API). Les « champ obligatoire » sont ignorés. Conservé 90 jours dans Supabase.</p>' +
           '<div class="sonar-log-toolbar">' +
             '<button type="button" class="sonar-acc-save" data-log-refresh="1">Actualiser</button>' +
             '<button type="button" class="sonar-acc-remove" data-log-clear="1">Tout vider</button>' +
@@ -370,7 +381,19 @@
           return;
         }
         var items = (parts.data && parts.data.items) || [];
-        setStatus(parts.data && parts.data.setup ? parts.data.message : (items.length + ' entrée' + (items.length > 1 ? 's' : '')), parts.data && parts.data.setup ? 'err' : '');
+        var logins = [];
+        var seenLogin = {};
+        items.forEach(function (item) {
+          var login = item.login || '';
+          if (!login || seenLogin[login]) return;
+          seenLogin[login] = true;
+          logins.push(login);
+        });
+        var summary = items.length + ' entrée' + (items.length > 1 ? 's' : '');
+        if (logins.length) {
+          summary += ' · ' + logins.length + ' compte' + (logins.length > 1 ? 's' : '') + ' (' + logins.join(', ') + ')';
+        }
+        setStatus(parts.data && parts.data.setup ? parts.data.message : summary, parts.data && parts.data.setup ? 'err' : '');
         render(items);
       })
       .catch(function (err) {

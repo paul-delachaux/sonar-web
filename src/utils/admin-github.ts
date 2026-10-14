@@ -67,7 +67,7 @@ export async function requireCmsAdmin(request: Request): Promise<CmsAuth> {
       return { ok: false, status: 401, message: 'Session admin invalide.' };
     }
     const accounts = await loadCmsAccounts(token);
-    const account = findAccount(accounts, login);
+    const account = findAccount(accounts, login) || findAccount(await loadCmsAccounts(), login);
     if (account) return { ok: true, login: account.login, role: account.role };
     if (await isGithubRepoAdmin(token, login)) {
       return { ok: true, login, role: 'superadmin' };
