@@ -745,18 +745,32 @@
     return Object.keys(pickedMedia).filter(function (name) { return pickedMedia[name]; });
   }
 
+  function mediaNameFromCard(img, card) {
+    var compact = String((card && card.textContent) || '').replace(/\s+/g, '');
+    var match = compact.match(/([^/\\]+\.(?:png|jpe?g|gif|webp|avif|svg|mp3|wav|pdf))\b/i);
+    if (match) return fileNameFromPath(match[1]);
+    var src = fileNameFromPath((img && (img.getAttribute('alt') || img.getAttribute('src'))) || '');
+    if (src && /\./.test(src) && src.indexOf('blob:') !== 0) return src;
+    return '';
+  }
+
   function findMediaCards(root) {
     var cards = [];
+    var seen = {};
     if (!root || !root.querySelectorAll) return cards;
-    var paras = root.querySelectorAll('p');
-    for (var i = 0; i < paras.length; i++) {
-      var text = (paras[i].textContent || '').replace(/\s+/g, ' ').trim();
-      if (!text || text.length > 200) continue;
-      if (!/\.(png|jpe?g|gif|webp|avif|svg|mp3|wav|pdf)(\.|$)/i.test(text) && !/\.[a-z0-9]{2,5}$/i.test(text)) continue;
-      if (text.indexOf(' ') !== -1 && text.indexOf('.') === -1) continue;
-      var el = paras[i].parentElement;
-      if (!el) continue;
-      cards.push({ el: el, name: fileNameFromPath(text) });
+    var imgs = root.querySelectorAll('img');
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i];
+      var card = img.parentElement;
+      for (var d = 0; d < 6 && card && card !== root; d++) {
+        if (card.querySelector && card.querySelector('img') && card.querySelector('p')) break;
+        card = card.parentElement;
+      }
+      if (!card || card === root) card = img.parentElement || img;
+      var name = mediaNameFromCard(img, card);
+      if (!name || seen[name]) continue;
+      seen[name] = true;
+      cards.push({ el: img, name: name });
     }
     return cards;
   }
@@ -776,9 +790,12 @@
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'sonar-media-checks';
-      overlay.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(overlay);
     }
+    if (root.style.position === '' || root.style.position === 'static') {
+      root.style.position = 'relative';
+    }
+    root.appendChild(overlay);
+    var origin = overlay.getBoundingClientRect();
     var cards = findMediaCards(root);
     var still = {};
     for (var i = 0; i < cards.length; i++) {
@@ -786,12 +803,11 @@
         still[card.name] = true;
         var rect = card.el.getBoundingClientRect();
         var box = overlayChecks[card.name];
-        if (!box) {
+        if (!box || !box.isConnected) {
           box = document.createElement('input');
           box.type = 'checkbox';
           box.className = 'sonar-media-check';
           box.setAttribute('data-name', card.name);
-          box.checked = !!pickedMedia[card.name];
           box.title = 'Inclure dans la suppression multiple';
           box.addEventListener('mousedown', function (event) {
             event.preventDefault();
@@ -802,15 +818,23 @@
             event.stopPropagation();
             pickedMedia[card.name] = !pickedMedia[card.name];
             box.checked = !!pickedMedia[card.name];
+            var del = document.getElementById('sonar-media-delete');
+            if (del) {
+              var n = selectedMediaNames().length;
+              del.textContent = n ? ('Supprimer la sélection (' + n + ')') : 'Supprimer la sélection';
+            }
           });
           overlay.appendChild(box);
           overlayChecks[card.name] = box;
+        } else if (box.parentNode !== overlay) {
+          overlay.appendChild(box);
         }
-        var visible = rect.width > 24 && rect.height > 24 && rect.bottom > 80 && rect.top < window.innerHeight - 8;
-        box.style.left = Math.round(rect.left + 8) + 'px';
-        box.style.top = Math.round(rect.top + 8) + 'px';
-        box.style.display = visible ? 'block' : 'none';
+        var visible = rect.width > 20 && rect.height > 20 && rect.bottom > origin.top + 20 && rect.top < origin.bottom;
         box.checked = !!pickedMedia[card.name];
+        box.style.position = 'absolute';
+        box.style.left = Math.round(rect.left - origin.left + 8) + 'px';
+        box.style.top = Math.round(rect.top - origin.top + 8) + 'px';
+        box.style.display = visible ? 'block' : 'none';
       })(cards[i]);
     }
     Object.keys(overlayChecks).forEach(function (name) {
@@ -818,6 +842,11 @@
       overlayChecks[name].remove();
       delete overlayChecks[name];
     });
+    var del = document.getElementById('sonar-media-delete');
+    if (del) {
+      var n = selectedMediaNames().length;
+      del.textContent = n ? ('Supprimer la sélection (' + n + ')') : 'Supprimer la sélection';
+    }
     if (!root.__sonarMediaScroll) {
       root.__sonarMediaScroll = true;
       root.addEventListener('scroll', function () { syncCheckboxes(root); }, true);
