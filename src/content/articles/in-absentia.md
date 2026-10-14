@@ -390,7 +390,7 @@ revue_rows:
         the point of no return.
     right:
       type: image
-      image: /assets/uploads/capture-d’écran-2026-10-09-à-21.56.17.png
+      image: /assets/uploads/capture-d’écran-2026-10-09-à-21.56.17---Copie.png
       image_caption: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
       image_caption_en: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
   - left:
