@@ -754,6 +754,48 @@
       white-space: nowrap;
     }
     #sonar-media-multi:hover { filter: brightness(1.05); }
+    #sonar-deploy-banner {
+      position: fixed;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 13000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: min(720px, calc(100vw - 32px));
+      background: #01002b;
+      color: #fff;
+      border-left: 4px solid #ff7900;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font: 600 13px/1.4 Helvetica, Arial, sans-serif;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.28);
+    }
+    #sonar-deploy-banner[hidden] { display: none !important; }
+    #sonar-deploy-banner[data-kind="ok"] { border-left-color: #3ecf8e; }
+    #sonar-deploy-banner[data-kind="err"] { border-left-color: #e5484d; }
+    #sonar-deploy-banner strong { white-space: nowrap; }
+    #sonar-deploy-banner span { opacity: 0.92; }
+    #sonar-deploy-refresh {
+      background: #ff7900;
+      border: none;
+      color: #fff;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #sonar-deploy-close {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 4px;
+    }
   </style>
 </head>
 <body>
@@ -768,7 +810,8 @@
   <script src="/admin/revue-fields.js?v=20260928a"></script>
   <script src="/admin/accounts-admin.js?v=20260930b"></script>
   <script src="/admin/cms-logs.js?v=20260930b"></script>
-  <script src="/admin/cms-media.js?v=20261014c"></script>
+  <script src="/admin/cms-media.js?v=20261014d"></script>
+  <script src="/admin/cms-deploy.js?v=20261014d"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -778,18 +821,6 @@
           return;
         }
           console.log("=== CMS LOADED ===");
-
-          // Après une publication, Decap peut garder un état périmé : un 2e
-          // enregistrement du même champ ne part plus. Un reload à ce moment-là
-          // suffit ; on évite de recharger à chaque sauvegarde ou navigation.
-          window.CMS.registerEventListener({
-            name: 'postPublish',
-            handler: function () {
-              setTimeout(function () {
-                window.location.reload();
-              }, 400);
-            },
-          });
       };
       startWhenReady();
     });

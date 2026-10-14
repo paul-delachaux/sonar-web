@@ -11,7 +11,10 @@
   var cache = {};
   var inflight = {};
   var failed = {};
+  var live = {};
   var waitingForDraft = [];
+  var STORE_KEY = 'sonar-cms-media-urls';
+  var LIVE_KEY = 'sonar-cms-media-live';
 
   function githubToken() {
     var search = global.SonarArticleSearch;
@@ -69,6 +72,48 @@
     return idx === -1 ? s : s.slice(idx + 1);
   }
 
+  function persistMediaCache() {
+    var out = {};
+    Object.keys(cache).forEach(function (key) {
+      var url = cache[key];
+      if (/^https?:/i.test(url) && !/^blob:/i.test(url)) out[key] = url;
+    });
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(out)); } catch (e) {}
+  }
+
+  function persistLive() {
+    try { localStorage.setItem(LIVE_KEY, JSON.stringify(live)); } catch (e) {}
+  }
+
+  function loadPersisted() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      var data = raw ? JSON.parse(raw) : null;
+      if (data) Object.keys(data).forEach(function (key) { cache[key] = data[key]; });
+    } catch (e) {}
+    try {
+      var liveRaw = localStorage.getItem(LIVE_KEY);
+      var liveData = liveRaw ? JSON.parse(liveRaw) : null;
+      if (liveData) live = liveData;
+    } catch (e) {}
+  }
+
+  function namedPath(path) {
+    return publicPathFor(fileNameFromPath(path));
+  }
+
+  function isLive(path) {
+    return !!live[namedPath(path)];
+  }
+
+  function markLive(paths) {
+    (paths || []).forEach(function (path) {
+      live[namedPath(path)] = 1;
+    });
+    persistLive();
+    rewritePreview();
+  }
+
   function remember(path, url) {
     if (!path || !url) return;
     cache[path] = url;
@@ -80,6 +125,7 @@
       delete failed[name];
       delete failed[publicPathFor(name)];
     }
+    if (/^https?:/i.test(url)) persistMediaCache();
   }
 
   function blobFromBase64(b64, mime) {
@@ -244,7 +290,7 @@
   function commitFilesBatch(files, branch) {
     var token = githubToken();
     if (!token) return Promise.reject(new Error('Session GitHub absente : reconnecte-toi à l’admin.'));
-    if (!files.length) return Promise.resolve([]);
+    if (!files.length) return Promise.resolve({ paths: [], sha: '' });
 
     var unique = [];
     var seen = {};
@@ -289,13 +335,59 @@
             return gitJson('/git/refs/heads/' + encodeRef(branch), {
               method: 'PATCH',
               body: { sha: newCommit.sha }
+            }).then(function () {
+              return {
+                paths: unique.map(function (file) { return publicPathFor(mediaFileName(file)); }),
+                sha: newCommit.sha
+              };
             });
-          }).then(function () {
-            return unique.map(function (file) { return publicPathFor(mediaFileName(file)); });
           });
         });
       });
     });
+  }
+
+  function adminAuthHeaders() {
+    var headers = {};
+    var token = githubToken();
+    if (token) {
+      headers.Authorization = 'Bearer ' + token;
+      headers['X-Sonar-GitHub'] = token;
+    }
+    return headers;
+  }
+
+  function uploadToSupabase(files) {
+    return mapLimit(files, 3, function (file) {
+      var body = new FormData();
+      body.append('file', file, mediaFileName(file));
+      return fetch('/api/admin/media', {
+        method: 'POST',
+        headers: adminAuthHeaders(),
+        body: body
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok) throw new Error((data && data.message) || ('Supabase HTTP ' + res.status));
+          if (data && data.url) remember(publicPathFor(mediaFileName(file)), data.url);
+          return data;
+        }, function () {
+          throw new Error('Supabase HTTP ' + res.status);
+        });
+      });
+    }).then(function () {
+      rewritePreview();
+    });
+  }
+
+  function watchDeploy(result, kind) {
+    if (!result || !global.SonarCmsDeploy || typeof global.SonarCmsDeploy.watch !== 'function') return;
+    if (kind === 'main') {
+      global.SonarCmsDeploy.watch({
+        reason: 'media',
+        sha: result.sha || '',
+        files: result.paths || []
+      });
+    }
   }
 
   function uploadBatch(files) {
@@ -303,27 +395,33 @@
     if (!list.length) return Promise.resolve();
     list.forEach(rememberFile);
     rewritePreview();
+    var supabaseP = uploadToSupabase(list).catch(function (err) {
+      toast('Aperçu admin limité : ' + ((err && err.message) || 'Supabase indisponible') + '. Les images partent quand même sur GitHub.', 'err');
+    });
     return detectTarget().then(function (target) {
       if (!target.branch) {
         if (target.kind === 'wait-draft') {
           waitingForDraft = waitingForDraft.concat(list);
           toast('Aperçu OK. Enregistre le brouillon : les ' + list.length + ' image(s) partiront ensuite en un seul commit.');
-          return;
+          return supabaseP;
         }
         toast('Ouvre un article (et enregistre le brouillon) pour envoyer des images. Un admin ne peut pas écrire sur main.', 'err');
-        return;
+        return supabaseP;
       }
       toast(list.length > 1
         ? ('Envoi de ' + list.length + ' images en un seul commit…')
         : 'Envoi de l’image vers GitHub…');
-      return commitFilesBatch(list, target.branch).then(function () {
+      return commitFilesBatch(list, target.branch).then(function (result) {
         toast(list.length > 1
-          ? (list.length + ' images envoyées en un commit (' + (target.kind === 'main' ? 'main' : 'brouillon') + '). Un seul build Vercel.')
+          ? (list.length + ' images envoyées en un commit (' + (target.kind === 'main' ? 'main' : 'brouillon') + ').')
           : 'Image envoyée sur GitHub.');
         rewritePreview();
+        watchDeploy(result, target.kind);
+        return supabaseP;
       });
     }).catch(function (err) {
       toast((err && err.message) || 'Échec de l’envoi GitHub.', 'err');
+      return supabaseP;
     });
   }
 
@@ -333,8 +431,9 @@
       if (!target.branch) return;
       var pending = waitingForDraft.splice(0, waitingForDraft.length);
       toast('Envoi de ' + pending.length + ' image(s) du brouillon en un commit…');
-      return commitFilesBatch(pending, target.branch).then(function () {
+      return commitFilesBatch(pending, target.branch).then(function (result) {
         toast(pending.length + ' image(s) envoyées sur le brouillon (un commit).');
+        watchDeploy(result, target.kind);
       });
     }).catch(function (err) {
       toast((err && err.message) || 'Impossible d’envoyer les images du brouillon.', 'err');
@@ -344,6 +443,7 @@
   function cachedUrl(path) {
     var s = String(path || '');
     if (!s) return '';
+    if (isLive(s)) return '';
     if (cache[s]) return cache[s];
     var name = fileNameFromPath(s);
     if (name && cache[name]) return cache[name];
@@ -574,15 +674,27 @@
     if (!el || el.nodeType !== 1) return;
     if (el.tagName === 'IMG' || el.tagName === 'SOURCE' || el.tagName === 'VIDEO' || el.tagName === 'AUDIO') {
       var src = el.getAttribute('src') || el.getAttribute('srcset') || '';
-      if (!src || /^(blob:|data:)/i.test(src)) return;
-      if (!isUploadPath(src) && src.indexOf(PUBLIC_PREFIX) !== 0) return;
-      var hit = cachedUrl(src);
+      if (!src) return;
+      if (/^(blob:|data:)/i.test(src) && !el.getAttribute('data-sonar-path')) return;
+      var orig = el.getAttribute('data-sonar-path') || src;
+      if (isLive(orig) || isLive(src)) {
+        var site = namedPath(orig);
+        if (site && el.getAttribute('src') !== site) el.setAttribute('src', site);
+        return;
+      }
+      if (!isUploadPath(src) && src.indexOf(PUBLIC_PREFIX) !== 0 && !isUploadPath(orig)) return;
+      var hit = cachedUrl(orig) || cachedUrl(src);
       if (hit) {
+        if (!el.getAttribute('data-sonar-path') && isUploadPath(orig)) el.setAttribute('data-sonar-path', namedPath(orig));
         if (el.getAttribute('src') !== hit) el.setAttribute('src', hit);
         return;
       }
+      if (!isUploadPath(src) && src.indexOf(PUBLIC_PREFIX) !== 0) return;
       resolve(src).then(function (next) {
-        if (next && next !== src && el.getAttribute('src') !== next) el.setAttribute('src', next);
+        if (next && next !== src && el.getAttribute('src') !== next) {
+          el.setAttribute('data-sonar-path', namedPath(src));
+          el.setAttribute('src', next);
+        }
       });
       return;
     }
@@ -615,6 +727,15 @@
     var src = el.getAttribute('src') || '';
     if (!src || /^(blob:|data:)/i.test(src)) return;
     if (!isUploadPath(src) && src.indexOf(PUBLIC_PREFIX) !== 0) return;
+    if (isLive(src)) {
+      delete live[namedPath(src)];
+      persistLive();
+    }
+    var fallback = cachedUrl(src);
+    if (fallback && fallback !== src) {
+      el.setAttribute('src', fallback);
+      return;
+    }
     resolve(src).then(function (next) {
       if (next && next !== src) el.setAttribute('src', next);
     });
@@ -650,7 +771,8 @@
   global.SonarCmsMedia = {
     url: syncUrl,
     resolve: resolve,
-    uploadBatch: uploadBatch
+    uploadBatch: uploadBatch,
+    markLive: markLive
   };
 
   function hookCmsEvents() {
@@ -662,6 +784,7 @@
   }
 
   function start() {
+    loadPersisted();
     removeGlobalChrome();
     ensureMediaLibraryButton();
     hookCmsEvents();
