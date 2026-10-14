@@ -19,6 +19,7 @@
     if (el) return el;
     el = document.createElement('div');
     el.id = 'sonar-deploy-banner';
+    el.style.zIndex = '2147483646';
     el.hidden = true;
     el.innerHTML =
       '<strong id="sonar-deploy-title"></strong>' +
@@ -41,6 +42,7 @@
     document.getElementById('sonar-deploy-title').textContent = title;
     document.getElementById('sonar-deploy-msg').textContent = message;
     el.hidden = false;
+    document.body.appendChild(el);
   }
 
   function hideBanner() {
@@ -180,10 +182,39 @@
   }
 
   function noteSave() {
-    if (watching) return;
+    if (watching && (watching.reason === 'publish' || watching.reason === 'media')) return;
     showBanner('ok', 'Brouillon enregistré', 'La preview est à jour. Le site public ne changera qu’à la publication.');
     clearTimeout(noteSave._t);
-    noteSave._t = setTimeout(hideBanner, 7000);
+    noteSave._t = setTimeout(hideBanner, 8000);
+  }
+
+  function hookFetch() {
+    if (global.fetch && global.fetch.__sonarDeployHook) return;
+    var orig = global.fetch;
+    global.fetch = function (input, init) {
+      var req = orig.apply(this, arguments);
+      try {
+        var url = typeof input === 'string' ? input : (input && input.url) || '';
+        var method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+        req.then(function (res) {
+          if (!res || !res.ok || !/api\.github\.com/i.test(url)) return;
+          var u = decodeURIComponent(url);
+          if ((method === 'PUT' || method === 'POST') && /\/(merge|merges)(\?|$)/.test(u)) {
+            watch({ reason: 'publish' });
+            return;
+          }
+          if ((method === 'PATCH' || method === 'POST' || method === 'PUT') && /\/git\/refs\/heads\//.test(u)) {
+            if (/heads\/main(\?|$)/.test(u) || /\/heads\/main$/.test(u)) {
+              if (!watching) watch({ reason: 'publish' });
+            } else if (/heads\/cms\//.test(u)) {
+              noteSave();
+            }
+          }
+        }).catch(function () {});
+      } catch (e) {}
+      return req;
+    };
+    global.fetch.__sonarDeployHook = true;
   }
 
   function resume() {
@@ -203,6 +234,7 @@
       setTimeout(hookCms, 400);
       return;
     }
+    global.CMS.registerEventListener({ name: 'preSave', handler: noteSave });
     global.CMS.registerEventListener({ name: 'postSave', handler: noteSave });
     global.CMS.registerEventListener({
       name: 'postPublish',
@@ -222,6 +254,14 @@
 
   function start() {
     bannerEl();
+    hookFetch();
+    var tries = 0;
+    function keepHook() {
+      hookFetch();
+      tries += 1;
+      if (tries < 20) setTimeout(keepHook, 500);
+    }
+    keepHook();
     resume();
     hookCms();
   }

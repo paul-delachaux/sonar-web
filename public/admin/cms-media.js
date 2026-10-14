@@ -159,6 +159,7 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'sonar-media-toast';
+      el.style.zIndex = '2147483645';
       document.body.appendChild(el);
     }
     el.textContent = message;
@@ -394,6 +395,7 @@
     var list = (files || []).filter(Boolean);
     if (!list.length) return Promise.resolve();
     list.forEach(rememberFile);
+    insertMediaPaths(list.map(function (file) { return publicPathFor(mediaFileName(file)); }));
     rewritePreview();
     var supabaseP = uploadToSupabase(list).catch(function (err) {
       toast('Aperçu admin limité : ' + ((err && err.message) || 'Supabase indisponible') + '. Les images partent quand même sur GitHub.', 'err');
@@ -415,6 +417,7 @@
         toast(list.length > 1
           ? (list.length + ' images envoyées en un commit (' + (target.kind === 'main' ? 'main' : 'brouillon') + ').')
           : 'Image envoyée sur GitHub.');
+        insertMediaPaths(result.paths);
         rewritePreview();
         watchDeploy(result, target.kind);
         return supabaseP;
@@ -609,34 +612,97 @@
     if (nav) nav.remove();
   }
 
+  function findCmsStore() {
+    var root = document.getElementById('nc-root');
+    if (!root) return null;
+    var fiberKey = Object.keys(root).filter(function (key) {
+      return key.indexOf('__reactFiber') === 0 || key.indexOf('__reactContainer') === 0;
+    })[0];
+    if (!fiberKey) return null;
+    var seen = 0;
+    function walk(node) {
+      if (!node || seen > 12000) return null;
+      seen += 1;
+      var props = node.memoizedProps || node.pendingProps;
+      if (props && props.store && typeof props.store.dispatch === 'function') return props.store;
+      var stateNode = node.stateNode;
+      if (stateNode && stateNode.store && typeof stateNode.store.dispatch === 'function') return stateNode.store;
+      if (stateNode && stateNode.context && stateNode.context.store && stateNode.context.store.dispatch) {
+        return stateNode.context.store;
+      }
+      return walk(node.child) || walk(node.sibling);
+    }
+    var fiber = root[fiberKey];
+    var start = fiber && fiber.stateNode && fiber.stateNode.current ? fiber.stateNode.current : fiber;
+    return walk(start);
+  }
+
+  function insertMediaPaths(paths) {
+    var list = (paths || []).filter(Boolean);
+    if (!list.length) return false;
+    var store = findCmsStore();
+    if (!store || typeof store.dispatch !== 'function') return false;
+    try {
+      store.dispatch({ type: 'MEDIA_INSERT', payload: { mediaPath: list.length === 1 ? list[0] : list } });
+      list.forEach(function (path) {
+        store.dispatch({
+          type: 'MEDIA_PERSIST_SUCCESS',
+          payload: {
+            file: {
+              id: path,
+              key: path,
+              name: fileNameFromPath(path),
+              path: repoPathFor(fileNameFromPath(path)),
+              url: cachedUrl(path) || path,
+              displayURL: cachedUrl(path) || path,
+              draft: true,
+              size: 0
+            }
+          }
+        });
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function captureNativeFiles(files) {
+    var list = (files || []).filter(Boolean);
+    if (!list.length) return;
+    list.forEach(rememberFile);
+    rewritePreview();
+    uploadToSupabase(list).then(function () {
+      rewritePreview();
+    }).catch(function () {
+      rewritePreview();
+    });
+  }
+
   function patchLibraryFileInputs(root) {
-    var inputs = root.querySelectorAll('input[type="file"]');
+    var scope = root && root.querySelectorAll ? root : document;
+    var inputs = scope.querySelectorAll('input[type="file"]');
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i];
-      input.multiple = true;
-      if (input.getAttribute('data-sonar-multi') === '1') continue;
-      input.setAttribute('data-sonar-multi', '1');
+      if (input.getAttribute('data-sonar-capture') === '1') continue;
+      input.setAttribute('data-sonar-capture', '1');
       input.addEventListener('change', function (event) {
         var files = Array.prototype.slice.call(event.target.files || []);
         if (!files.length) return;
-        event.stopImmediatePropagation();
-        event.stopPropagation();
-        event.preventDefault();
-        uploadBatch(files);
-        event.target.value = '';
+        captureNativeFiles(files);
       }, true);
     }
   }
 
   function ensureMediaLibraryButton() {
     removeGlobalChrome();
+    patchLibraryFileInputs(document);
     var root = findMediaLibraryRoot();
     var existing = document.getElementById('sonar-media-multi');
     if (!root) {
       if (existing) existing.remove();
       return;
     }
-    patchLibraryFileInputs(root);
     if (existing && root.contains(existing)) return;
     if (existing) existing.remove();
     var anchor = findInsertAnchor(root);
@@ -764,6 +830,7 @@
     rewriteTimer = setTimeout(function () {
       rewriteTimer = null;
       rewritePreview();
+      patchLibraryFileInputs(document);
       ensureMediaLibraryButton();
     }, 80);
   }
