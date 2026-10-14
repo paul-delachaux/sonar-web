@@ -20,6 +20,7 @@ revue_rows:
         Tree’s hypnotic and chilling album In Absentia."
     right:
       type: image
+      image: /assets/uploads/logo.png
   - left:
       type: image
       image: /assets/uploads/2d5e5e08abf3a16dbfe9837538c47866.jpg
