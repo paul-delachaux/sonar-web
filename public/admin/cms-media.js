@@ -1,6 +1,7 @@
 /**
- * Images CMS : aperçu immédiat (blob) + envoi GitHub sur la branche
- * que l'éditeur a le droit d'écrire (brouillon cms/…, ou main si superadmin).
+ * Images CMS : aperçu immédiat (blob) + envoi GitHub.
+ * L'import multiple fait UN SEUL commit (donc un seul build Vercel).
+ * Admin simple → branche brouillon cms/… ; superadmin → main.
  */
 (function (global) {
   var REPO = 'paul-delachaux/sonar-web';
@@ -8,11 +9,7 @@
   var MEDIA_DIR = 'public/assets/uploads';
   var PUBLIC_PREFIX = '/assets/uploads/';
   var cache = {};
-  var inflight = {};
-  var queue = [];
   var waitingForDraft = [];
-  var active = 0;
-  var MAX_PARALLEL = 2;
 
   function githubToken() {
     var search = global.SonarArticleSearch;
@@ -77,6 +74,12 @@
     if (name) cache[publicPathFor(name)] = url;
   }
 
+  function rememberFile(file) {
+    var publicPath = publicPathFor(mediaFileName(file));
+    if (!cache[publicPath]) remember(publicPath, URL.createObjectURL(file));
+    return publicPath;
+  }
+
   function toast(message, kind) {
     var el = document.getElementById('sonar-media-toast');
     if (!el) {
@@ -90,7 +93,7 @@
     clearTimeout(toast._t);
     toast._t = setTimeout(function () {
       el.hidden = true;
-    }, 4200);
+    }, 5000);
   }
 
   function toBase64(buffer) {
@@ -105,6 +108,13 @@
 
   function encodeRepoPath(path) {
     return String(path || '')
+      .split('/')
+      .map(function (part) { return encodeURIComponent(part); })
+      .join('/');
+  }
+
+  function encodeRef(branch) {
+    return String(branch || '')
       .split('/')
       .map(function (part) { return encodeURIComponent(part); })
       .join('/');
@@ -125,25 +135,31 @@
     return 'cms/' + collection + '/' + slug;
   }
 
-  function encodeRef(branch) {
-    return String(branch || '')
-      .split('/')
-      .map(function (part) { return encodeURIComponent(part); })
-      .join('/');
+  function gitJson(path, opts) {
+    opts = opts || {};
+    var headers = authHeaders(opts.body ? { 'Content-Type': 'application/json' } : {});
+    return fetch('https://api.github.com/repos/' + REPO + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.message) || ('GitHub HTTP ' + res.status));
+        return data;
+      }, function () {
+        if (!res.ok) throw new Error('GitHub HTTP ' + res.status);
+        return {};
+      });
+    });
   }
 
   function branchExists(branch) {
     var token = githubToken();
     if (!token || !branch) return Promise.resolve(false);
-    return fetch('https://api.github.com/repos/' + REPO + '/git/matching-refs/heads/' + encodeRef(branch), {
-      headers: authHeaders()
-    }).then(function (res) {
-      if (!res.ok) return false;
-      return res.json().then(function (list) {
-        if (!Array.isArray(list)) return false;
-        var needle = 'refs/heads/' + branch;
-        return list.some(function (item) { return item && item.ref === needle; });
-      });
+    return gitJson('/git/matching-refs/heads/' + encodeRef(branch)).then(function (list) {
+      if (!Array.isArray(list)) return false;
+      var needle = 'refs/heads/' + branch;
+      return list.some(function (item) { return item && item.ref === needle; });
     }).catch(function () { return false; });
   }
 
@@ -161,102 +177,126 @@
     return Promise.resolve({ branch: '', kind: 'need-entry' });
   }
 
-  function getExistingSha(path, branch) {
-    var token = githubToken();
-    if (!token) return Promise.resolve('');
-    var ref = branch || DEFAULT_BRANCH;
-    return fetch('https://api.github.com/repos/' + REPO + '/contents/' + encodeRepoPath(path) + '?ref=' + encodeURIComponent(ref), {
-      headers: authHeaders()
-    }).then(function (res) {
-      if (!res.ok) return '';
-      return res.json().then(function (data) { return data && data.sha ? data.sha : ''; });
-    }).catch(function () { return ''; });
-  }
-
-  function putOnBranch(file, branch) {
-    var token = githubToken();
-    if (!token) {
-      return Promise.reject(new Error('Session GitHub absente : reconnecte-toi à l’admin.'));
-    }
-    var name = mediaFileName(file);
-    var path = repoPathFor(name);
-    return file.arrayBuffer().then(function (buf) {
-      return getExistingSha(path, branch).then(function (sha) {
-        var body = {
-          message: 'media: ' + name,
-          content: toBase64(buf),
-          branch: branch
-        };
-        if (sha) body.sha = sha;
-        return fetch('https://api.github.com/repos/' + REPO + '/contents/' + encodeRepoPath(path), {
-          method: 'PUT',
-          headers: authHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify(body)
-        });
-      });
-    }).then(function (res) {
-      if (!res.ok) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-          var message = (data && data.message) || ('GitHub HTTP ' + res.status);
-          throw new Error(message);
-        });
-      }
-      return publicPathFor(name);
+  function getHeadSha(branch) {
+    return gitJson('/git/matching-refs/heads/' + encodeRef(branch)).then(function (list) {
+      var needle = 'refs/heads/' + branch;
+      var hit = (list || []).filter(function (item) { return item && item.ref === needle; })[0];
+      if (!hit || !hit.object || !hit.object.sha) throw new Error('Branche introuvable : ' + branch);
+      return hit.object.sha;
     });
   }
 
-  function rememberFile(file) {
-    var name = mediaFileName(file);
-    var publicPath = publicPathFor(name);
-    if (!cache[publicPath]) remember(publicPath, URL.createObjectURL(file));
-    return publicPath;
-  }
-
-  function enqueue(file, forcedBranch) {
-    rememberFile(file);
-    var publicPath = publicPathFor(mediaFileName(file));
-    var job = detectTarget().then(function (target) {
-      var branch = forcedBranch || target.branch;
-      if (!branch) {
-        if (target.kind === 'wait-draft') waitingForDraft.push(file);
-        var err = new Error(target.kind === 'need-entry'
-          ? 'Importe l’image depuis l’article (après « Enregistrer » le brouillon). Un admin ne peut pas écrire sur main.'
-          : 'Enregistre d’abord le brouillon : l’image partira sur la branche de relecture, pas sur main.');
-        err.queued = true;
-        throw err;
+  function mapLimit(items, limit, worker) {
+    var index = 0;
+    var running = 0;
+    var results = [];
+    return new Promise(function (resolve, reject) {
+      function next() {
+        if (index >= items.length && running === 0) {
+          resolve(results);
+          return;
+        }
+        while (running < limit && index < items.length) {
+          (function (i) {
+            running += 1;
+            Promise.resolve(worker(items[i], i)).then(function (value) {
+              results[i] = value;
+              running -= 1;
+              next();
+            }, reject);
+          })(index);
+          index += 1;
+        }
       }
-      if (inflight[publicPath + '@' + branch]) return inflight[publicPath + '@' + branch];
-      var sent = new Promise(function (resolve, reject) {
-        queue.push({ file: file, branch: branch, resolve: resolve, reject: reject });
-        pump();
-      });
-      inflight[publicPath + '@' + branch] = sent;
-      sent.then(function () {
-        delete inflight[publicPath + '@' + branch];
-      }, function () {
-        delete inflight[publicPath + '@' + branch];
-      });
-      sent.kind = target.kind;
-      sent.branch = branch;
-      return sent;
+      if (!items.length) resolve([]);
+      else next();
     });
-    return job;
   }
 
-  function pump() {
-    while (active < MAX_PARALLEL && queue.length) {
-      var item = queue.shift();
-      active += 1;
-      putOnBranch(item.file, item.branch).then(function (path) {
-        active -= 1;
-        item.resolve(path);
-        pump();
-      }, function (err) {
-        active -= 1;
-        item.reject(err);
-        pump();
+  function commitFilesBatch(files, branch) {
+    var token = githubToken();
+    if (!token) return Promise.reject(new Error('Session GitHub absente : reconnecte-toi à l’admin.'));
+    if (!files.length) return Promise.resolve([]);
+
+    var unique = [];
+    var seen = {};
+    files.forEach(function (file) {
+      var name = mediaFileName(file);
+      if (seen[name]) return;
+      seen[name] = true;
+      unique.push(file);
+    });
+
+    return getHeadSha(branch).then(function (headSha) {
+      return gitJson('/git/commits/' + headSha).then(function (commit) {
+        var baseTree = commit.tree && commit.tree.sha;
+        return mapLimit(unique, 4, function (file) {
+          return file.arrayBuffer().then(function (buf) {
+            return gitJson('/git/blobs', {
+              method: 'POST',
+              body: { content: toBase64(buf), encoding: 'base64' }
+            }).then(function (blob) {
+              return {
+                path: repoPathFor(mediaFileName(file)),
+                mode: '100644',
+                type: 'blob',
+                sha: blob.sha
+              };
+            });
+          });
+        }).then(function (treeItems) {
+          return gitJson('/git/trees', {
+            method: 'POST',
+            body: { base_tree: baseTree, tree: treeItems }
+          }).then(function (tree) {
+            var names = unique.map(function (file) { return mediaFileName(file); });
+            var message = names.length === 1
+              ? 'media: ' + names[0]
+              : 'media: ' + names.length + ' fichiers (' + names.slice(0, 4).join(', ') + (names.length > 4 ? '…' : '') + ')';
+            return gitJson('/git/commits', {
+              method: 'POST',
+              body: { message: message, tree: tree.sha, parents: [headSha] }
+            });
+          }).then(function (newCommit) {
+            return gitJson('/git/refs/heads/' + encodeRef(branch), {
+              method: 'PATCH',
+              body: { sha: newCommit.sha }
+            });
+          }).then(function () {
+            return unique.map(function (file) { return publicPathFor(mediaFileName(file)); });
+          });
+        });
       });
-    }
+    });
+  }
+
+  function uploadBatch(files) {
+    var list = (files || []).filter(Boolean);
+    if (!list.length) return Promise.resolve();
+    list.forEach(rememberFile);
+    rewritePreview();
+    return detectTarget().then(function (target) {
+      if (!target.branch) {
+        if (target.kind === 'wait-draft') {
+          waitingForDraft = waitingForDraft.concat(list);
+          toast('Aperçu OK. Enregistre le brouillon : les ' + list.length + ' image(s) partiront ensuite en un seul commit.');
+          return;
+        }
+        toast('Ouvre un article (et enregistre le brouillon) pour envoyer des images. Un admin ne peut pas écrire sur main.', 'err');
+        return;
+      }
+      toast(list.length > 1
+        ? ('Envoi de ' + list.length + ' images en un seul commit…')
+        : 'Envoi de l’image vers GitHub…');
+      return commitFilesBatch(list, target.branch).then(function () {
+        toast(list.length > 1
+          ? (list.length + ' images envoyées en un commit (' + (target.kind === 'main' ? 'main' : 'brouillon') + '). Un seul build Vercel.')
+          : 'Image envoyée sur GitHub.');
+        rewritePreview();
+      });
+    }).catch(function (err) {
+      toast((err && err.message) || 'Échec de l’envoi GitHub.', 'err');
+    });
   }
 
   function flushWaitingForDraft() {
@@ -264,15 +304,12 @@
     detectTarget().then(function (target) {
       if (!target.branch) return;
       var pending = waitingForDraft.splice(0, waitingForDraft.length);
-      Promise.all(pending.map(function (file) { return enqueue(file, target.branch); }))
-        .then(function () {
-          toast(pending.length > 1
-            ? (pending.length + ' images envoyées sur le brouillon GitHub.')
-            : 'Image envoyée sur le brouillon GitHub.');
-        })
-        .catch(function (err) {
-          toast((err && err.message) || 'Impossible d’envoyer les images du brouillon.', 'err');
-        });
+      toast('Envoi de ' + pending.length + ' image(s) du brouillon en un commit…');
+      return commitFilesBatch(pending, target.branch).then(function () {
+        toast(pending.length + ' image(s) envoyées sur le brouillon (un commit).');
+      });
+    }).catch(function (err) {
+      toast((err && err.message) || 'Impossible d’envoyer les images du brouillon.', 'err');
     });
   }
 
@@ -321,92 +358,115 @@
     return tryRef(0);
   }
 
-  function isMediaPage() {
-    var hash = String(global.location && global.location.hash || '');
-    if (/(^|#)\/?media(\/|\?|$)/i.test(hash)) return true;
-    var root = document.getElementById('nc-root');
-    if (!root) return false;
-    if (root.querySelector('[class*="MediaLibrary"], [class*="media-library"]')) return true;
-    var headings = root.querySelectorAll('h1, h2, h3');
-    for (var i = 0; i < headings.length; i++) {
-      var t = String(headings[i].textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-      if (t === 'media' || t === 'médias' || t === 'media library' || t.indexOf('médiath') !== -1) return true;
-    }
-    return false;
-  }
-
-  function onFilesChosen(event) {
-    var input = event.target;
-    if (!input || input.type !== 'file' || !input.files || !input.files.length) return;
-    var files = Array.prototype.slice.call(input.files);
-    var allowMany = isMediaPage() || input.multiple;
-    var batch = allowMany ? files : files.slice(0, 1);
-    var jobs = batch.map(function (file) { return enqueue(file); });
-    if (!jobs.length) return;
-    toast(jobs.length > 1
-      ? ('Préparation de ' + jobs.length + ' fichiers…')
-      : 'Préparation de l’image…');
-    Promise.all(jobs.map(function (job) {
-      return job.then(function (v) { return { ok: true, v: v }; }, function (err) { return { ok: false, err: err }; });
-    })).then(function (results) {
-      var ok = 0;
-      var queued = 0;
-      var fail = [];
-      results.forEach(function (r) {
-        if (r.ok) ok += 1;
-        else if (r.err && r.err.queued) queued += 1;
-        else fail.push(r.err && r.err.message ? r.err.message : 'échec');
-      });
-      if (fail.length && !ok && !queued) toast('Échec GitHub : ' + fail[0], 'err');
-      else if (queued && !ok) toast(results[0] && results[0].err && results[0].err.message
-        ? results[0].err.message
-        : 'Aperçu OK. Enregistre le brouillon pour envoyer l’image sur GitHub.');
-      else if (fail.length) toast(ok + ' envoyé(s), ' + fail.length + ' échec(s).', 'err');
-      else toast(ok > 1
-        ? (ok + ' fichiers envoyés sur GitHub (brouillon ou main selon tes droits).')
-        : 'Image envoyée sur GitHub. L’aperçu l’affiche tout de suite.');
-      rewritePreview();
+  function openMultiPicker() {
+    var ghost = document.createElement('input');
+    ghost.type = 'file';
+    ghost.accept = 'image/*,audio/*,video/*,.pdf,.webp,.avif';
+    ghost.multiple = true;
+    ghost.style.position = 'fixed';
+    ghost.style.left = '-9999px';
+    document.body.appendChild(ghost);
+    ghost.addEventListener('change', function () {
+      var files = Array.prototype.slice.call(ghost.files || []);
+      ghost.remove();
+      uploadBatch(files);
     });
+    ghost.click();
   }
 
-  function patchInputs(root) {
-    var scope = root && root.querySelectorAll ? root : document;
-    var inputs = scope.querySelectorAll('input[type="file"]');
+  function controlLabel(el) {
+    return (el && el.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function findUploadControl(root) {
+    if (!root || !root.querySelectorAll) return null;
+    var nodes = root.querySelectorAll('button, label');
+    for (var i = 0; i < nodes.length; i++) {
+      var t = controlLabel(nodes[i]);
+      if (t === 'Upload' || t === 'Téléverser' || t.indexOf('Uploading') === 0) return nodes[i];
+    }
+    return null;
+  }
+
+  function findInsertAnchor(root) {
+    var upload = findUploadControl(root);
+    if (upload && upload.parentNode) return { parent: upload.parentNode, before: upload };
+    var buttons = root.querySelectorAll('button');
+    for (var i = 0; i < buttons.length; i++) {
+      var t = controlLabel(buttons[i]);
+      if (t === 'Copy' || t === 'Download' || t === 'Delete selected' || t === 'Supprimer la sélection') {
+        return { parent: buttons[i].parentNode, before: buttons[i] };
+      }
+    }
+    return null;
+  }
+
+  function findMediaLibraryRoot() {
+    var headings = document.querySelectorAll('h1, h2, h3');
+    for (var i = 0; i < headings.length; i++) {
+      var text = controlLabel(headings[i]);
+      if (text.indexOf('Media assets') === -1 && text.indexOf('Médiathèque') === -1) continue;
+      var node = headings[i].parentElement;
+      for (var depth = 0; depth < 14 && node && node !== document.body; depth++) {
+        var search = node.querySelector('input[placeholder*="Search"], input[placeholder*="search"], input[placeholder*="Rechercher"], input[type="search"]');
+        if (search) return node;
+        node = node.parentElement;
+      }
+    }
+    return null;
+  }
+
+  function removeGlobalChrome() {
+    var bar = document.getElementById('sonar-media-bar');
+    if (bar) bar.remove();
+    var nav = document.getElementById('sonar-media-nav');
+    if (nav) nav.remove();
+  }
+
+  function patchLibraryFileInputs(root) {
+    var inputs = root.querySelectorAll('input[type="file"]');
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i];
-      if (isMediaPage()) input.multiple = true;
-      if (input.dataset.sonarMediaBound === '1') continue;
-      input.dataset.sonarMediaBound = '1';
-      input.addEventListener('change', onFilesChosen, true);
+      input.multiple = true;
+      if (input.getAttribute('data-sonar-multi') === '1') continue;
+      input.setAttribute('data-sonar-multi', '1');
+      input.addEventListener('change', function (event) {
+        var files = Array.prototype.slice.call(event.target.files || []);
+        if (!files.length) return;
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        event.preventDefault();
+        uploadBatch(files);
+        event.target.value = '';
+      }, true);
     }
   }
 
-  function ensureMediaBar() {
-    if (!isMediaPage()) {
-      var old = document.getElementById('sonar-media-bar');
-      if (old) old.remove();
+  function ensureMediaLibraryButton() {
+    removeGlobalChrome();
+    var root = findMediaLibraryRoot();
+    var existing = document.getElementById('sonar-media-multi');
+    if (!root) {
+      if (existing) existing.remove();
       return;
     }
-    if (document.getElementById('sonar-media-bar')) return;
-    var bar = document.createElement('div');
-    bar.id = 'sonar-media-bar';
-    bar.innerHTML =
-      '<span>Import multiple : superadmin → main. Admin → depuis l’article, sur la branche brouillon (pas sur main).</span>' +
-      '<button type="button" id="sonar-media-multi">Importer plusieurs images</button>';
-    document.body.appendChild(bar);
-    document.getElementById('sonar-media-multi').addEventListener('click', function () {
-      var ghost = document.createElement('input');
-      ghost.type = 'file';
-      ghost.accept = 'image/*,audio/*,video/*,.pdf';
-      ghost.multiple = true;
-      ghost.style.display = 'none';
-      document.body.appendChild(ghost);
-      ghost.addEventListener('change', function () {
-        onFilesChosen({ target: ghost });
-        ghost.remove();
-      });
-      ghost.click();
+    patchLibraryFileInputs(root);
+    if (existing && root.contains(existing)) return;
+    if (existing) existing.remove();
+    var anchor = findInsertAnchor(root);
+    if (!anchor) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sonar-media-multi';
+    btn.setAttribute('data-sonar-media-lib', '1');
+    btn.textContent = 'Importer plusieurs images';
+    btn.title = 'Un seul commit GitHub, un seul build Vercel';
+    btn.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      openMultiPicker();
     });
+    anchor.parent.insertBefore(btn, anchor.before);
   }
 
   function rewritePreview() {
@@ -442,15 +502,14 @@
     rewriteTimer = setTimeout(function () {
       rewriteTimer = null;
       rewritePreview();
-      patchInputs(document);
-      ensureMediaBar();
+      ensureMediaLibraryButton();
     }, 80);
   }
 
   global.SonarCmsMedia = {
     url: syncUrl,
     resolve: resolve,
-    upload: enqueue
+    uploadBatch: uploadBatch
   };
 
   function hookCmsEvents() {
@@ -462,15 +521,14 @@
   }
 
   function start() {
-    patchInputs(document);
-    ensureMediaBar();
+    removeGlobalChrome();
+    ensureMediaLibraryButton();
     hookCmsEvents();
     if (document.body) {
       new MutationObserver(scheduleRewrite).observe(document.body, { childList: true, subtree: true });
     }
     global.addEventListener('hashchange', function () {
-      patchInputs(document);
-      ensureMediaBar();
+      ensureMediaLibraryButton();
       flushWaitingForDraft();
     });
   }

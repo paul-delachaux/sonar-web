@@ -741,33 +741,19 @@
     }
     #sonar-media-toast[hidden] { display: none !important; }
     #sonar-media-toast[data-kind="err"] { border-left-color: #e5484d; }
-    #sonar-media-bar {
-      position: fixed;
-      left: 18px;
-      bottom: 18px;
-      z-index: 11000;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      max-width: min(560px, calc(100vw - 36px));
-      background: #01002b;
-      color: #fff;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font: 600 12px/1.4 Helvetica, Arial, sans-serif;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.28);
-    }
-    #sonar-media-bar span { opacity: 0.9; }
     #sonar-media-multi {
       background: #ff7900;
       border: none;
       color: #fff;
-      border-radius: 6px;
-      padding: 8px 12px;
-      font-weight: 800;
+      border-radius: 5px;
+      padding: 0 16px;
+      height: 36px;
+      font: 700 14px/36px Helvetica, Arial, sans-serif;
       cursor: pointer;
+      margin-right: 8px;
+      white-space: nowrap;
     }
+    #sonar-media-multi:hover { filter: brightness(1.05); }
   </style>
 </head>
 <body>
@@ -782,7 +768,7 @@
   <script src="/admin/revue-fields.js?v=20260928a"></script>
   <script src="/admin/accounts-admin.js?v=20260930b"></script>
   <script src="/admin/cms-logs.js?v=20260930b"></script>
-  <script src="/admin/cms-media.js?v=20261013b"></script>
+  <script src="/admin/cms-media.js?v=20261014b"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
