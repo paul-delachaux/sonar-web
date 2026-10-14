@@ -15,6 +15,7 @@
   var waitingForDraft = [];
   var pickedMedia = {};
   var overlayChecks = {};
+  var checkTimer = null;
   var STORE_KEY = 'sonar-cms-media-urls';
   var LIVE_KEY = 'sonar-cms-media-live';
 
@@ -745,113 +746,129 @@
     return Object.keys(pickedMedia).filter(function (name) { return pickedMedia[name]; });
   }
 
-  function mediaNameFromCard(img, card) {
-    var compact = String((card && card.textContent) || '').replace(/\s+/g, '');
-    var match = compact.match(/([^/\\]+\.(?:png|jpe?g|gif|webp|avif|svg|mp3|wav|pdf))\b/i);
-    if (match) return fileNameFromPath(match[1]);
-    var src = fileNameFromPath((img && (img.getAttribute('alt') || img.getAttribute('src'))) || '');
-    if (src && /\./.test(src) && src.indexOf('blob:') !== 0) return src;
+  function updateDeleteLabel() {
+    var del = document.getElementById('sonar-media-delete');
+    if (!del) return;
+    var n = selectedMediaNames().length;
+    del.textContent = n ? ('Supprimer la sélection (' + n + ')') : 'Supprimer la sélection';
+  }
+
+  function ensureCheckStyles() {
+    if (document.getElementById('sonar-media-check-css')) return;
+    var style = document.createElement('style');
+    style.id = 'sonar-media-check-css';
+    style.textContent = [
+      '.sonar-media-check{',
+      'position:absolute!important;top:8px!important;left:8px!important;z-index:2147483646!important;',
+      'width:22px!important;height:22px!important;margin:0!important;padding:0!important;',
+      'cursor:pointer!important;accent-color:#ff7900;background:#fff!important;border:1px solid #111!important;',
+      'opacity:1!important;visibility:visible!important;display:block!important;pointer-events:auto!important;',
+      'appearance:auto!important;-webkit-appearance:checkbox!important;',
+      '}',
+      '#sonar-media-checks{position:fixed;inset:0;z-index:2147483646;pointer-events:none;}',
+      '#sonar-media-checks .sonar-media-check{position:fixed!important;pointer-events:auto!important;}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function cardFileName(wrap) {
+    var node = wrap;
+    for (var d = 0; d < 4 && node; d++) {
+      var label = node.querySelector && node.querySelector('p');
+      var name = fileNameFromPath(String((label && label.textContent) || '').replace(/\s+/g, ''));
+      if (name && name.indexOf('.') !== -1) return name;
+      node = node.parentElement;
+    }
     return '';
   }
 
-  function findMediaCards(root) {
-    var cards = [];
-    var seen = {};
-    if (!root || !root.querySelectorAll) return cards;
-    var imgs = root.querySelectorAll('img');
-    for (var i = 0; i < imgs.length; i++) {
-      var img = imgs[i];
-      var card = img.parentElement;
-      for (var d = 0; d < 6 && card && card !== root; d++) {
-        if (card.querySelector && card.querySelector('img') && card.querySelector('p')) break;
-        card = card.parentElement;
+  function makeCheckbox(name) {
+    var box = document.createElement('input');
+    box.type = 'checkbox';
+    box.className = 'sonar-media-check';
+    box.setAttribute('data-name', name);
+    box.checked = !!pickedMedia[name];
+    box.title = 'Inclure dans la suppression multiple';
+    function stop(event) { event.stopPropagation(); }
+    box.addEventListener('pointerdown', stop);
+    box.addEventListener('mousedown', stop);
+    box.addEventListener('mouseup', stop);
+    box.addEventListener('click', function (event) {
+      event.stopPropagation();
+      var fileName = event.currentTarget.getAttribute('data-name');
+      pickedMedia[fileName] = !!event.currentTarget.checked;
+      var twins = document.getElementsByClassName('sonar-media-check');
+      for (var i = 0; i < twins.length; i++) {
+        if (twins[i].getAttribute('data-name') === fileName) twins[i].checked = !!pickedMedia[fileName];
       }
-      if (!card || card === root) card = img.parentElement || img;
-      var name = mediaNameFromCard(img, card);
-      if (!name || seen[name]) continue;
-      seen[name] = true;
-      cards.push({ el: img, name: name });
-    }
-    return cards;
+      updateDeleteLabel();
+    });
+    return box;
   }
 
-  function removeCheckOverlay() {
+  function ensureBodyOverlay() {
     var overlay = document.getElementById('sonar-media-checks');
-    if (overlay) overlay.remove();
-    overlayChecks = {};
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'sonar-media-checks';
+    document.body.appendChild(overlay);
+    return overlay;
   }
 
-  function syncCheckboxes(root) {
-    if (!root) {
-      removeCheckOverlay();
+  function injectCardCheckboxes() {
+    ensureCheckStyles();
+    var wraps = document.querySelectorAll('[class*="CardImageWrapper"]');
+    if (!wraps.length) {
+      var dead = document.getElementById('sonar-media-checks');
+      if (dead) dead.remove();
       return;
     }
-    var overlay = document.getElementById('sonar-media-checks');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'sonar-media-checks';
-    }
-    if (root.style.position === '' || root.style.position === 'static') {
-      root.style.position = 'relative';
-    }
-    root.appendChild(overlay);
-    var origin = overlay.getBoundingClientRect();
-    var cards = findMediaCards(root);
-    var still = {};
-    for (var i = 0; i < cards.length; i++) {
-      (function (card) {
-        still[card.name] = true;
-        var rect = card.el.getBoundingClientRect();
-        var box = overlayChecks[card.name];
-        if (!box || !box.isConnected) {
-          box = document.createElement('input');
-          box.type = 'checkbox';
-          box.className = 'sonar-media-check';
-          box.setAttribute('data-name', card.name);
-          box.title = 'Inclure dans la suppression multiple';
-          box.addEventListener('mousedown', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-          });
-          box.addEventListener('click', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            pickedMedia[card.name] = !pickedMedia[card.name];
-            box.checked = !!pickedMedia[card.name];
-            var del = document.getElementById('sonar-media-delete');
-            if (del) {
-              var n = selectedMediaNames().length;
-              del.textContent = n ? ('Supprimer la sélection (' + n + ')') : 'Supprimer la sélection';
-            }
-          });
-          overlay.appendChild(box);
-          overlayChecks[card.name] = box;
-        } else if (box.parentNode !== overlay) {
-          overlay.appendChild(box);
-        }
-        var visible = rect.width > 20 && rect.height > 20 && rect.bottom > origin.top + 20 && rect.top < origin.bottom;
-        box.checked = !!pickedMedia[card.name];
-        box.style.position = 'absolute';
-        box.style.left = Math.round(rect.left - origin.left + 8) + 'px';
-        box.style.top = Math.round(rect.top - origin.top + 8) + 'px';
-        box.style.display = visible ? 'block' : 'none';
-      })(cards[i]);
+    var overlay = ensureBodyOverlay();
+    var seen = {};
+    for (var i = 0; i < wraps.length; i++) {
+      var wrap = wraps[i];
+      var name = cardFileName(wrap);
+      if (!name || seen[name]) continue;
+      seen[name] = true;
+      if (!wrap.querySelector('.sonar-media-check')) {
+        wrap.insertBefore(makeCheckbox(name), wrap.firstChild);
+      }
+      var inner = wrap.querySelector('.sonar-media-check');
+      if (inner) inner.checked = !!pickedMedia[name];
+      var rect = wrap.getBoundingClientRect();
+      var overlayBox = overlayChecks[name];
+      if (!overlayBox || overlayBox.parentNode !== overlay) {
+        overlayBox = makeCheckbox(name);
+        overlay.appendChild(overlayBox);
+        overlayChecks[name] = overlayBox;
+      }
+      var visible = rect.width > 40 && rect.height > 40 && rect.bottom > 0 && rect.top < global.innerHeight;
+      overlayBox.checked = !!pickedMedia[name];
+      overlayBox.style.left = Math.round(rect.left + 8) + 'px';
+      overlayBox.style.top = Math.round(rect.top + 8) + 'px';
+      overlayBox.style.display = visible ? 'block' : 'none';
     }
     Object.keys(overlayChecks).forEach(function (name) {
-      if (still[name]) return;
+      if (seen[name]) return;
       overlayChecks[name].remove();
       delete overlayChecks[name];
     });
-    var del = document.getElementById('sonar-media-delete');
-    if (del) {
-      var n = selectedMediaNames().length;
-      del.textContent = n ? ('Supprimer la sélection (' + n + ')') : 'Supprimer la sélection';
+    updateDeleteLabel();
+  }
+
+  function startCheckLoop() {
+    if (checkTimer) return;
+    function tick() {
+      if (!document.querySelector('[class*="CardImageWrapper"]')) {
+        checkTimer = null;
+        var dead = document.getElementById('sonar-media-checks');
+        if (dead) dead.remove();
+        return;
+      }
+      injectCardCheckboxes();
+      checkTimer = global.requestAnimationFrame(tick);
     }
-    if (!root.__sonarMediaScroll) {
-      root.__sonarMediaScroll = true;
-      root.addEventListener('scroll', function () { syncCheckboxes(root); }, true);
-      global.addEventListener('resize', function () { syncCheckboxes(root); });
-    }
+    checkTimer = global.requestAnimationFrame(tick);
   }
 
   function ensureDeleteButton(root) {
@@ -883,7 +900,7 @@
           names.forEach(function (name) { delete pickedMedia[name]; });
           toast(names.length + ' fichier(s) supprimé(s) (un commit).');
           watchDeploy(result, target.kind);
-          syncCheckboxes(root);
+          injectCardCheckboxes();
         });
       }).catch(function (err) {
         toast((err && err.message) || 'Échec de la suppression.', 'err');
@@ -896,16 +913,18 @@
   function ensureMediaLibraryButton() {
     removeGlobalChrome();
     patchLibraryFileInputs(document);
+    if (document.querySelector('[class*="CardImageWrapper"]')) {
+      startCheckLoop();
+      injectCardCheckboxes();
+    }
     var root = findMediaLibraryRoot();
     var existing = document.getElementById('sonar-media-multi');
     if (!root) {
       if (existing) existing.remove();
       var oldDel = document.getElementById('sonar-media-delete');
       if (oldDel) oldDel.remove();
-      removeCheckOverlay();
       return;
     }
-    syncCheckboxes(root);
     if (!existing || !root.contains(existing)) {
       if (existing) existing.remove();
       var anchor = findInsertAnchor(root);
