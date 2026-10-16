@@ -12,19 +12,19 @@ description: Sous la pression des tensions mondiales et de la quête de
   américain.
 body_en: ""
 date: 2026-09-23T09:19:00.000+02:00
-author: Victor Zhâ
+author: Paul Delachaux
 author_info:
   - author_about: Aucune information fournie pour le moment.
     author_about_en: No information provided at this time.
-category: politique
-image: /assets/uploads/20260919144907-4512.avif
-image_info:
-  - image_caption: "© Crédit photo : MADS CLAUS RASMUSSEN / AFP"
-    image_caption_en: ""
-image_position: 0
 isVisible: true
 consulted_sources:
   - source_title: https://www.sudouest.fr/international/groenland/groenland-un-accord-tripartite-sera-signe-mardi-par-washington-copenhague-et-nuuk-30727622.php
+image_position: 0
+image_info:
+  - image_caption: "© Crédit photo : MADS CLAUS RASMUSSEN / AFP"
+    image_caption_en: ""
+category: politique
+image: /assets/uploads/20260919144907-4512.avif
 use_thumbnail: false
 ---
 Le 18 septembre, par un court message publié sur Truth Social, le président américain scellait un dénouement longtemps espéré : la conclusion d’un accord avec le Royaume du Danemark sur le sort du Groenland. Une poignée de mains officielle, prévue le 21 septembre sous les dorures des Nations unies à New York, devait venir concrétiser cette trêve géopolitique. Pour l’administration Trump, enlourdie par un conflit iranien dans lequel elle s’enlise depuis le 28 février 2026, cette percée arctique offrait la parenthèse d'un triomphe diplomatique, une lueur d’accalmie au milieu des ombres de la guerre ?
