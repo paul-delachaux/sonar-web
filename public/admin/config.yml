@@ -32,6 +32,13 @@ collections:
       - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
       - { name: "body_en", label: "Contenu de l'article (EN)", widget: "markdown", required: false }
 
+      - { label: "IMAGES ET TWEETS DANS LE TEXTE", name: "sep_media_blocks", widget: "separator", required: false }
+      - label: "Ordre dans l'article"
+        name: "media_blocks"
+        widget: "body-composer"
+        required: false
+        hint: "Ajoute des images et des tweets, puis glisse-les entre les paragraphes. La miniature reste le champ ci-dessous."
+
       # --- MOTS DÉFINIS (SURVOL) ---
       - { name: "definitions_sep", widget: "separator", label: "📖 Mots définis (survol orange)", required: false }
       - label: "Définitions"
@@ -61,22 +68,7 @@ collections:
         hint: "Domaines et sous-domaines (Paramètres → Domaines). Un article de sous-domaine apparaît aussi sur la page du domaine principal."
       
       # --- IMAGES ---
-      - { label: "Image de miniature", name: "image", widget: "image", hint: "Sert de miniature globale et d'image d'article par défaut" }
-      - label: "Légende de l'image (Optionnelle)"
-        name: "image_info"
-        widget: "list"
-        required: false
-        min: 1
-        default:
-          - image_caption: ""
-            image_caption_en: ""
-        collapsed: false
-        fields:
-          - { name: "image_caption", label: "Légende de l'image (FR)", widget: "string", required: false }
-          - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
-      - { label: "Image interne de l'article (Optionnelle)", name: "article_image", widget: "image", required: false, hint: "Si laissée vide, l'image de miniature sera utilisée" }
-      - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
-
+      - { label: "Image de miniature", name: "image", widget: "image", hint: "Carte d’accueil / catégories. Les images dans le corps de l’article se gèrent dans « Ordre dans l’article »." }
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
 
       # --- INFOS AUTEUR & LECTURE ---
@@ -111,9 +103,6 @@ collections:
           - { label: "Nom de la source (FR)", name: "source_title", widget: "string" }
           - { label: "Nom de la source (EN)", name: "source_title_en", widget: "string" }
           - { label: "Lien URL (Optionnel)", name: "source_url", widget: "string", required: false }
-
-      - { label: "Tweet à intégrer (Optionnel)", name: "tweet_url", widget: "string", required: false, hint: "Colle l'URL complète du tweet, ex: https://x.com/nom_utilisateur/status/123456789" }
-      - { label: "Position du tweet (après le paragraphe N)", name: "tweet_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = le tweet apparaît au-dessus de tout le texte. 1, 2, 3... = il apparaît après ce paragraphe." }
 
       # --- MINIATURE CUSTOM ---
       - { label: "CONFIGURATION GRAPHIQUE DE LA MINIATURE (optionnel)", name: "sep_miniature", widget: "separator", required: false, collapsed: true }
@@ -151,6 +140,13 @@ collections:
       - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
       - { name: "body_en", label: "Texte court", widget: "markdown", required: false }
 
+      - { label: "IMAGES ET TWEETS DANS LE TEXTE", name: "sep_media_blocks", widget: "separator", required: false }
+      - label: "Ordre dans la brève"
+        name: "media_blocks"
+        widget: "body-composer"
+        required: false
+        hint: "Ajoute des images et des tweets, puis glisse-les entre les paragraphes. La miniature reste le champ « Image de miniature »."
+
       # --- MOTS DÉFINIS (SURVOL) ---
       - { name: "definitions_sep", widget: "separator", label: "📖 Mots définis (survol orange)", required: false }
       - label: "Définitions"
@@ -198,25 +194,9 @@ collections:
         display_fields: ["domains.*.label"]
         options_length: 50
         hint: "Domaines et sous-domaines (Paramètres → Domaines). Un article de sous-domaine apparaît aussi sur la page du domaine principal."
-      - { label: "Image de miniature", name: "image", widget: "image" }
-      - label: "Légende de l'image (Optionnelle)"
-        name: "image_info"
-        widget: "list"
-        required: false
-        min: 1
-        default:
-          - image_caption: ""
-            image_caption_en: ""
-        collapsed: false
-        fields:
-          - { name: "image_caption", label: "Légende de l'image (FR)", widget: "string", required: false }
-          - { name: "image_caption_en", label: "Légende de l'image (EN)", widget: "string", required: false }
-
-      - { label: "Position de l'image (après le paragraphe N)", name: "image_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = l'image apparaît au-dessus de tout le texte. 1, 2, 3... = elle apparaît après ce paragraphe." }
+      - { label: "Image de miniature", name: "image", widget: "image", hint: "Carte d’accueil / catégories. Les images dans le corps se gèrent dans « Ordre dans la brève »." }
       - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
-      - { label: "Tweet à intégrer (Optionnel)", name: "tweet_url", widget: "string", required: false, hint: "Colle l'URL complète du tweet, ex: https://x.com/nom_utilisateur/status/123456789" }
-      - { label: "Position du tweet (après le paragraphe N)", name: "tweet_position", widget: "number", default: 0, min: 0, required: false, hint: "0 = le tweet apparaît au-dessus de tout le texte. 1, 2, 3... = il apparaît après ce paragraphe." }
-      
+
       - label: "Sources consultables"
         name: "consulted_sources"
         widget: "list"

@@ -845,7 +845,8 @@
   <script src="/admin/accounts-admin.js?v=20261014m"></script>
   <script src="/admin/cms-logs.js?v=20261014m"></script>
   <script src="/admin/cms-media.js?v=20261014j"></script>
-  <script src="/admin/cms-deploy.js?v=20261014e"></script>
+  <script src="/admin/cms-deploy.js?v=20261014f"></script>
+  <script src="/admin/body-composer.js?v=20261014s"></script>
 
   <script type="text/javascript">
     window.addEventListener('load', () => {
@@ -923,6 +924,8 @@
       }
       return null;
     }
+
+    if (window.SonarBodyComposer) window.SonarBodyComposer.register(CMS, createClass, h);
 
     CMS.registerWidget('separator', createClass({
       render: function() {
@@ -2355,13 +2358,23 @@
       );
     }
 
-    function renderTweetPlaceholder(tweetUrl) {
-      if (!tweetUrl) return null;
-      return h('div', { className: 'tweet-embed-wrapper' },
-        h('a', { href: tweetUrl, target: '_blank', rel: 'noopener noreferrer', className: 'tweet-placeholder-card' },
-          '🐦 Tweet intégré (aperçu non disponible en édition) : ' + tweetUrl
-        )
-      );
+    function tweetStatusUrl(url) {
+      const raw = String(url || '').trim();
+      const match = raw.match(/(?:twitter\.com|x\.com)\/(?:[^/]+\/status|i\/web\/status|i\/status)\/(\d+)/i);
+      if (match) return 'https://twitter.com/i/status/' + match[1];
+      return raw;
+    }
+
+    function loadTwitterWidgets(root) {
+      if (!document.getElementById('twitter-wjs')) {
+        const s = document.createElement('script');
+        s.id = 'twitter-wjs';
+        s.src = 'https://platform.twitter.com/widgets.js';
+        s.async = true;
+        document.body.appendChild(s);
+      } else if (window.twttr && window.twttr.widgets) {
+        window.twttr.widgets.load(root || document.body);
+      }
     }
 
     // 0 = au-dessus de tout le texte, N = après le N-ème paragraphe (même logique que [slug].astro)
@@ -2406,7 +2419,7 @@
       return Array.from(container.querySelectorAll('p')).filter(function(p) {
         if (!p.textContent || p.textContent.trim().length === 0) return false;
         if (p.closest('figure, figcaption, blockquote, li')) return false;
-        if (p.closest('.injected-hero-figure, .injected-tweet-block')) return false;
+        if (p.closest('.injected-hero-figure, .injected-tweet-block, .injected-media-block')) return false;
         return true;
       });
     }
@@ -2430,15 +2443,215 @@
     // Appelé depuis componentDidMount/componentDidUpdate (et non depuis `ref`) pour garantir un ré-affichage
     // fiable à chaque changement de champ dans l'éditeur (le `ref` React n'est pas ré-invoqué de façon fiable
     // à chaque frappe dans le panneau de preview de Decap CMS).
-    function applyParagraphInjection(container, injectedClass, position, buildElement) {
-      if (!container) return;
-      const existing = container.querySelector('.' + injectedClass);
-      if (existing) existing.remove();
+    function getMediaBlocks(entry) {
+      const raw = toPlain(entry.getIn(['data', 'media_blocks']));
+      if (Array.isArray(raw)) {
+        return raw.map(function(item, index) {
+          if (!item) return null;
+          if (item.type === 'tweet' || item.url) {
+            const url = String(item.url || item.tweet_url || '').trim();
+            if (!url) return null;
+            return { id: item.id || ('tw-' + index), type: 'tweet', url: url, after: Number(item.after) || 0, width: item.width, height: item.height, align: item.align };
+          }
+          const src = String(item.src || item.image || '').trim();
+          if (!src) return null;
+          return {
+            id: item.id || ('img-' + index),
+            type: 'image',
+            src: src,
+            caption: item.caption || item.image_caption || '',
+            after: Number(item.after) || 0,
+            width: item.width,
+            height: item.height,
+            align: item.align
+          };
+        }).filter(Boolean);
+      }
+      const layout = entry.getIn(['data', 'layout_type']);
+      const articleImage = entry.getIn(['data', 'article_image']);
+      const image = entry.getIn(['data', 'image']);
+      const src = layout === 'breve' ? (image || articleImage) : (articleImage || image);
+      const blocks = [];
+      if (src) {
+        blocks.push({
+          id: 'legacy-image',
+          type: 'image',
+          src: src,
+          caption: getImageCaption(entry),
+          after: getImagePosition(entry)
+        });
+      }
+      const tweetUrl = entry.getIn(['data', 'tweet_url']);
+      if (tweetUrl) {
+        blocks.push({
+          id: 'legacy-tweet',
+          type: 'tweet',
+          url: tweetUrl,
+          after: getTweetPosition(entry)
+        });
+      }
+      return blocks;
+    }
 
-      const element = buildElement();
-      if (!element) return;
-      element.classList.add(injectedClass);
-      insertAtParagraphPosition(container, element, position);
+    function mediaBlocksSignature(blocks) {
+      return JSON.stringify((blocks || []).map(function(block) {
+        return [block.id, block.type, block.src, block.url, block.after, block.width, block.height, block.caption, block.align];
+      }));
+    }
+
+    function previewPercent(value) {
+      var n = Number(value);
+      if (!isFinite(n) || n <= 0) return 100;
+      return Math.min(100, Math.max(1, n));
+    }
+
+    function applyPreviewAlign(el, block) {
+      var left = block && block.align === 'left';
+      el.classList.toggle('is-align-left', left);
+      el.classList.toggle('is-align-center', !left);
+      el.style.marginLeft = left ? '0' : 'auto';
+      el.style.marginRight = 'auto';
+    }
+
+    function applyPreviewImageLayout(figure, img, block) {
+      var wPct = previewPercent(block && block.width);
+      var hPct = previewPercent(block && block.height);
+      applyPreviewAlign(figure, block);
+      function layout() {
+        var nw = img.naturalWidth;
+        var nh = img.naturalHeight;
+        if (!nw || !nh) return;
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.maxHeight = '';
+        img.style.objectFit = '';
+        figure.style.width = wPct + '%';
+        figure.style.maxWidth = '100%';
+        var cssMax = parseFloat((figure.ownerDocument.defaultView || window).getComputedStyle(img).maxHeight);
+        if (!isFinite(cssMax) || cssMax <= 0) cssMax = Infinity;
+        var boxW = figure.getBoundingClientRect().width || img.clientWidth;
+        var baseH = boxW * (nh / nw);
+        if (baseH > cssMax) {
+          baseH = cssMax;
+          boxW = baseH * (nw / nh);
+        }
+        var displayH = baseH * (hPct / 100);
+        var displayW = displayH * (nw / nh);
+        img.style.width = displayW + 'px';
+        img.style.height = displayH + 'px';
+        img.style.maxHeight = 'none';
+        img.style.objectFit = 'contain';
+        figure.style.width = displayW + 'px';
+        figure.style.overflow = 'visible';
+      }
+      if (img.complete && img.naturalHeight) requestAnimationFrame(layout);
+      else img.addEventListener('load', function onLoad() {
+        img.removeEventListener('load', onLoad);
+        requestAnimationFrame(layout);
+      });
+    }
+
+    function ensurePreviewTweetInner(wrapper, doc) {
+      var inner = wrapper.querySelector('.tweet-scale-inner');
+      if (inner) return inner;
+      doc = doc || wrapper.ownerDocument || document;
+      inner = doc.createElement('div');
+      inner.className = 'tweet-scale-inner';
+      while (wrapper.firstChild) inner.appendChild(wrapper.firstChild);
+      wrapper.appendChild(inner);
+      return inner;
+    }
+
+    var TWEET_NATIVE_W = 550;
+
+    function previewTweetScaleFor(wrapper, wPct, hPct) {
+      var parentW = wrapper.parentElement ? wrapper.parentElement.clientWidth : TWEET_NATIVE_W;
+      var maxW = parentW * (wPct / 100);
+      var scaleW = Math.min(1, maxW / TWEET_NATIVE_W);
+      var scale = scaleW * (hPct / 100);
+      if (!isFinite(scale) || scale <= 0) return 1;
+      return Math.min(1, scale);
+    }
+
+    function collapsePreviewTweetLayout(wrapper, scale, baseH) {
+      var inner = wrapper.querySelector('.tweet-scale-inner');
+      wrapper.style.width = Math.round(TWEET_NATIVE_W * scale) + 'px';
+      wrapper.style.maxWidth = '100%';
+      wrapper.style.height = 'auto';
+      wrapper.style.overflow = 'visible';
+      if (inner) {
+        inner.style.marginBottom = baseH ? Math.round((scale - 1) * baseH) + 'px' : '';
+      }
+    }
+
+    function applyPreviewTweetLayout(wrapper, block, doc) {
+      var wPct = previewPercent(block && block.width);
+      var hPct = previewPercent(block && block.height);
+      var scale = previewTweetScaleFor(wrapper, wPct, hPct);
+      applyPreviewAlign(wrapper, block);
+      wrapper.dataset.heightPct = String(hPct);
+      wrapper.dataset.tweetScale = String(scale);
+      var inner = ensurePreviewTweetInner(wrapper, doc);
+      inner.style.transformOrigin = 'top left';
+      inner.style.width = TWEET_NATIVE_W + 'px';
+      inner.style.maxWidth = 'none';
+      inner.style.transform = scale === 1 ? 'none' : 'scale(' + scale + ')';
+      var frame = wrapper.querySelector('iframe');
+      if (frame) {
+        frame.style.width = TWEET_NATIVE_W + 'px';
+        frame.style.maxWidth = 'none';
+        frame.style.minWidth = TWEET_NATIVE_W + 'px';
+      }
+      var baseH = Number(wrapper.dataset.baseHeight || (frame && frame.dataset.baseHeight) || 0);
+      if (!baseH && frame) baseH = Math.round(frame.getBoundingClientRect().height / (scale || 1));
+      collapsePreviewTweetLayout(wrapper, scale, baseH);
+    }
+
+    function applyPreviewMediaSize(el, block, doc) {
+      if (!el) return;
+      if (el.classList.contains('tweet-embed-wrapper')) {
+        applyPreviewTweetLayout(el, block, doc);
+        return;
+      }
+      var img = el.querySelector('img');
+      if (img) applyPreviewImageLayout(el, img, block);
+      else applyPreviewAlign(el, block);
+    }
+
+    function injectPreviewMedia(container, blocks, options) {
+      if (!container) return;
+      options = options || {};
+      const sig = mediaBlocksSignature(blocks) + '|' + (options.figureClass || '');
+      if (container._sonarMediaSig === sig && container.querySelector('.injected-media-block')) return;
+      container._sonarMediaSig = sig;
+      container.querySelectorAll('.injected-media-block').forEach(function(el) { el.remove(); });
+      const ordered = (blocks || []).slice().map(function(block, index) {
+        return Object.assign({}, block, { _i: index });
+      });
+      ordered.sort(function(a, b) {
+        return (Number(a.after) || 0) - (Number(b.after) || 0) || a._i - b._i;
+      });
+      const doc = container.ownerDocument || document;
+      for (let i = ordered.length - 1; i >= 0; i--) {
+        const block = ordered[i];
+        let element = null;
+        if (block.type === 'tweet') {
+          element = buildTweetBlock(block.url, block, doc);
+        } else if (block.src) {
+          element = buildHeroFigure({
+            heroImage: sonarMediaUrl(block.src),
+            title: options.title,
+            imageCaption: block.caption,
+            figureClass: options.figureClass,
+            imgClass: options.imgClass,
+            captionClass: options.captionClass
+          }, doc);
+        }
+        if (!element) continue;
+        element.classList.add('injected-media-block');
+        insertAtParagraphPosition(container, element, Number(block.after) || 0);
+        applyPreviewMediaSize(element, block, doc);
+      }
     }
 
     // Le markdown Decap se rend parfois après le 1er cycle React : on observe le DOM
@@ -2478,17 +2691,18 @@
       if (component._observer) component._observer.disconnect();
     }
 
-    function buildHeroFigure(options) {
+    function buildHeroFigure(options, doc) {
       if (!options.heroImage) return null;
-      const figure = document.createElement('figure');
+      doc = doc || document;
+      const figure = doc.createElement('figure');
       figure.className = options.figureClass;
-      const img = document.createElement('img');
+      const img = doc.createElement('img');
       img.src = options.heroImage;
       img.alt = options.title;
       img.className = options.imgClass;
       figure.appendChild(img);
       if (options.imageCaption) {
-        const figcaption = document.createElement('figcaption');
+        const figcaption = doc.createElement('figcaption');
         figcaption.className = options.captionClass;
         figcaption.textContent = options.imageCaption;
         figure.appendChild(figcaption);
@@ -2496,18 +2710,80 @@
       return figure;
     }
 
-    function buildTweetBlock(tweetUrl) {
+    function tweetStatusId(url) {
+      const match = String(url || '').match(/(?:twitter\.com|x\.com)\/(?:[^/]+\/status|i\/web\/status|i\/status)\/(\d+)/i);
+      return match ? match[1] : '';
+    }
+
+    function buildTweetBlock(tweetUrl, block, doc) {
       if (!tweetUrl) return null;
-      const wrapper = document.createElement('div');
+      doc = doc || document;
+      const wrapper = doc.createElement('div');
       wrapper.className = 'tweet-embed-wrapper';
-      const link = document.createElement('a');
-      link.href = tweetUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.className = 'tweet-placeholder-card';
-      link.textContent = '🐦 Tweet intégré (aperçu non disponible en édition) : ' + tweetUrl;
-      wrapper.appendChild(link);
+      const id = tweetStatusId(tweetUrl);
+      if (id) {
+        const frame = doc.createElement('iframe');
+        const embedId = 'tw-' + id;
+        frame.src = 'https://platform.twitter.com/embed/Tweet.html?dnt=true&embedId=' + encodeURIComponent(embedId) + '&frame=false&hideCard=false&hideThread=false&id=' + encodeURIComponent(id) + '&lang=fr&theme=dark';
+        frame.title = 'Post';
+        frame.loading = 'lazy';
+        frame.setAttribute('allowtransparency', 'true');
+        frame.setAttribute('allowfullscreen', 'true');
+        frame.setAttribute('scrolling', 'no');
+        frame.setAttribute('frameborder', '0');
+        frame.style.border = '0';
+        frame.style.display = 'block';
+        frame.style.width = '550px';
+        frame.style.minWidth = '550px';
+        frame.style.maxWidth = 'none';
+        frame.style.minHeight = '520px';
+        wrapTwitterResize(doc.defaultView || window, doc);
+        const inner = doc.createElement('div');
+        inner.className = 'tweet-scale-inner';
+        inner.appendChild(frame);
+        wrapper.appendChild(inner);
+      } else {
+        const link = doc.createElement('a');
+        link.href = tweetStatusUrl(tweetUrl);
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'tweet-placeholder-card';
+        link.textContent = tweetUrl;
+        wrapper.appendChild(link);
+      }
       return wrapper;
+    }
+
+    function wrapTwitterResize(win, doc) {
+      win = win || window;
+      doc = doc || document;
+      if (win.__sonarTweetResize) return;
+      win.__sonarTweetResize = true;
+      function onMessage(event) {
+        const origin = String(event.origin || '');
+        if (origin.indexOf('twitter.com') === -1 && origin.indexOf('x.com') === -1 && origin.indexOf('twimg.com') === -1) return;
+        let data = event.data;
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch (e) { return; }
+        }
+        const height = data && ((data.params && data.params.height) || data.height);
+        if (!height || !event.source) return;
+        const frames = doc.querySelectorAll('.tweet-embed-wrapper iframe');
+        for (let i = 0; i < frames.length; i++) {
+          if (frames[i].contentWindow === event.source) {
+            frames[i].dataset.baseHeight = String(height);
+            frames[i].style.height = height + 'px';
+            var wrap = frames[i].closest('.tweet-embed-wrapper');
+            if (!wrap) continue;
+            wrap.dataset.baseHeight = String(height);
+            var scale = Number(wrap.dataset.tweetScale || 1);
+            if (!isFinite(scale) || scale <= 0) scale = 1;
+            collapsePreviewTweetLayout(wrap, scale, height);
+          }
+        }
+      }
+      win.addEventListener('message', onMessage);
+      if (win !== window) window.addEventListener('message', onMessage);
     }
 
     // Feuille de style partagée, reprise à l'identique de [slug].astro
@@ -2528,7 +2804,7 @@
       .article-main-content { display: flex; flex-direction: column; gap: 30px; }
       .hero-image-wrapper { width: 100%; margin: 25px 0; border-radius: 4px; overflow: hidden; background-color: #111827; }
       .hero-img { width: 100%; height: auto; max-height: 550px; object-fit: cover; display: block; }
-      .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; margin: 0; }
+      .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; margin: 0; box-sizing: border-box; width: 100%; }
       .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; }
       .prose-content p { margin-bottom: 24px; }
       .article-sidebar { height: 100%; }
@@ -2575,7 +2851,14 @@
       .breve-source-link:hover { text-decoration: underline; }
 
       /* --- Commun --- */
-      .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; }
+      .tweet-embed-wrapper { display: block; margin: 25px auto; overflow: visible; max-width: 100%; }
+      .tweet-embed-wrapper.is-align-left { margin-left: 0; margin-right: auto; }
+      .tweet-embed-wrapper.is-align-center { margin-left: auto; margin-right: auto; }
+      .tweet-scale-inner { transform-origin: top left; }
+      .tweet-embed-wrapper iframe { display: block; width: 550px; max-width: none; min-width: 550px; background: transparent; }
+      .hero-image-wrapper.is-align-left, .breve-figure.is-align-left { margin-left: 0; margin-right: auto; }
+      .hero-image-wrapper.is-align-center, .breve-figure.is-align-center { margin-left: auto; margin-right: auto; }
+      .breve-caption { box-sizing: border-box; width: 100%; }
       .tweet-placeholder-card { display: inline-block; padding: 10px 16px; border: 1px dashed #1D9E75; border-radius: 8px; color: #1D9E75; text-decoration: none; font-size: 0.85rem; }
 
       /* --- Carte hero page catégorie (CategoryLayout) --- */
@@ -2674,29 +2957,12 @@
       syncPositionedElements: function() {
         if (!this._proseNode) return;
         const entry = this.props.entry;
-
         const title = entry.getIn(['data', 'title']) || "Titre de l'article";
-        const image = entry.getIn(['data', 'image']);
-        const articleImage = entry.getIn(['data', 'article_image']);
-        const heroImage = sonarMediaUrl(articleImage || image || PREVIEW_IMG_PLACEHOLDER);
-        const imageCaption = getImageCaption(entry);
-        const imagePos = getImagePosition(entry);
-        const tweetUrl = entry.getIn(['data', 'tweet_url']);
-        const tweetPos = getTweetPosition(entry);
-
-        applyParagraphInjection(this._proseNode, 'injected-hero-figure', imagePos, function() {
-          return buildHeroFigure({
-            heroImage: heroImage,
-            title: title,
-            imageCaption: imageCaption,
-            figureClass: 'hero-image-wrapper',
-            imgClass: 'hero-img',
-            captionClass: 'image-caption'
-          });
-        });
-
-        applyParagraphInjection(this._proseNode, 'injected-tweet-block', tweetPos, function() {
-          return buildTweetBlock(tweetUrl);
+        injectPreviewMedia(this._proseNode, getMediaBlocks(entry), {
+          title: title,
+          figureClass: 'hero-image-wrapper',
+          imgClass: 'hero-img',
+          captionClass: 'image-caption'
         });
       },
       render: function() {
@@ -2830,22 +3096,12 @@
       syncPositionedElements: function() {
         if (!this._proseNode) return;
         const entry = this.props.entry;
-
         const title = entry.getIn(['data', 'title']) || "Titre de la brève";
-        const image = entry.getIn(['data', 'image']);
-        const heroImage = sonarMediaUrl(image || PREVIEW_IMG_PLACEHOLDER);
-        const imageCaption = getImageCaption(entry);
-        const imagePos = getImagePosition(entry);
-
-        applyParagraphInjection(this._proseNode, 'injected-hero-figure', imagePos, function() {
-          return buildHeroFigure({
-            heroImage: heroImage,
-            title: title,
-            imageCaption: imageCaption,
-            figureClass: 'breve-figure',
-            imgClass: 'breve-image',
-            captionClass: 'breve-caption'
-          });
+        injectPreviewMedia(this._proseNode, getMediaBlocks(entry), {
+          title: title,
+          figureClass: 'breve-figure',
+          imgClass: 'breve-image',
+          captionClass: 'breve-caption'
         });
       },
       render: function() {
@@ -2856,7 +3112,6 @@
         const description = entry.getIn(['data', 'description']) || "";
         const category = entry.getIn(['data', 'category']) || "";
         const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
-        const tweetUrl = entry.getIn(['data', 'tweet_url']);
         const body = this.props.widgetFor('body');
 
         const authorInfo = getAuthorAboutInterests(entry);
@@ -2887,8 +3142,7 @@
 
               h('div', { className: 'breve-body-grid' },
                 h('main', { className: 'breve-main-content' },
-                  h('div', { className: 'prose-content breve-prose', ref: function(el) { self._proseNode = el; } }, body),
-                  renderTweetPlaceholder(tweetUrl)
+                  h('div', { className: 'prose-content breve-prose', ref: function(el) { self._proseNode = el; } }, body)
                 ),
 
                 h('aside', { className: 'breve-sidebar' },

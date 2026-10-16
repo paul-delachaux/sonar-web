@@ -34,6 +34,36 @@ const articles = defineCollection({
       const n = typeof v === 'string' ? parseInt(v, 10) : v;
       return typeof n === 'number' && !isNaN(n) ? n : undefined;
     }),
+
+    media_blocks: z.array(
+      z.object({
+        id: z.string().optional(),
+        type: z.enum(['image', 'tweet']).default('image'),
+        src: z.string().nullish().optional(),
+        caption: z.string().nullish().optional(),
+        caption_en: z.string().nullish().optional(),
+        url: z.string().nullish().optional(),
+        after: z.union([z.number(), z.string()]).nullish().optional()
+          .transform(v => {
+            const n = typeof v === 'string' ? parseInt(v, 10) : v;
+            return typeof n === 'number' && !isNaN(n) ? n : 0;
+          }),
+        width: z.union([z.number(), z.string()]).nullish().optional()
+          .transform(v => {
+            const n = typeof v === 'string' ? parseInt(v, 10) : v;
+            if (typeof n !== 'number' || isNaN(n) || n <= 0) return undefined;
+            return Math.min(100, Math.max(1, Math.round(n)));
+          }),
+        height: z.union([z.number(), z.string()]).nullish().optional()
+          .transform(v => {
+            const n = typeof v === 'string' ? parseInt(v, 10) : v;
+            if (typeof n !== 'number' || isNaN(n) || n <= 0) return undefined;
+            return Math.min(100, Math.max(1, Math.round(n)));
+          }),
+        align: z.enum(['left', 'center']).nullish().optional()
+          .transform(v => (v === 'left' ? 'left' : 'center')),
+      })
+    ).optional(),
     
     // --- CHAMPS ARTICLE ---
     article_image: z.string().nullish().optional(),

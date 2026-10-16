@@ -10,6 +10,7 @@ import ReadLaterClock from '../../components/ReadLaterClock.astro';
 import CategoryBadge from '../../components/CategoryBadge.astro';
 import RevueMusicaleLayout from '../../components/RevueMusicaleLayout.astro';
 import { supabase } from '../../utils/supabase';
+import { normalizeMediaBlocks } from '../../utils/body-blocks';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
 //    getStaticPaths reste obligatoire si Astro tourne en mode statique.
@@ -106,22 +107,8 @@ const sidebarSlots = articlesSimilairesFR.map((artFR) => {
 
 const currentAuthorName = article.data.author || "Auteur Anonyme";
 const authorInfo = AUTHORS_DATA[currentAuthorName] || { avatarUrl: "/assets/uploads/avatar-default.jpg"};
-const articleHeroImage = article.data.article_image || article.data.image;
-
-// Extractions multilingues des Légendes d'Images
-const imageInfoData = article.data.image_info?.[0];
-
-const imageCaptionFR = 
-  imageInfoData?.image_caption || 
-  article.data.article_image_caption || 
-  article.data.image_caption || 
-  "";
-
-const imageCaptionEN =
-  imageInfoData?.image_caption_en ||
-  article.data.article_image_caption_en ||
-  article.data.image_caption_en ||
-  imageCaptionFR;
+const mediaBlocks = isRevue ? [] : normalizeMediaBlocks(article.data);
+const tweetBlocks = mediaBlocks.filter((block) => block.type === 'tweet' && block.url);
 
 // Extrait du tableau author_info
 const authorData = article.data.author_info?.[0];
@@ -135,8 +122,7 @@ const authorInterestsEN = authorData?.author_interests_en || article.data.author
 const authorPartnersFR = authorData?.author_partners || article.data.author_partners || "";
 const authorPartnersEN = authorData?.author_partners_en || article.data.author_partners_en || authorPartnersFR;
 
-const imagePos = article.data.image_position ?? 0;
-const tweetPos = article.data.tweet_position ?? 0;
+const mediaBlocksJson = JSON.stringify(mediaBlocks).replace(/</g, '\\u003c');
 
 const rawDate = article.data.date;
 const dateObj = rawDate instanceof Date ? rawDate : new Date(rawDate);
@@ -205,21 +191,15 @@ const descEN = hasEn && article.data.description_en
 
         <div class="breve-body-grid">
           <main class="breve-main-content">
-            <div class="prose-content breve-prose" data-lang-content="FR" data-image-position={imagePos}>
+            <div class="prose-content breve-prose" data-lang-content="FR">
               <Content />
             </div>
 
             {bodyEnHtml ? (
-              <div class="prose-content breve-prose" data-lang-content="EN" data-image-position={imagePos} hidden set:html={bodyEnHtml} />
+              <div class="prose-content breve-prose" data-lang-content="EN" hidden set:html={bodyEnHtml} />
             ) : (
-              <div class="prose-content breve-prose" data-lang-content="EN" data-image-position={imagePos} hidden>
+              <div class="prose-content breve-prose" data-lang-content="EN" hidden>
                 <p data-i18n="no_english_version">{t('no_english_version', 'FR')}</p>
-              </div>
-            )}
-
-            {article.data.tweet_url && (
-              <div class="tweet-embed-wrapper" id="tweet-embed-mount" data-tweet-position={tweetPos}>
-                <Tweet id={article.data.tweet_url} theme="dark" />
               </div>
             )}
           </main>
@@ -292,18 +272,6 @@ const descEN = hasEn && article.data.description_en
           </footer>
         )}
 
-        {articleHeroImage && (
-          <template id="breve-hero-template">
-            <figure class="breve-figure">
-              <img src={articleHeroImage} alt={article.data.title} class="breve-image" />
-              {(imageCaptionFR || imageCaptionEN) && (
-                <figcaption class="breve-caption" data-fr={imageCaptionFR} data-en={imageCaptionEN}>
-                  {imageCaptionFR}
-                </figcaption>
-              )}
-            </figure>
-          </template>
-        )}
       </article>
     </div>
   ) : (
@@ -338,20 +306,14 @@ const descEN = hasEn && article.data.description_en
         <div class="article-grid">
 
           <main class="article-main-content">
-            {article.data.tweet_url && (
-              <div class="tweet-embed-wrapper" id="tweet-embed-mount" data-tweet-position={tweetPos}>
-                <Tweet id={article.data.tweet_url} theme="dark" />
-              </div>
-            )}
-
-            <div class="prose-content" data-lang-content="FR" data-image-position={imagePos}>
+            <div class="prose-content" data-lang-content="FR">
               <Content />
             </div>
 
             {bodyEnHtml ? (
-              <div class="prose-content" data-lang-content="EN" data-image-position={imagePos} hidden set:html={bodyEnHtml} />
+              <div class="prose-content" data-lang-content="EN" hidden set:html={bodyEnHtml} />
             ) : (
-              <div class="prose-content" data-lang-content="EN" data-image-position={imagePos} hidden>
+              <div class="prose-content" data-lang-content="EN" hidden>
                 <p data-i18n="no_english_version">{t('no_english_version', 'FR')}</p>
               </div>
             )}
@@ -468,21 +430,20 @@ const descEN = hasEn && article.data.description_en
 
         <div id="read-also-anchor"></div>
 
-        {articleHeroImage && (
-          <template id="article-hero-template">
-            <figure class="hero-image-wrapper">
-              <img src={articleHeroImage} alt={`Illustration : ${article.data.title}`} class="hero-img" />
-              {(imageCaptionFR || imageCaptionEN) && (
-                <figcaption class="image-caption" data-fr={imageCaptionFR} data-en={imageCaptionEN}>
-                  {imageCaptionFR}
-                </figcaption>
-              )}
-            </figure>
-          </template>
-        )}
-
       </div>
     </div>
+  )}
+  {!isRevue && mediaBlocks.length > 0 && (
+    <>
+      <script id="article-media-blocks" type="application/json" set:html={mediaBlocksJson} />
+      <div id="article-tweet-source" hidden>
+        {tweetBlocks.map((block) => (
+          <div class="tweet-embed-wrapper" data-media-id={block.id} data-media-after={String(block.after)}>
+            <Tweet id={block.url} theme="dark" />
+          </div>
+        ))}
+      </div>
+    </>
   )}
   <!-- Section commentaire à la fin de l'article -->
   <CommentsSection articleSlug={slug} />
@@ -492,8 +453,6 @@ const descEN = hasEn && article.data.description_en
 <!-- Script JS -->
 <script is:inline>
   function setupArticlePage() {
-    const heroTemplate = document.getElementById('breve-hero-template') || document.getElementById('article-hero-template');
-
     function getSiteLang() {
       return (localStorage.getItem('site_lang') || 'FR').toUpperCase();
     }
@@ -523,38 +482,213 @@ const descEN = hasEn && article.data.description_en
       }
     }
 
-    function injectHeroImages() {
-      if (!heroTemplate) return;
-      const proseContainers = document.querySelectorAll('.prose-content[data-image-position]');
+    function readMediaBlocks() {
+      const node = document.getElementById('article-media-blocks');
+      if (!node || !node.textContent) return [];
+      try {
+        const parsed = JSON.parse(node.textContent);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
 
-      proseContainers.forEach(container => {
-        if (container.querySelector('.injected-hero-figure')) return;
+    function mediaPercent(value) {
+      var n = Number(value);
+      if (!isFinite(n) || n <= 0) return 100;
+      return Math.min(100, Math.max(1, n));
+    }
 
-        const posRaw = container.getAttribute('data-image-position');
-        const parsedPos = parseInt(posRaw, 10);
-        const targetPos = isNaN(parsedPos) ? 0 : parsedPos;
+    function applyAlign(el, block) {
+      var left = block && block.align === 'left';
+      el.classList.toggle('is-align-left', left);
+      el.classList.toggle('is-align-center', !left);
+      el.style.marginLeft = left ? '0' : 'auto';
+      el.style.marginRight = left ? 'auto' : 'auto';
+    }
 
-        const clone = heroTemplate.content.cloneNode(true);
-        const figureElement = clone.querySelector('figure');
-        if (!figureElement) return;
-        figureElement.classList.add('injected-hero-figure');
-
-        insertAtParagraphPosition(container, figureElement, targetPos);
+    function applyImageLayout(figure, img, block) {
+      var wPct = mediaPercent(block && block.width);
+      var hPct = mediaPercent(block && block.height);
+      applyAlign(figure, block);
+      function layout() {
+        var nw = img.naturalWidth;
+        var nh = img.naturalHeight;
+        if (!nw || !nh) return;
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.maxHeight = '';
+        img.style.objectFit = '';
+        figure.style.width = wPct + '%';
+        figure.style.maxWidth = '100%';
+        var cssMax = parseFloat(window.getComputedStyle(img).maxHeight);
+        if (!isFinite(cssMax) || cssMax <= 0) cssMax = Infinity;
+        var boxW = figure.getBoundingClientRect().width || img.clientWidth;
+        var baseH = boxW * (nh / nw);
+        if (baseH > cssMax) {
+          baseH = cssMax;
+          boxW = baseH * (nw / nh);
+        }
+        var displayH = baseH * (hPct / 100);
+        var displayW = displayH * (nw / nh);
+        img.style.width = displayW + 'px';
+        img.style.height = displayH + 'px';
+        img.style.maxHeight = 'none';
+        img.style.objectFit = 'contain';
+        figure.style.width = displayW + 'px';
+        figure.style.overflow = 'visible';
+      }
+      if (img.complete && img.naturalHeight) requestAnimationFrame(layout);
+      else img.addEventListener('load', function onLoad() {
+        img.removeEventListener('load', onLoad);
+        requestAnimationFrame(layout);
       });
     }
 
-    function positionTweetEmbed() {
-      const tweetBlock = document.getElementById('tweet-embed-mount');
-      if (!tweetBlock) return;
+    var TWEET_NATIVE_W = 550;
 
-      const visibleProse = document.querySelector('.prose-content[data-lang-content]:not([hidden])');
-      if (!visibleProse) return;
+    function ensureTweetInner(wrapper) {
+      var inner = wrapper.querySelector('.tweet-scale-inner');
+      if (inner) return inner;
+      inner = document.createElement('div');
+      inner.className = 'tweet-scale-inner';
+      while (wrapper.firstChild) inner.appendChild(wrapper.firstChild);
+      wrapper.appendChild(inner);
+      return inner;
+    }
 
-      const posRaw = tweetBlock.getAttribute('data-tweet-position');
-      const parsedPos = parseInt(posRaw, 10);
-      const targetPos = isNaN(parsedPos) ? 0 : parsedPos;
+    function tweetScaleFor(wrapper, wPct, hPct) {
+      var parentW = wrapper.parentElement ? wrapper.parentElement.clientWidth : TWEET_NATIVE_W;
+      var maxW = parentW * (wPct / 100);
+      var scaleW = Math.min(1, maxW / TWEET_NATIVE_W);
+      var scale = scaleW * (hPct / 100);
+      if (!isFinite(scale) || scale <= 0) return 1;
+      return Math.min(1, scale);
+    }
 
-      insertAtParagraphPosition(visibleProse, tweetBlock, targetPos);
+    function collapseTweetLayout(wrapper, scale, baseH) {
+      var inner = wrapper.querySelector('.tweet-scale-inner');
+      wrapper.style.width = Math.round(TWEET_NATIVE_W * scale) + 'px';
+      wrapper.style.maxWidth = '100%';
+      wrapper.style.height = 'auto';
+      wrapper.style.overflow = 'visible';
+      if (inner) {
+        inner.style.marginBottom = baseH ? Math.round((scale - 1) * baseH) + 'px' : '';
+      }
+    }
+
+    function applyTweetLayout(wrapper, block) {
+      var wPct = mediaPercent(block && block.width);
+      var hPct = mediaPercent(block && block.height);
+      var scale = tweetScaleFor(wrapper, wPct, hPct);
+      applyAlign(wrapper, block);
+      wrapper.dataset.heightPct = String(hPct);
+      wrapper.dataset.tweetScale = String(scale);
+      var inner = ensureTweetInner(wrapper);
+      inner.style.transformOrigin = 'top left';
+      inner.style.width = TWEET_NATIVE_W + 'px';
+      inner.style.maxWidth = 'none';
+      inner.style.transform = scale === 1 ? 'none' : 'scale(' + scale + ')';
+      var frame = wrapper.querySelector('iframe, .twitter-tweet');
+      if (frame) {
+        frame.style.width = TWEET_NATIVE_W + 'px';
+        frame.style.maxWidth = 'none';
+        frame.style.minWidth = TWEET_NATIVE_W + 'px';
+      }
+      var baseH = Number(wrapper.dataset.baseHeight || (frame && frame.dataset.baseHeight) || 0);
+      if (!baseH && frame) baseH = Math.round(frame.getBoundingClientRect().height / (scale || 1));
+      collapseTweetLayout(wrapper, scale, baseH);
+    }
+
+    function applyMediaSize(el, block) {
+      if (!el) return;
+      if (el.classList.contains('tweet-embed-wrapper')) {
+        applyTweetLayout(el, block);
+        return;
+      }
+      var img = el.querySelector('img');
+      if (img) applyImageLayout(el, img, block);
+      else applyAlign(el, block);
+    }
+
+    if (!window.__sonarTweetResize) {
+      window.__sonarTweetResize = true;
+      window.addEventListener('message', function (event) {
+        var origin = String(event.origin || '');
+        if (origin.indexOf('twitter.com') === -1 && origin.indexOf('x.com') === -1 && origin.indexOf('twimg.com') === -1) return;
+        var data = event.data;
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch (e) { return; }
+        }
+        var height = data && ((data.params && data.params.height) || data.height);
+        if (!height || !event.source) return;
+        document.querySelectorAll('.tweet-embed-wrapper iframe').forEach(function (frame) {
+          if (frame.contentWindow !== event.source) return;
+          frame.dataset.baseHeight = String(height);
+          frame.style.height = height + 'px';
+          var wrap = frame.closest('.tweet-embed-wrapper');
+          if (!wrap) return;
+          wrap.dataset.baseHeight = String(height);
+          var scale = Number(wrap.dataset.tweetScale || 1);
+          if (!isFinite(scale) || scale <= 0) scale = 1;
+          collapseTweetLayout(wrap, scale, height);
+        });
+      });
+    }
+
+    function buildImageFigure(block, isBreve) {
+      const figure = document.createElement('figure');
+      figure.className = isBreve ? 'breve-figure injected-media-block' : 'hero-image-wrapper injected-media-block';
+      const img = document.createElement('img');
+      img.src = block.src || '';
+      img.alt = block.caption || '';
+      img.className = isBreve ? 'breve-image' : 'hero-img';
+      figure.appendChild(img);
+      if (block.caption || block.caption_en) {
+        const cap = document.createElement('figcaption');
+        cap.className = isBreve ? 'breve-caption' : 'image-caption';
+        cap.setAttribute('data-fr', block.caption || '');
+        cap.setAttribute('data-en', block.caption_en || block.caption || '');
+        cap.textContent = block.caption || block.caption_en || '';
+        figure.appendChild(cap);
+      }
+      return figure;
+    }
+
+    function injectMediaBlocks() {
+      const blocks = readMediaBlocks();
+      const source = document.getElementById('article-tweet-source');
+      const isBreve = Boolean(document.querySelector('.breve-wrapper'));
+      document.querySelectorAll('.prose-content[data-lang-content]').forEach(container => {
+        container.querySelectorAll('.injected-media-block').forEach(el => el.remove());
+      });
+      if (source) {
+        document.querySelectorAll('.prose-content .tweet-embed-wrapper[data-media-id]').forEach(el => {
+          source.appendChild(el);
+        });
+      }
+      if (!blocks.length) return;
+      const ordered = blocks.slice().map((block, index) => Object.assign({}, block, { _i: index }));
+      ordered.sort((a, b) => (Number(a.after) || 0) - (Number(b.after) || 0) || a._i - b._i);
+      document.querySelectorAll('.prose-content[data-lang-content]').forEach(container => {
+        const visible = !container.hasAttribute('hidden');
+        for (let i = ordered.length - 1; i >= 0; i--) {
+          const block = ordered[i];
+          const after = Number(block.after) || 0;
+          if (block.type === 'tweet') {
+            if (!visible || !source) continue;
+            const tweet = source.querySelector('[data-media-id="' + block.id + '"]');
+            if (tweet) {
+              insertAtParagraphPosition(container, tweet, after);
+              applyMediaSize(tweet, block);
+            }
+          } else if (block.src) {
+            const figure = buildImageFigure(block, isBreve);
+            insertAtParagraphPosition(container, figure, after);
+            applyMediaSize(figure, block);
+          }
+        }
+      });
     }
 
     function updateLanguageUI(lang) {
@@ -566,8 +700,7 @@ const descEN = hasEn && article.data.description_en
         else el.setAttribute('hidden', '');
       });
 
-      injectHeroImages();
-      positionTweetEmbed();
+      injectMediaBlocks();
       applyDataLangAttributes(currentLang);
     }
 
@@ -666,8 +799,17 @@ const descEN = hasEn && article.data.description_en
   .article-main-content { display: flex; flex-direction: column; gap: 30px; }
   .hero-image-wrapper { width: 100%; margin: 25px 0; border-radius: 4px; overflow: hidden; background-color: #111827; }
   .hero-img { width: 100%; height: auto; display: block; max-height: 550px; object-fit: cover; }
-  .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .tweet-embed-wrapper { display: flex; justify-content: center; margin: 25px 0; max-width: 100%; overflow-x: hidden; }
+  .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box; width: 100%; }
+  .tweet-embed-wrapper { display: block; margin: 25px auto; max-width: 100%; overflow: visible; }
+  .tweet-embed-wrapper.is-align-left { margin-left: 0; margin-right: auto; }
+  .tweet-embed-wrapper.is-align-center { margin-left: auto; margin-right: auto; }
+  .tweet-embed-wrapper :global(.tweet-scale-inner) { transform-origin: top left; }
+  .tweet-embed-wrapper :global(iframe),
+  .tweet-embed-wrapper :global(.twitter-tweet) { max-width: none !important; }
+  .hero-image-wrapper, .breve-figure { display: block; }
+  .hero-image-wrapper.is-align-left, .breve-figure.is-align-left { margin-left: 0; margin-right: auto; }
+  .hero-image-wrapper.is-align-center, .breve-figure.is-align-center { margin-left: auto; margin-right: auto; }
+  .breve-caption { box-sizing: border-box; width: 100%; }
   .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word; overflow: visible; }
   .prose-content p { margin-bottom: 28px; margin-top: 28px;}
   .prose-content li { margin-bottom: 28px; }
