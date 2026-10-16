@@ -1,24 +1,24 @@
 ---
 layout_type: breve
 media_blocks:
-  - id: legacy-image
-    type: image
+  - caption_en: Incredible legend
     src: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZ41YjiG4pw_0D6EoEeEYnIseBagTy872GkV5vBfekJw&s=10
-    caption: Légende de l'image que j'ai modifié
-    caption_en: Incredible legend
-    after: 0
-    width: 100
-    height: 100
     align: center
-  - id: img-mh045mw
-    type: image
-    src: /assets/uploads/benyamin-netanyahou.jpeg
-    caption: super image
-    caption_en: ""
-    after: 2
-    width: 50
+    width: 100
+    caption: Légende de l'image que j'ai modifié
     height: 100
+    type: image
+    id: legacy-image
+    after: 0
+  - caption_en: ""
+    src: /assets/uploads/benyamin-netanyahou.jpeg
     align: left
+    width: 50
+    caption: super image
+    height: 100
+    type: image
+    id: img-mh045mw
+    after: 2
   - id: tw-878wuw0
     type: tweet
     url: https://x.com/FemiLaTouffe/status/2086515403912527918
@@ -60,7 +60,7 @@ consulted_sources:
     source_title_en: Second source for fun
 image_caption_en: This is a completely uninteresting image.
 author: Paul Delachaux
-isVisible: true
+isVisible: false
 image_position: 2
 author_about_en: That guy is incredibly handsome, on top of being super smart.
 image_info:
