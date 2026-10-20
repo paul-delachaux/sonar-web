@@ -16,7 +16,7 @@ author: Victor Zhâ
 author_info:
   - author_about: Aucune information fournie pour le moment.
     author_about_en: No information provided at this time.
-isVisible: true
+isVisible: false
 consulted_sources:
   - source_title: https://www.sudouest.fr/international/groenland/groenland-un-accord-tripartite-sera-signe-mardi-par-washington-copenhague-et-nuuk-30727622.php
 image_position: 0
