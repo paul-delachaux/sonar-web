@@ -78,6 +78,7 @@ collections:
         options:
           - { label: "Victor Zhâ", value: "Victor Zhâ" }
           - { label: "Paul Delachaux", value: "Paul Delachaux" }
+          - { label: "Amaury Renouf", value: "Amaury Renouf" }
       - label: "Informations sur l'auteur"
         name: "author_info"
         widget: "list"
@@ -169,7 +170,7 @@ collections:
         options:
           - { label: "Victor Zhâ", value: "Victor Zhâ" }
           - { label: "Paul Delachaux", value: "Paul Delachaux" }
-
+          - { label: "Amaury Renouf", value: "Amaury Renouf" }
       - label: "Informations sur l'auteur"
         name: "author_info"
         widget: "list"
@@ -317,6 +318,7 @@ collections:
         options:
           - { label: "Victor Zhâ", value: "Victor Zhâ" }
           - { label: "Paul Delachaux", value: "Paul Delachaux" }
+          - { label: "Amaury Renouf", value: "Amaury Renouf" }
       - label: "Informations sur l'auteur"
         name: "author_info"
         widget: "list"
