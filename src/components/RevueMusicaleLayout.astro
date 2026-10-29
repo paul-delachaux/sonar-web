@@ -31,23 +31,31 @@ interface Source {
   source_url?: string | null;
 }
 
+interface Author {
+  name: string;
+  avatarUrl: string;
+  aboutFR: string;
+  aboutEN: string;
+  interestsFR: string;
+  interestsEN: string;
+  partnersFR: string;
+  partnersEN: string;
+}
+
 interface Props {
   slug: string;
   titleFR: string;
   titleEN: string;
   descFR: string;
   descEN: string;
-  authorName: string;
-  avatarUrl: string;
+  authorNameFR: string;
+  authorNameEN: string;
+  authors: Author[];
   readingTime: number;
   dateAfficheeFR: string;
   dateAfficheeEN: string;
   heureAfficheeFR: string;
   heureAfficheeEN: string;
-  authorAboutFR: string;
-  authorAboutEN: string;
-  authorInterestsFR: string;
-  authorInterestsEN: string;
   sources?: Source[];
   rows?: Row[];
 }
@@ -58,17 +66,14 @@ const {
   titleEN,
   descFR,
   descEN,
-  authorName,
-  avatarUrl,
+  authorNameFR,
+  authorNameEN,
+  authors,
   readingTime,
   dateAfficheeFR,
   dateAfficheeEN,
   heureAfficheeFR,
   heureAfficheeEN,
-  authorAboutFR,
-  authorAboutEN,
-  authorInterestsFR,
-  authorInterestsEN,
   sources = [],
   rows = [],
 } = Astro.props;
@@ -159,10 +164,15 @@ function waveHeights(seed: string, count: number) {
         <div class="revue-header-main">
           <h1 class="revue-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
           <a href="#author-info-section" class="author-meta-block revue-author-meta">
-            <img src={avatarUrl} alt={`Portrait de ${authorName}`} class="author-avatar" />
+            <div class="author-avatar-group">
+              {authors.map((author) => (
+                <img src={author.avatarUrl} alt={`Portrait de ${author.name}`} class="author-avatar" />
+              ))}
+            </div>
             <div class="author-text-meta">
               <p class="author-name">
-                <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}{authorName}
+                <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}
+                <span data-fr={authorNameFR} data-en={authorNameEN}>{authorNameFR}</span>
               </p>
               <p class="publication-date">
                 {readingTime}{" "}
@@ -257,20 +267,27 @@ function waveHeights(seed: string, count: number) {
     </div>
 
     <footer id="author-info-section" class="article-footer-transparency">
-      <div class="transparency-card">
-        <div class="card-accent-bar"></div>
-        <h3 data-i18n="transparency_author">{t('transparency_author', 'FR')}</h3>
-        <p data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
-      </div>
-      <div class="transparency-card">
-        <div class="card-accent-bar"></div>
-        <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
-        {authorInterestsFR || authorInterestsEN ? (
-          <p data-fr={authorInterestsFR} data-en={authorInterestsEN}>{authorInterestsFR}</p>
-        ) : (
-          <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
-        )}
-      </div>
+      {authors.map((author) => (
+        <>
+          <div class="transparency-card">
+            <div class="card-accent-bar"></div>
+            <h3>
+              <span data-i18n="transparency_author">{t('transparency_author', 'FR')}</span>{" "}
+              — {author.name}
+            </h3>
+            <p data-fr={author.aboutFR} data-en={author.aboutEN}>{author.aboutFR}</p>
+          </div>
+          <div class="transparency-card">
+            <div class="card-accent-bar"></div>
+            <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
+            {author.interestsFR || author.interestsEN ? (
+              <p data-fr={author.interestsFR} data-en={author.interestsEN}>{author.interestsFR}</p>
+            ) : (
+              <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
+            )}
+          </div>
+        </>
+      ))}
       <div class="transparency-card">
         <div class="card-accent-bar"></div>
         <h3 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h3>

@@ -526,8 +526,11 @@ revue_rows:
       type: texte
 date: 2026-09-24T11:27:00.000+02:00
 author: Amaury Renouf
+author2: Victor Zhâ
 author_info:
-  - author_about: Aucune information fournie pour le moment.
+  - author_about: Ce mec est une crème
+    author_about_en: This guys is so sweet
+  - author_about: Ce mec est une merde
     author_about_en: No information provided at this time.
 reading_time: 5
 isVisible: true

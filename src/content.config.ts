@@ -73,7 +73,8 @@ const articles = defineCollection({
         image_caption_en: z.string().nullish().optional(),
       })
     ).optional(),
-    author: z.string().optional(),
+    author: z.string().nullish().optional(),
+    author2: z.string().nullish().optional(),
     reading_time: z.number().optional(),
     author_info: z.array(
       z.object({

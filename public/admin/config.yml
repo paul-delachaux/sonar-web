@@ -75,16 +75,25 @@ collections:
       - label: "Auteur de l'article"
         name: "author"
         widget: "select"
+        required: false
         options:
           - { label: "Victor Zhâ", value: "Victor Zhâ" }
           - { label: "Paul Delachaux", value: "Paul Delachaux" }
           - { label: "Amaury Renouf", value: "Amaury Renouf" }
-      - label: "Informations sur l'auteur"
+      - label: "Deuxième auteur (optionnel)"
+        name: "author2"
+        widget: "select"
+        required: false
+        options:
+          - { label: "Victor Zhâ", value: "Victor Zhâ" }
+          - { label: "Paul Delachaux", value: "Paul Delachaux" }
+          - { label: "Amaury Renouf", value: "Amaury Renouf" }
+      - label: "Informations sur les auteurs (dans le même ordre que les auteurs)"
         name: "author_info"
         widget: "list"
         required: false
         collapsed: false
-        max : 1
+        max: 2
         fields:
           - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
           - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
@@ -167,16 +176,25 @@ collections:
       - label: "Auteur de l'article"
         name: "author"
         widget: "select"
+        required: false
         options:
           - { label: "Victor Zhâ", value: "Victor Zhâ" }
           - { label: "Paul Delachaux", value: "Paul Delachaux" }
           - { label: "Amaury Renouf", value: "Amaury Renouf" }
-      - label: "Informations sur l'auteur"
+      - label: "Deuxième auteur (optionnel)"
+        name: "author2"
+        widget: "select"
+        required: false
+        options:
+          - { label: "Victor Zhâ", value: "Victor Zhâ" }
+          - { label: "Paul Delachaux", value: "Paul Delachaux" }
+          - { label: "Amaury Renouf", value: "Amaury Renouf" }
+      - label: "Informations sur les auteurs (dans le même ordre que les auteurs)"
         name: "author_info"
         widget: "list"
         required: false
         collapsed: false
-        max : 1
+        max: 2
         fields:
           - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
           - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
@@ -315,16 +333,25 @@ collections:
       - label: "Auteur de l'article"
         name: "author"
         widget: "select"
+        required: false
         options:
           - { label: "Victor Zhâ", value: "Victor Zhâ" }
           - { label: "Paul Delachaux", value: "Paul Delachaux" }
           - { label: "Amaury Renouf", value: "Amaury Renouf" }
-      - label: "Informations sur l'auteur"
+      - label: "Deuxième auteur (optionnel)"
+        name: "author2"
+        widget: "select"
+        required: false
+        options:
+          - { label: "Victor Zhâ", value: "Victor Zhâ" }
+          - { label: "Paul Delachaux", value: "Paul Delachaux" }
+          - { label: "Amaury Renouf", value: "Amaury Renouf" }
+      - label: "Informations sur les auteurs (dans le même ordre que les auteurs)"
         name: "author_info"
         widget: "list"
         required: false
         collapsed: false
-        max: 1
+        max: 2
         fields:
           - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
           - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }

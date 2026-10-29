@@ -1,5 +1,23 @@
 ---
 layout_type: breve
+body_en: ""
+author: Victor Zhâ
+author2: Paul Delachaux
+author_info:
+  - author_about: Ce mec est une merde
+    author_about_en: No information provided at this time.
+    author_interests: Peut être un jour
+  - author_about: Incroyable personne
+    author_about_en: No information provided at this time.
+    author_interests: Non
+isVisible: true
+consulted_sources:
+  - source_title: https://www.sudouest.fr/international/groenland/groenland-un-accord-tripartite-sera-signe-mardi-par-washington-copenhague-et-nuuk-30727622.php
+image_position: 0
+date: 2026-09-23T09:19:00.000+02:00
+image_info:
+  - image_caption: "© Crédit photo : MADS CLAUS RASMUSSEN / AFP"
+    image_caption_en: ""
 title: "Groenland : un accord diplomatique qui soulage des tensions entre alliés"
 description: Sous la pression des tensions mondiales et de la quête de
   ressources critiques, Washington conclut un accord majeur avec le Danemark et
@@ -10,19 +28,6 @@ description: Sous la pression des tensions mondiales et de la quête de
   ambitions chinoises et russes dans le Grand Nord. Un succès diplomatique pour
   une Europe encore à la peine face à la versatilité de son partenaire
   américain.
-body_en: ""
-date: 2026-09-23T09:19:00.000+02:00
-author: Victor Zhâ
-author_info:
-  - author_about: Aucune information fournie pour le moment.
-    author_about_en: No information provided at this time.
-isVisible: true
-consulted_sources:
-  - source_title: https://www.sudouest.fr/international/groenland/groenland-un-accord-tripartite-sera-signe-mardi-par-washington-copenhague-et-nuuk-30727622.php
-image_position: 0
-image_info:
-  - image_caption: "© Crédit photo : MADS CLAUS RASMUSSEN / AFP"
-    image_caption_en: ""
 category: politique
 image: /assets/uploads/20260919144907-4512.avif
 use_thumbnail: false

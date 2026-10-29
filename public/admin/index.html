@@ -2316,17 +2316,36 @@
         || "";
     }
 
-    function getAuthorAboutInterests(entry) {
-      const about = entry.getIn(['data', 'author_info', 0, 'author_about'])
-        || entry.getIn(['data', 'author_about'])
-        || "Aucune information fournie pour le moment.";
-      const interests = entry.getIn(['data', 'author_info', 0, 'author_interests'])
-        || entry.getIn(['data', 'author_interests'])
-        || "";
-      const partners = entry.getIn(['data', 'author_info', 0, 'author_partners'])
-        || entry.getIn(['data', 'author_partners'])
-        || "";
-      return { about: about, interests: interests, partners: partners };
+    function getPreviewAuthors(entry) {
+      const selected = [
+        { name: entry.getIn(['data', 'author']), index: 0 },
+        { name: entry.getIn(['data', 'author2']), index: 1 }
+      ].filter(function(author, index, authors) {
+        return author.name && authors.findIndex(function(candidate) {
+          return candidate.name === author.name;
+        }) === index;
+      });
+      if (!selected.length) selected.push({ name: 'Auteur Anonyme', index: 0 });
+
+      return selected.map(function(author) {
+        const path = ['data', 'author_info', author.index];
+        const about = entry.getIn(path.concat('author_about'))
+          || (author.index === 0 && entry.getIn(['data', 'author_about']))
+          || 'Aucune information fournie pour le moment.';
+        const interests = entry.getIn(path.concat('author_interests'))
+          || (author.index === 0 && entry.getIn(['data', 'author_interests']))
+          || '';
+        const partners = entry.getIn(path.concat('author_partners'))
+          || (author.index === 0 && entry.getIn(['data', 'author_partners']))
+          || '';
+        return {
+          name: author.name,
+          avatarUrl: getAuthorAvatar(author.name),
+          about: about,
+          interests: interests,
+          partners: partners
+        };
+      });
     }
 
     function renderSourcesList(entry) {
@@ -2797,7 +2816,9 @@
       .main-title { font-size: 1.8rem; font-weight: 800; color: #ffffff; margin: 0 0 15px 0; line-height: 1.3; }
       .main-description { font-size: 1.2rem; font-weight: 500; color: #ffffff; margin: 0 0 30px 0; line-height: 1.5; }
       .author-meta-block { display: flex; align-items: center; gap: 20px; }
+      .author-avatar-group, .breve-avatar-group { display: flex; flex-shrink: 0; }
       .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; flex-shrink: 0; }
+      .author-avatar-group .author-avatar + .author-avatar { margin-left: -12px; border: 2px solid #02001d; }
       .author-text-meta { display: flex; flex-direction: column; gap: 0; }
       .author-name { margin: 0; font-size: 1rem; font-weight: 600; color: #ffffff; }
       .publication-date { margin: 0; font-size: 1rem; font-style: italic; color: #ffffff; }
@@ -2838,9 +2859,11 @@
       .breve-author-block { display: flex; flex-direction: column; text-align: left; }
       .breve-author-header { display: flex; align-items: flex-start; gap: 12px; }
       .breve-avatar { width: 48px; height: 48px; border-radius: 50%; background-color: #d9d9d9; object-fit: cover; flex-shrink: 0; }
+      .breve-avatar-group .breve-avatar + .breve-avatar { margin-left: -12px; border: 2px solid #02001d; }
       .breve-author-header-text { flex: 1; min-width: 0; }
       .breve-author-name { font-weight: 700; color: #ff8826; margin: 0 0 4px 0; font-size: 0.95rem; }
       .breve-author-about { margin: 0; font-size: 0.8rem; line-height: 1.4; color: #d7dee6; }
+      .breve-author-profile + .breve-author-profile { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1f2937; }
       .breve-author-detail { margin: 14px 0 0 0; font-size: 0.8rem; line-height: 1.5; color: #d7dee6; }
       .breve-author-detail strong { color: #ffffff; font-weight: 700; }
       .breve-sources-section { margin-top: 25px; margin-bottom: 20px; }
@@ -2971,21 +2994,16 @@
 
         const title = entry.getIn(['data', 'title']) || "Titre de l'article";
         const description = entry.getIn(['data', 'description']) || "";
-        const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
+        const authors = getPreviewAuthors(entry);
+        const authorNames = authors.map(function(item) { return item.name; }).join(' et ');
         const readingTime = entry.getIn(['data', 'reading_time']) || 5;
         const body = this.props.widgetFor('body');
         const self = this;
-
-        const authorInfo = getAuthorAboutInterests(entry);
-        const authorAbout = authorInfo.about;
-        const authorInterests = authorInfo.interests;
 
         const rawDate = entry.getIn(['data', 'date']);
         const dateFormatted = formatDateFR(rawDate);
         const dateAffichee = dateFormatted.date;
         const heureAffichee = dateFormatted.time;
-
-        const avatarUrl = getAuthorAvatar(author);
 
         const bg = entry.getIn(['data', 'thumbnail_bg']);
         const thumbLayout = entry.getIn(['data', 'thumbnail_layout']);
@@ -3007,9 +3025,13 @@
                 h('h1', { className: 'main-title' }, title),
                 description && h('p', { className: 'main-description' }, description),
                 h('div', { className: 'author-meta-block' },
-                  h('img', { src: avatarUrl, className: 'author-avatar', alt: 'Avatar' }),
+                  h('div', { className: 'author-avatar-group' },
+                    ...authors.map(function(item, i) {
+                      return h('img', { key: i, src: item.avatarUrl, className: 'author-avatar', alt: item.name });
+                    })
+                  ),
                   h('div', { className: 'author-text-meta' },
-                    h('p', { className: 'author-name' }, 'Par ' + author),
+                    h('p', { className: 'author-name' }, 'Par ' + authorNames),
                     h('p', { className: 'publication-date' }, readingTime + ' min de lecture — Publié le ' + dateAffichee + ' à ' + heureAffichee)
                   )
                 )
@@ -3031,16 +3053,20 @@
               ),
 
               h('footer', { className: 'article-footer-transparency' },
-                h('div', { className: 'transparency-card' },
-                  h('div', { className: 'card-accent-bar' }),
-                  h('h3', {}, "À propos de l'auteur"),
-                  h('p', {}, authorAbout)
-                ),
-                h('div', { className: 'transparency-card' },
-                  h('div', { className: 'card-accent-bar' }),
-                  h('h3', {}, "Déclaration d'intérêt"),
-                  h('p', {}, authorInterests || "L'auteur déclare n'avoir aucun conflit d'intérêt.")
-                ),
+                ...authors.flatMap(function(item) {
+                  return [
+                    h('div', { key: item.name + '-about', className: 'transparency-card' },
+                      h('div', { className: 'card-accent-bar' }),
+                      h('h3', {}, "À propos de l'auteur — " + item.name),
+                      h('p', {}, item.about)
+                    ),
+                    h('div', { key: item.name + '-interests', className: 'transparency-card' },
+                      h('div', { className: 'card-accent-bar' }),
+                      h('h3', {}, "Déclaration d'intérêt"),
+                      h('p', {}, item.interests || "L'auteur déclare n'avoir aucun conflit d'intérêt.")
+                    )
+                  ];
+                }),
                 h('div', { className: 'transparency-card' },
                   h('div', { className: 'card-accent-bar' }),
                   h('h3', {}, "Sources consultables"),
@@ -3112,15 +3138,10 @@
         const title = entry.getIn(['data', 'title']) || "Titre de la brève";
         const description = entry.getIn(['data', 'description']) || "";
         const category = entry.getIn(['data', 'category']) || "";
-        const author = entry.getIn(['data', 'author']) || "Auteur Anonyme";
+        const authors = getPreviewAuthors(entry);
+        const authorNames = authors.map(function(item) { return item.name; }).join(' et ');
         const body = this.props.widgetFor('body');
 
-        const authorInfo = getAuthorAboutInterests(entry);
-        const authorAbout = authorInfo.about;
-        const authorInterests = authorInfo.interests;
-        const authorPartners = authorInfo.partners;
-
-        const avatarUrl = getAuthorAvatar(author);
         const categoryLabel = renderCategoryLabel(h, category);
         const sourcesList = renderBreveSourcesList(entry);
 
@@ -3149,18 +3170,26 @@
                 h('aside', { className: 'breve-sidebar' },
                   h('div', { className: 'breve-author-block' },
                     h('div', { className: 'breve-author-header' },
-                      h('img', { src: avatarUrl, alt: author, className: 'breve-avatar' }),
+                      h('div', { className: 'breve-avatar-group' },
+                        ...authors.map(function(item, i) {
+                          return h('img', { key: i, src: item.avatarUrl, alt: item.name, className: 'breve-avatar' });
+                        })
+                      ),
                       h('div', { className: 'breve-author-header-text' },
-                        h('p', { className: 'breve-author-name' }, author),
-                        h('p', { className: 'breve-author-about' }, authorAbout)
+                        h('p', { className: 'breve-author-name' }, authorNames)
                       )
                     ),
-                    authorInterests && h('p', { className: 'breve-author-detail' },
-                      h('strong', {}, "Déclaration d'intérêts"), " : ", authorInterests
-                    ),
-                    authorPartners && h('p', { className: 'breve-author-detail' },
-                      h('strong', {}, "Partenaires"), " : ", authorPartners
-                    )
+                    ...authors.map(function(item) {
+                      return h('div', { key: item.name, className: 'breve-author-profile' },
+                        h('p', { className: 'breve-author-about' }, item.about),
+                        item.interests && h('p', { className: 'breve-author-detail' },
+                          h('strong', {}, "Déclaration d'intérêts"), " : ", item.interests
+                        ),
+                        item.partners && h('p', { className: 'breve-author-detail' },
+                          h('strong', {}, "Partenaires"), " : ", item.partners
+                        )
+                      );
+                    })
                   )
                 )
               ),
@@ -3209,11 +3238,10 @@
         const entry = this.props.entry;
         const title = entry.getIn(['data', 'title']) || 'Titre de la revue';
         const description = entry.getIn(['data', 'description']) || '';
-        const author = entry.getIn(['data', 'author']) || 'Auteur Anonyme';
+        const authors = getPreviewAuthors(entry);
+        const authorNames = authors.map(function(item) { return item.name; }).join(' et ');
         const readingTime = entry.getIn(['data', 'reading_time']) || 5;
-        const authorInfo = getAuthorAboutInterests(entry);
         const dateFormatted = formatDateFR(entry.getIn(['data', 'date']));
-        const avatarUrl = getAuthorAvatar(author);
         const rawRows = entry.getIn(['data', 'revue_rows']);
         const rows = rawRows && rawRows.toJS ? rawRows.toJS() : (Array.isArray(rawRows) ? rawRows : []);
 
@@ -3269,9 +3297,13 @@
                   h('div', { className: 'revue-header-main' },
                     h('h1', { className: 'revue-title' }, title),
                     h('div', { className: 'author-meta-block' },
-                      h('img', { src: avatarUrl, className: 'author-avatar', alt: 'Avatar' }),
+                      h('div', { className: 'author-avatar-group' },
+                        ...authors.map(function(item, i) {
+                          return h('img', { key: i, src: item.avatarUrl, className: 'author-avatar', alt: item.name });
+                        })
+                      ),
                       h('div', { className: 'author-text-meta' },
-                        h('p', { className: 'author-name' }, 'Par ' + author),
+                        h('p', { className: 'author-name' }, 'Par ' + authorNames),
                         h('p', { className: 'publication-date' }, readingTime + ' min de lecture — Publié le ' + dateFormatted.date + ' à ' + dateFormatted.time)
                       )
                     )
@@ -3288,16 +3320,20 @@
                 })
               ),
               h('footer', { className: 'article-footer-transparency' },
-                h('div', { className: 'transparency-card' },
-                  h('div', { className: 'card-accent-bar' }),
-                  h('h3', {}, "À propos de l'auteur"),
-                  h('p', {}, authorInfo.about)
-                ),
-                h('div', { className: 'transparency-card' },
-                  h('div', { className: 'card-accent-bar' }),
-                  h('h3', {}, "Déclaration d'intérêt"),
-                  h('p', {}, authorInfo.interests || "L'auteur déclare n'avoir aucun conflit d'intérêt.")
-                ),
+                ...authors.flatMap(function(item) {
+                  return [
+                    h('div', { key: item.name + '-about', className: 'transparency-card' },
+                      h('div', { className: 'card-accent-bar' }),
+                      h('h3', {}, "À propos de l'auteur — " + item.name),
+                      h('p', {}, item.about)
+                    ),
+                    h('div', { key: item.name + '-interests', className: 'transparency-card' },
+                      h('div', { className: 'card-accent-bar' }),
+                      h('h3', {}, "Déclaration d'intérêt"),
+                      h('p', {}, item.interests || "L'auteur déclare n'avoir aucun conflit d'intérêt.")
+                    )
+                  ];
+                }),
                 h('div', { className: 'transparency-card' },
                   h('div', { className: 'card-accent-bar' }),
                   h('h3', {}, 'Sources consultables'),

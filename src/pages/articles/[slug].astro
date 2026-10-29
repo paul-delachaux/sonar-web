@@ -106,22 +106,42 @@ const sidebarSlots = articlesSimilairesFR.map((artFR) => {
   return { artFR, artEN: null, hasEn: false };
 });
 
-const currentAuthorName = article.data.author || "Auteur Anonyme";
-const authorInfo = AUTHORS_DATA[currentAuthorName] || { avatarUrl: "/assets/uploads/avatar-default.jpg"};
 const mediaBlocks = isRevue ? [] : normalizeMediaBlocks(article.data);
 const tweetBlocks = mediaBlocks.filter((block) => block.type === 'tweet' && block.url);
 
-// Extrait du tableau author_info
-const authorData = article.data.author_info?.[0];
+const selectedAuthors = [article.data.author, article.data.author2]
+  .map((name, index) => ({ name, index }))
+  .filter((author, index, authors): author is { name: string; index: number } =>
+    Boolean(author.name?.trim()) &&
+    authors.findIndex((candidate) => candidate.name === author.name) === index
+  );
+if (selectedAuthors.length === 0) selectedAuthors.push({ name: 'Auteur Anonyme', index: 0 });
 
-const authorAboutFR = authorData?.author_about || article.data.author_about || t('author_about_empty', 'FR');
-const authorAboutEN = authorData?.author_about_en || article.data.author_about_en || authorData?.author_about || article.data.author_about || t('author_about_empty', 'EN');
+const authorProfiles = selectedAuthors.map(({ name, index }) => {
+  const authorData = article.data.author_info?.[index];
+  const legacyAbout = index === 0 ? article.data.author_about : undefined;
+  const aboutFR = authorData?.author_about || legacyAbout || t('author_about_empty', 'FR');
+  const legacyAboutEN = index === 0 ? article.data.author_about_en : undefined;
+  const aboutEN = authorData?.author_about_en || legacyAboutEN || aboutFR;
+  const interestsFR = authorData?.author_interests || (index === 0 ? article.data.author_interests : '') || '';
+  const interestsEN = authorData?.author_interests_en || (index === 0 ? article.data.author_interests_en : '') || interestsFR;
+  const partnersFR = authorData?.author_partners || (index === 0 ? article.data.author_partners : '') || '';
+  const partnersEN = authorData?.author_partners_en || (index === 0 ? article.data.author_partners_en : '') || partnersFR;
 
-const authorInterestsFR = authorData?.author_interests || article.data.author_interests || "";
-const authorInterestsEN = authorData?.author_interests_en || article.data.author_interests_en || authorInterestsFR;
+  return {
+    name,
+    avatarUrl: AUTHORS_DATA[name]?.avatarUrl || '/assets/uploads/avatar-default.jpg',
+    aboutFR,
+    aboutEN,
+    interestsFR,
+    interestsEN,
+    partnersFR,
+    partnersEN,
+  };
+});
 
-const authorPartnersFR = authorData?.author_partners || article.data.author_partners || "";
-const authorPartnersEN = authorData?.author_partners_en || article.data.author_partners_en || authorPartnersFR;
+const authorNameFR = authorProfiles.map((author) => author.name).join(' et ');
+const authorNameEN = authorProfiles.map((author) => author.name).join(' and ');
 
 const mediaBlocksJson = JSON.stringify(mediaBlocks).replace(/</g, '\\u003c');
 
@@ -151,17 +171,14 @@ const descEN = hasEn && article.data.description_en
       titleEN={titleEN}
       descFR={descFR}
       descEN={descEN}
-      authorName={currentAuthorName}
-      avatarUrl={authorInfo.avatarUrl}
+      authorNameFR={authorNameFR}
+      authorNameEN={authorNameEN}
+      authors={authorProfiles}
       readingTime={readingTime}
       dateAfficheeFR={dateAfficheeFR}
       dateAfficheeEN={dateAfficheeEN}
       heureAfficheeFR={heureAfficheeFR}
       heureAfficheeEN={heureAfficheeEN}
-      authorAboutFR={authorAboutFR}
-      authorAboutEN={authorAboutEN}
-      authorInterestsFR={authorInterestsFR}
-      authorInterestsEN={authorInterestsEN}
       sources={article.data.consulted_sources || []}
       rows={article.data.revue_rows || []}
     />
@@ -208,28 +225,34 @@ const descEN = hasEn && article.data.description_en
           <aside class="breve-sidebar">
             <div class="breve-author-block">
               <div class="breve-author-header">
-                <img src={authorInfo.avatarUrl} alt={currentAuthorName} class="breve-avatar" />
+                <div class="breve-avatar-group">
+                  {authorProfiles.map((author) => (
+                    <img src={author.avatarUrl} alt={author.name} class="breve-avatar" />
+                  ))}
+                </div>
                 <div class="breve-author-header-text">
-                  <p class="breve-author-name">{currentAuthorName}</p>
-                  <p class="breve-author-about" data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
+                  <p class="breve-author-name" data-fr={authorNameFR} data-en={authorNameEN}>{authorNameFR}</p>
                 </div>
               </div>
-
-              {(authorInterestsFR || authorInterestsEN) && (
-                <p class="breve-author-detail">
-                  <strong data-i18n="author_interests_label">{t('author_interests_label', 'FR')}</strong>
-                  {" : "}
-                  <span data-fr={authorInterestsFR} data-en={authorInterestsEN}>{authorInterestsFR}</span>
-                </p>
-              )}
-
-              {(authorPartnersFR || authorPartnersEN) && (
-                <p class="breve-author-detail">
-                  <strong data-i18n="author_partners_label">{t('author_partners_label', 'FR')}</strong>
-                  {" : "}
-                  <span data-fr={authorPartnersFR} data-en={authorPartnersEN}>{authorPartnersFR}</span>
-                </p>
-              )}
+              {authorProfiles.map((author) => (
+                <div class="breve-author-profile">
+                  <p class="breve-author-about" data-fr={author.aboutFR} data-en={author.aboutEN}>{author.aboutFR}</p>
+                  {(author.interestsFR || author.interestsEN) && (
+                    <p class="breve-author-detail">
+                      <strong data-i18n="author_interests_label">{t('author_interests_label', 'FR')}</strong>
+                      {" : "}
+                      <span data-fr={author.interestsFR} data-en={author.interestsEN}>{author.interestsFR}</span>
+                    </p>
+                  )}
+                  {(author.partnersFR || author.partnersEN) && (
+                    <p class="breve-author-detail">
+                      <strong data-i18n="author_partners_label">{t('author_partners_label', 'FR')}</strong>
+                      {" : "}
+                      <span data-fr={author.partnersFR} data-en={author.partnersEN}>{author.partnersFR}</span>
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           </aside>
         </div>
@@ -286,10 +309,15 @@ const descEN = hasEn && article.data.description_en
           {descFR && <p class="main-description" data-fr={descFR} data-en={descEN}>{descFR}</p>}
 
           <a href="#author-info-section" class="author-meta-block">
-            <img src={authorInfo.avatarUrl} alt={`Portrait de ${currentAuthorName}`} class="author-avatar" />
+            <div class="author-avatar-group">
+              {authorProfiles.map((author) => (
+                <img src={author.avatarUrl} alt={`Portrait de ${author.name}`} class="author-avatar" />
+              ))}
+            </div>
             <div class="author-text-meta">
               <p class="author-name">
-                <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}{currentAuthorName}
+                <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}
+                <span data-fr={authorNameFR} data-en={authorNameEN}>{authorNameFR}</span>
               </p>
               <p class="publication-date">
                 {readingTime}{" "}
@@ -374,21 +402,28 @@ const descEN = hasEn && article.data.description_en
         </div>
 
         <footer id="author-info-section" class="article-footer-transparency">
-          <div class="transparency-card">
-            <div class="card-accent-bar"></div>
-            <h3 data-i18n="transparency_author">{t('transparency_author', 'FR')}</h3>
-            <p data-fr={authorAboutFR} data-en={authorAboutEN}>{authorAboutFR}</p>
-          </div>
+          {authorProfiles.map((author) => (
+            <>
+              <div class="transparency-card">
+                <div class="card-accent-bar"></div>
+                <h3>
+                  <span data-i18n="transparency_author">{t('transparency_author', 'FR')}</span>{" "}
+                  — {author.name}
+                </h3>
+                <p data-fr={author.aboutFR} data-en={author.aboutEN}>{author.aboutFR}</p>
+              </div>
 
-          <div class="transparency-card">
-            <div class="card-accent-bar"></div>
-            <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
-            {authorInterestsFR || authorInterestsEN ? (
-              <p data-fr={authorInterestsFR} data-en={authorInterestsEN}>{authorInterestsFR}</p>
-            ) : (
-              <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
-            )}
-          </div>
+              <div class="transparency-card">
+                <div class="card-accent-bar"></div>
+                <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
+                {author.interestsFR || author.interestsEN ? (
+                  <p data-fr={author.interestsFR} data-en={author.interestsEN}>{author.interestsFR}</p>
+                ) : (
+                  <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
+                )}
+              </div>
+            </>
+          ))}
 
           <div class="transparency-card">
             <div class="card-accent-bar"></div>
@@ -768,11 +803,14 @@ const descEN = hasEn && article.data.description_en
   .breve-caption { margin-top: 8px; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .breve-sidebar { position: static; }
   .breve-author-block { display: flex; flex-direction: column; text-align: left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .breve-author-header { display: flex; align-items: flex-start; gap: 12px; }
+  .breve-author-header { display: flex; align-items: center; gap: 12px; }
+  .breve-avatar-group { display: flex; flex-shrink: 0; }
   .breve-avatar { width: 48px; height: 48px; border-radius: 50%; background-color: #d9d9d9; object-fit: cover; flex-shrink: 0; }
+  .breve-avatar-group .breve-avatar + .breve-avatar { margin-left: -12px; border: 2px solid #02001d; }
   .breve-author-header-text { flex: 1; min-width: 0; }
   .breve-author-name { font-weight: 700; color: #ff8826; margin: 0 0 4px 0; font-size: 0.95rem; }
   .breve-author-about { margin: 0; font-size: 0.8rem; line-height: 1.4; color: #d7dee6; }
+  .breve-author-profile + .breve-author-profile { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1f2937; }
   .breve-author-detail { margin: 14px 0 0 0; font-size: 0.8rem; line-height: 1.5; color: #d7dee6; }
   .breve-author-detail strong { color: #ffffff; font-weight: 700; }
   .breve-sources-section { margin-top: 25px; margin-bottom: 20px; }
@@ -792,7 +830,9 @@ const descEN = hasEn && article.data.description_en
   .main-description { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: 500; color: #ffffff; line-height: 1.5; margin: 0 0 30px 0; }
   .author-meta-block { display: flex; align-items: center; gap: 20px; text-decoration: none; color: inherit; cursor: pointer; width: fit-content; }
   .author-meta-block:hover .author-name { text-decoration: underline; color: #ea580c; }
+  .author-avatar-group { display: flex; flex-shrink: 0; }
   .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; flex-shrink: 0; }
+  .author-avatar-group .author-avatar + .author-avatar { margin-left: -12px; border: 2px solid #02001d; }
   .author-text-meta { display: flex; flex-direction: column; gap: 0; justify-content: center; }
   .author-name { margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1rem; font-weight: 600; color: #ffffff; line-height: 1.3; transition: color 0.2s ease; }
   .publication-date { margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1rem; font-style: italic; color: #ffffff; line-height: 1.3; }
