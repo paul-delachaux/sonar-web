@@ -8,14 +8,33 @@ interface Props {
 }
 const { fixedClone = false } = Astro.props;
 const searchPanelId = fixedClone ? 'header-inner-search-panel-clone' : 'header-inner-search-panel';
+const menuPanelId = fixedClone ? 'header-inner-menu-panel-clone' : 'header-inner-menu-panel';
+const menuOverlayId = fixedClone ? 'header-inner-menu-overlay-clone' : 'header-inner-menu-overlay';
 
 import logoSonar from './LogoSonarVdef.png';
 import AuthNav from './AuthNav.astro';
 import NavDomains from './NavDomains.astro';
 ---
 
-<header class:list={['header-inner', fixedClone && 'header-fixed-clone']}>
+<header
+    class:list={['header-inner', fixedClone && 'header-fixed-clone']}
+    data-menu-panel={menuPanelId}
+    data-menu-overlay={menuOverlayId}
+>
     <div class="header-inner-left">
+        <button
+            type="button"
+            class="hv2-icon-btn header-inner-mobile-menu-toggle"
+            aria-label="Ouvrir le menu des catégories"
+            aria-expanded="false"
+            aria-controls={menuPanelId}
+        >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
         <div class="header-inner-logo">
             <a href="/" aria-label="Retour au menu principal">
                 <img src={logoSonar.src} alt="Logo Sonar" style="width: 100%; height: auto; display: block;" />
@@ -67,3 +86,28 @@ import NavDomains from './NavDomains.astro';
         </div>
     </div>
 </header>
+
+<div class="hv2-overlay header-inner-menu-overlay" id={menuOverlayId}></div>
+<nav class="hv2-menu-panel header-inner-menu-panel" id={menuPanelId} aria-label="Menu">
+    <div class="hv2-menu-top">
+        <button type="button" class="hv2-menu-close" aria-label="Fermer le menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+            </svg>
+        </button>
+        <a href="/" class="hv2-menu-brand">
+            <img src={logoSonar.src} alt="Logo Sonar" class="hv2-menu-brand-logo" />
+            <span class="hv2-menu-brand-title">L'Echo du Sonar</span>
+        </a>
+        <div class="hv2-lang-switch hv2-menu-lang" role="group" aria-label="Langue">
+            <button type="button" class="hv2-lang-btn" data-lang-btn="FR" aria-pressed="true">FR</button>
+            <span class="hv2-lang-sep">/</span>
+            <button type="button" class="hv2-lang-btn" data-lang-btn="EN" aria-pressed="false">EN</button>
+        </div>
+    </div>
+    <div class="hv2-menu-links">
+        <a href="/" data-i18n="nav_home">Accueil</a>
+        <NavDomains />
+    </div>
+</nav>

@@ -907,4 +907,87 @@ const descEN = hasEn && article.data.description_en
     .sidebar-card { flex: 0 0 150px; width: 150px; border-bottom: none; padding-bottom: 0; scroll-snap-align: start; }
     .sidebar-card-img { height: 90px; }
   }
+  @media (max-width: 640px) {
+    .breve-layout-container,
+    .article-container {
+      padding: 22px 14px;
+    }
+    .main-title,
+    .breve-title {
+      font-size: 1.45rem;
+      line-height: 1.2;
+    }
+    .main-description {
+      font-size: 1rem;
+      margin-bottom: 22px;
+    }
+    .author-meta-block {
+      gap: 12px;
+      width: 100%;
+    }
+    .author-name {
+      font-size: 0.92rem;
+    }
+    .publication-date {
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .author-avatar {
+      width: 44px;
+      height: 44px;
+    }
+    .prose-content {
+      font-size: 1rem;
+      line-height: 1.75;
+    }
+    .prose-content img,
+    .prose-content video,
+    .prose-content iframe {
+      max-width: 100%;
+    }
+    .prose-content table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .prose-content h2 {
+      font-size: 1.3rem;
+      margin-top: 30px;
+    }
+    .article-footer-transparency {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+      padding: 0;
+      margin-top: 28px;
+    }
+    .transparency-card,
+    .transparency-card:has([data-i18n="transparency_sources"]) {
+      grid-column: 1;
+      width: 100%;
+      min-height: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .transparency-card h3 {
+      font-size: 0.8rem;
+    }
+    .article-sidebar {
+      margin-top: 24px;
+    }
+    .sidebar-sticky-box {
+      padding: 12px;
+    }
+    .sidebar-card {
+      flex-basis: min(68vw, 220px);
+      width: min(68vw, 220px);
+    }
+    .breve-sidebar {
+      padding-top: 16px;
+    }
+    .breve-avatar {
+      width: 42px;
+      height: 42px;
+    }
+  }
 </style>

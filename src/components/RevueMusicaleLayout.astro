@@ -132,6 +132,17 @@ function tracksOf(cell: Cell | null | undefined) {
   return [];
 }
 
+function cellHasContent(cell: Cell | null | undefined) {
+  const type = cellType(cell);
+  if (type === 'image') return Boolean(cell?.image?.trim());
+  if (type === 'audio') {
+    return (cell?.tracks || []).some((track) =>
+      Boolean(track?.file?.trim() || track?.url?.trim())
+    );
+  }
+  return Boolean(cell?.text?.trim() || cell?.text_en?.trim());
+}
+
 function waveHeights(seed: string, count: number) {
   let s = 2166136261;
   for (let i = 0; i < seed.length; i += 1) {
@@ -194,17 +205,18 @@ function waveHeights(seed: string, count: number) {
 
     <div class="revue-rows">
       {rows.map((row, rowIndex) => (
-        <div class="revue-row">
+        <div class:list={['revue-row', !cellHasContent(row.left) && !cellHasContent(row.right) && 'is-empty']}>
           {(['left', 'right'] as const).map((side) => {
             const cell = row[side];
             const type = cellType(cell);
+            const isEmpty = !cellHasContent(cell);
             const textFR = String(cell?.text || '');
             const textEN = String(cell?.text_en || textFR);
             const captionFR = String(cell?.image_caption || cell?.image_caption_en || '').trim();
             const captionEN = String(cell?.image_caption_en || cell?.image_caption || '').trim();
             const tracks = tracksOf(cell);
             return (
-              <div class={`revue-cell revue-cell-${type}`}>
+              <div class:list={['revue-cell', `revue-cell-${type}`, isEmpty && 'is-empty']}>
                 {type === 'image' && cell?.image && (
                   <figure class="revue-figure">
                     <img src={cell.image} alt={captionFR} class="revue-image" />
@@ -564,6 +576,7 @@ function waveHeights(seed: string, count: number) {
           player.style.height = '';
         });
       });
+      if (window.matchMedia('(max-width: 968px)').matches) return;
       const textCell = cells.find((cell) => cell.classList.contains('revue-cell-texte'));
       if (!textCell) return;
       const visibleText = textCell.querySelector('.revue-text:not([hidden])') as HTMLElement | null;
@@ -897,5 +910,47 @@ function waveHeights(seed: string, count: number) {
     .revue-row { grid-template-columns: 1fr; gap: 18px; }
     .revue-cell-image { min-height: 220px; }
     .revue-cell-audio { min-height: 0; }
+  }
+  @media (max-width: 640px) {
+    .revue-layout {
+      padding: 22px 14px;
+    }
+    .revue-header {
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    .revue-title {
+      font-size: 1.45rem;
+    }
+    .revue-description,
+    .revue-text {
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+    .revue-row {
+      gap: 14px;
+    }
+    .revue-cell-image {
+      min-height: 0;
+      height: auto;
+      overflow: visible;
+    }
+    .revue-figure {
+      min-height: 0;
+      height: auto;
+    }
+    .revue-image {
+      flex: 0 0 auto;
+      height: auto;
+      max-height: 65vh;
+    }
+    .revue-row.is-empty,
+    .revue-cell.is-empty {
+      display: none;
+    }
+    .revue-audio {
+      gap: 8px;
+      padding: 10px 12px;
+    }
   }
 </style>

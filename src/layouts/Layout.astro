@@ -112,7 +112,21 @@ const articleTitlesJson = JSON.stringify(
                met à jour qu'en bas de page. On repasse en "scroll" sous 968px. */
             @media (max-width: 968px) {
                 html {
-                    background-attachment: scroll;
+                    background-image: none;
+                }
+                html::before {
+                    content: "";
+                    position: fixed;
+                    inset: 0;
+                    z-index: -1;
+                    background-image: url('../assets/background.jpg');
+                    background-repeat: no-repeat;
+                    background-position: center top;
+                    background-size: auto 100vh;
+                    pointer-events: none;
+                }
+                body {
+                    isolation: isolate;
                 }
             }
 
@@ -525,6 +539,12 @@ const articleTitlesJson = JSON.stringify(
                 padding: 0;
                 flex-shrink: 0;
                 transition: background-color 0.2s ease;
+            }
+            .hv2-mobile-burger {
+                display: none;
+            }
+            .header-inner-mobile-menu-toggle {
+                display: none;
             }
             .hv2-icon-btn svg {
                 width: 20px;
@@ -1138,6 +1158,9 @@ const articleTitlesJson = JSON.stringify(
                     row-gap: 10px;
                     padding: 12px 16px;
                 }
+                .header-v2 .hv2-category-bar {
+                    display: none;
+                }
                 .hv2-category-bar {
                     justify-content: flex-end;
                     gap: 16px;
@@ -1187,6 +1210,12 @@ const articleTitlesJson = JSON.stringify(
                 .header-inner-logo {
                     width: 105px;
                 }
+                .header-inner-mobile-menu-toggle {
+                    display: inline-flex;
+                    flex: 0 0 auto;
+                    width: 40px;
+                    height: 40px;
+                }
                 .header-inner .hv2-search-wrap.is-open .hv2-search-inline {
                     width: clamp(120px, 28vw, 200px);
                 }
@@ -1206,6 +1235,7 @@ const articleTitlesJson = JSON.stringify(
                     gap: 0;
                 }
                 .nav-bar-inner .mobile-nav-toggle {
+                    display: inline-flex;
                     margin-right: 4px;
                 }
                 .nav-bar-inner a {
@@ -1249,6 +1279,9 @@ const articleTitlesJson = JSON.stringify(
                     display: block;
                     font-size: 0.9rem;
                     font-weight: 600;
+                }
+                .header-inner .nav-bar-inner {
+                    display: none;
                 }
 
                 /* --- Footer --- */
@@ -1378,6 +1411,128 @@ const articleTitlesJson = JSON.stringify(
             }
             html[data-article-font-size="large"] .revue-title {
                 font-size: 2.45rem !important;
+            }
+
+            @media (max-width: 640px) {
+                body {
+                    --page-pad: 12px;
+                }
+
+                .header-v2-row {
+                    gap: 8px;
+                    padding: 10px 12px;
+                }
+                .header-v2-left,
+                .header-v2-right {
+                    min-width: 0;
+                }
+
+                .header-inner {
+                    gap: 8px;
+                    padding: 10px 12px;
+                    margin-bottom: 18px;
+                }
+                .header-inner-left {
+                    flex: 1 1 100%;
+                    gap: 8px;
+                }
+                .header-inner-mobile-menu-toggle {
+                    display: inline-flex;
+                }
+                .header-inner-logo {
+                    width: 76px;
+                }
+                .header-inner .hv2-search-wrap.is-open .hv2-search-inline {
+                    width: min(58vw, 220px);
+                }
+                .header-right-group {
+                    width: 100%;
+                    gap: 8px;
+                }
+                .nav-bar-inner {
+                    display: none;
+                }
+                .header-toolbar {
+                    margin-left: auto;
+                }
+                .header-v2-right {
+                    align-items: center;
+                }
+                .header-toolbar {
+                    gap: 6px;
+                }
+                .hv2-lang-btn {
+                    min-width: 36px;
+                    min-height: 40px;
+                }
+                .header-fixed-clone {
+                    flex-wrap: nowrap;
+                    gap: 8px;
+                    height: auto;
+                    min-height: 0;
+                    margin-bottom: 0;
+                    padding: 6px 12px;
+                }
+                .header-fixed-clone .header-inner-left {
+                    flex: 1 1 auto;
+                    width: auto;
+                    gap: 6px;
+                }
+                .header-fixed-clone .header-inner-mobile-menu-toggle {
+                    width: 36px;
+                    height: 36px;
+                }
+                .header-fixed-clone .header-inner-logo {
+                    width: 58px;
+                    flex: 0 0 auto;
+                }
+                .header-fixed-clone .header-right-group {
+                    flex: 0 0 auto;
+                    width: auto;
+                    gap: 0;
+                    flex-wrap: nowrap;
+                }
+                .header-fixed-clone .header-toolbar {
+                    gap: 8px;
+                    flex-wrap: nowrap;
+                }
+                .header-fixed-clone .hv2-lang-btn {
+                    min-width: 0;
+                    min-height: 0;
+                }
+                .header-fixed-clone.is-search-open {
+                    flex-wrap: wrap;
+                    row-gap: 4px;
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                }
+                .header-fixed-clone.is-search-open .header-inner-left,
+                .header-fixed-clone.is-search-open .header-right-group {
+                    flex: 1 1 100%;
+                    width: 100%;
+                }
+                .header-fixed-clone.is-search-open .header-right-group {
+                    justify-content: flex-end;
+                }
+                .header-fixed-clone .hv2-search-wrap.is-open .hv2-search-inline {
+                    width: min(44vw, 190px);
+                }
+                .footer-brand {
+                    width: 100%;
+                }
+                .footer-links {
+                    transform: none;
+                }
+                .footer-nav .nav-domain-row,
+                .legal-links {
+                    flex-wrap: wrap;
+                }
+
+                input,
+                select,
+                textarea {
+                    font-size: 16px;
+                }
             }
         </style>
         <script is:inline>
@@ -1610,6 +1765,9 @@ const articleTitlesJson = JSON.stringify(
                 function closeSearch() {
                     if (!searchWrap || !isSearchOpen()) return;
                     searchWrap.classList.remove('is-open');
+                    if (header.classList.contains('header-fixed-clone')) {
+                        header.classList.remove('is-search-open');
+                    }
                     if (searchBtn) searchBtn.setAttribute('aria-expanded', 'false');
                     if (searchInput) searchInput.value = '';
                     if (resultsList) {
@@ -1621,6 +1779,9 @@ const articleTitlesJson = JSON.stringify(
                     if (!searchWrap) return;
                     if (typeof hooks.onOpen === 'function') hooks.onOpen();
                     searchWrap.classList.add('is-open');
+                    if (header.classList.contains('header-fixed-clone')) {
+                        header.classList.add('is-search-open');
+                    }
                     if (searchBtn) searchBtn.setAttribute('aria-expanded', 'true');
                     if (searchInput) searchInput.focus();
                 }
@@ -1740,7 +1901,13 @@ const articleTitlesJson = JSON.stringify(
                 const overlay = document.getElementById('hv2-overlay');
                 const menuPanel = document.getElementById('hv2-menu-panel');
                 const menuCloseBtn = menuPanel ? menuPanel.querySelector('.hv2-menu-close') : null;
-                const burgerBtn = header.querySelector('.hv2-burger');
+                const burgerBtns = Array.from(header.querySelectorAll('.hv2-burger'));
+
+                function setBurgerExpanded(expanded) {
+                    burgerBtns.forEach((button) => {
+                        button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                    });
+                }
 
                 function isMenuOpen() {
                     return Boolean(menuPanel && menuPanel.classList.contains('is-open'));
@@ -1750,7 +1917,7 @@ const articleTitlesJson = JSON.stringify(
                     if (!menuPanel || !isMenuOpen()) return;
                     menuPanel.classList.remove('is-open');
                     if (overlay) overlay.classList.remove('is-open');
-                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'false');
+                    setBurgerExpanded(false);
                     menuPanel.querySelectorAll('.nav-domain.is-open').forEach((item) => {
                         item.classList.remove('is-open');
                         const toggle = item.querySelector('.nav-domain-toggle');
@@ -1768,19 +1935,19 @@ const articleTitlesJson = JSON.stringify(
                     searchApi.closeSearch();
                     menuPanel.classList.add('is-open');
                     if (overlay) overlay.classList.add('is-open');
-                    if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'true');
+                    setBurgerExpanded(true);
                 }
                 function toggleMenu() {
                     if (isMenuOpen()) closeMenu();
                     else openMenu();
                 }
 
-                if (burgerBtn) {
+                burgerBtns.forEach((burgerBtn) => {
                     burgerBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         toggleMenu();
                     });
-                }
+                });
                 if (menuCloseBtn) {
                     menuCloseBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -1810,7 +1977,60 @@ const articleTitlesJson = JSON.stringify(
 
             function setupInnerHeaderSearch() {
                 document.querySelectorAll('.header-inner').forEach((header) => {
-                    setupHeaderSearch(header);
+                    const burger = header.querySelector('.header-inner-mobile-menu-toggle');
+                    const menuPanel = document.getElementById(header.dataset.menuPanel || '');
+                    const overlay = document.getElementById(header.dataset.menuOverlay || '');
+                    const closeButton = menuPanel ? menuPanel.querySelector('.hv2-menu-close') : null;
+
+                    function isMenuOpen() {
+                        return Boolean(menuPanel && menuPanel.classList.contains('is-open'));
+                    }
+                    function closeMenu() {
+                        if (!menuPanel || !isMenuOpen()) return;
+                        menuPanel.classList.remove('is-open');
+                        overlay?.classList.remove('is-open');
+                        burger?.setAttribute('aria-expanded', 'false');
+                        menuPanel.querySelectorAll('.nav-domain.is-open').forEach((item) => {
+                            item.classList.remove('is-open');
+                            item.querySelector('.nav-domain-toggle')?.setAttribute('aria-expanded', 'false');
+                        });
+                    }
+
+                    const searchApi = setupHeaderSearch(header, {
+                        onOpen: closeMenu,
+                        isInside: (target) => Boolean(menuPanel && menuPanel.contains(target)),
+                    });
+
+                    if (burger) {
+                        burger.addEventListener('click', (event) => {
+                            event.stopPropagation();
+                            if (isMenuOpen()) {
+                                closeMenu();
+                                return;
+                            }
+                            searchApi.closeSearch();
+                            menuPanel?.classList.add('is-open');
+                            overlay?.classList.add('is-open');
+                            burger.setAttribute('aria-expanded', 'true');
+                        });
+                    }
+                    closeButton?.addEventListener('click', closeMenu);
+                    overlay?.addEventListener('click', closeMenu);
+                    menuPanel?.querySelectorAll('.hv2-menu-links a').forEach((link) => {
+                        link.addEventListener('click', closeMenu);
+                    });
+                    if (menuPanel) {
+                        setupDomainToggles(menuPanel);
+                        menuPanel.addEventListener('click', (event) => event.stopPropagation());
+                    }
+                    document.addEventListener('click', (event) => {
+                        if (!header.contains(event.target) && !menuPanel?.contains(event.target)) {
+                            closeMenu();
+                        }
+                    });
+                    document.addEventListener('keydown', (event) => {
+                        if (event.key === 'Escape') closeMenu();
+                    });
                 });
             }
 

@@ -530,7 +530,7 @@ author2: Victor Zhâ
 author_info:
   - author_about: Ce mec est une crème
     author_about_en: This guys is so sweet
-  - author_about: Ce mec est une merde
+  - author_about: Lui aussi
     author_about_en: No information provided at this time.
 reading_time: 5
 isVisible: true

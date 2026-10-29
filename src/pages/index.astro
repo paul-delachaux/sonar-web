@@ -756,9 +756,24 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
         .article-une h2 { font-size: 1.3rem; }
         .image-wrapper { min-height: 200px; }
         .sidebar-articles { gap: 12px; }
+        .sidebar-articles > .article-sidebar.long,
+        .sidebar-articles > :global(.thumb-card--sidebar),
+        .sidebar-articles > .sub-grid {
+            flex: 0 0 auto;
+        }
         /* Les 2 petites cartes passent elles aussi en colonne : à 2 colonnes
            elles deviennent trop étroites et le texte se met à "casser" ligne par ligne. */
-        .sub-grid { grid-template-columns: 1fr; gap: 10px; }
+        .sub-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto;
+            gap: 10px;
+        }
+        .sub-grid > .article-sidebar {
+            height: auto;
+        }
+        .sub-grid > :global(.thumb-card) {
+            height: 180px;
+        }
         .article-sidebar { min-height: unset; padding: 12px; }
         .article-sidebar h3 { font-size: 1rem; }
 
@@ -828,8 +843,14 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     }
 
     @media (max-width: 480px) {
+        .container-accueil { gap: 32px; padding-bottom: 40px; }
+        .main-grid { gap: 12px; }
+        .article-une { padding: 14px; }
         .article-une h2 { font-size: 1.15rem; }
-        .image-wrapper { min-height: 170px; }
+        .image-wrapper { min-height: clamp(180px, 62vw, 260px); }
         .article-bottom-card, .article-sidebar { padding: 12px; }
+        .sub-grid { gap: 10px; }
+        .bottom-row-grid,
+        .asym-container { gap: 10px; }
     }
 </style>
