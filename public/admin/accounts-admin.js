@@ -589,6 +589,8 @@
       item.style.display = collapsed ? 'none' : 'flex';
       var logsItem = document.getElementById('cms-logs-nav');
       if (logsItem) logsItem.style.display = collapsed ? 'none' : 'flex';
+      var announcementsItem = document.getElementById('cms-announcements-nav');
+      if (announcementsItem) announcementsItem.style.display = collapsed ? 'none' : 'flex';
     });
 
     sidebarContainer.appendChild(header);

@@ -179,6 +179,7 @@
     getCurrentAccount,
     saveArticlePrefs,
     listNotifications,
+    syncAdminAnnouncements,
     setNotificationRead,
     markAllNotificationsRead,
     snoozeReadLater,
@@ -324,6 +325,8 @@
   const deleteSelectedBtn = document.getElementById('account-notif-delete-selected') as HTMLButtonElement | null;
   let notificationsCache: AppNotification[] = [];
   const actorProfiles = new Map<string, AccountPreview>();
+  let announcementSyncWarningShown = false;
+  let lastAnnouncementSyncAt = 0;
 
   function defaultRemindAt() {
     return remindAtFromDays(READ_LATER_DEFAULT_REMIND_DAYS);
@@ -374,6 +377,7 @@
   }
 
   function notifKindKey(type: string) {
+    if (type === 'admin_message') return 'notif_admin_message';
     if (type === 'comment_reply') return 'notif_comment_reply_prefix';
     if (type === 'comment_like') return 'notif_comment_like_prefix';
     return 'notif_read_later_prefix';
@@ -464,6 +468,7 @@
       const isRead = Boolean(item.read_at);
       const type = item.type || 'read_later';
       const isReadLater = type === 'read_later';
+      const isAdminMessage = type === 'admin_message';
       const title = notifHeadline(item, lang);
       const commentHref = item.article_slug
         ? commentPermalink(item.article_slug, item.comment_id)
@@ -476,8 +481,10 @@
         `<button type="button" class="account-notif-snooze-btn" data-snooze-days="${days}">${escapeHtml(snoozeLabel(days))}</button>`
       )).join('');
       const isLikeOnReply = type === 'comment_like' && Boolean(item.body);
-      const excerpt = isReadLater ? '' : item.title;
-      const body = type === 'comment_reply'
+      const excerpt = isReadLater || isAdminMessage ? '' : item.title;
+      const body = isAdminMessage
+        ? String(item.body || '')
+        : type === 'comment_reply'
         ? stripLeadingMentions(item.body || '')
         : isLikeOnReply
           ? String(item.body || '')
@@ -523,7 +530,7 @@
             <p class="account-notif-title">${escapeHtml(title)}</p>
             ${articleTitle && item.article_slug ? `<p class="account-notif-article"><span class="account-notif-article-prep" data-i18n="notif_on_article">${escapeHtml(t('notif_on_article'))}</span> <a class="account-notif-article-title" href="${escapeHtml(articleHref)}">${escapeHtml(articleTitle)}</a></p>` : ''}
             ${excerpt ? `<p class="account-notif-excerpt">« ${escapeHtml(excerpt)} »</p>` : ''}
-            ${body ? `<p class="account-notif-body account-notif-body--reply">${replyArrow}<span>${isLikeOnReply ? formatCommentBody(body) : escapeHtml(body)}</span></p>` : ''}
+            ${body ? `<p class="account-notif-body${isAdminMessage ? ' account-notif-admin-body' : ' account-notif-body--reply'}">${isAdminMessage ? '' : replyArrow}<span>${isLikeOnReply ? formatCommentBody(body) : escapeHtml(body)}</span></p>` : ''}
             ${item.article_slug ? `<a class="account-notif-link" href="${escapeHtml(commentHref)}" data-i18n="${linkKey}">${escapeHtml(t(linkKey))}</a>` : ''}
             ${isReadLater ? `<div class="account-notif-snooze">
               <span data-i18n="notif_remind_in">${escapeHtml(t('notif_remind_in'))}</span>
@@ -586,6 +593,17 @@
   async function refreshNotifications() {
     const selected = selectedNotifIds();
     const previous = notificationsCache.map((item) => `${item.id}:${item.read_at || ''}:${(item.actor_usernames || []).join(',')}:${item.body || ''}`).join('|');
+    if (Date.now() - lastAnnouncementSyncAt >= 30000) {
+      lastAnnouncementSyncAt = Date.now();
+      try {
+        await syncAdminAnnouncements();
+      } catch (error) {
+        if (!announcementSyncWarningShown) {
+          console.error('[Sonar] Impossible de synchroniser les messages d’administration. Vérifiez la migration Supabase admin-announcements.sql.', error);
+          announcementSyncWarningShown = true;
+        }
+      }
+    }
     try {
       await syncReadLaterReminders(defaultRemindAt());
       notificationsCache = await listNotifications();
@@ -906,6 +924,9 @@
     padding-right: var(--page-pad, 20px);
     display: flex;
     flex-direction: column;
+  }
+  .account-notif-admin-body {
+    white-space: pre-wrap;
   }
   .account-drawer.is-open,
   .account-subdrawer.is-open {

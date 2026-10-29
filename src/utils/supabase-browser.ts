@@ -174,6 +174,17 @@ export type AppNotification = {
   created_at: string;
 };
 
+export async function syncAdminAnnouncements(): Promise<void> {
+  const supabase = getBrowserSupabase();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return;
+
+  const { error } = await supabase.rpc('claim_admin_announcements');
+  if (error) throw error;
+}
+
 function requireSessionError(): never {
   const err = new Error('AUTH_REQUIRED');
   err.name = 'AuthRequired';
