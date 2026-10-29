@@ -1153,6 +1153,7 @@ const articleTitlesJson = JSON.stringify(
 
                 /* --- En-tête page d'accueil (v2) --- */
                 .header-v2-row {
+                    position: relative;
                     flex-wrap: wrap;
                     justify-content: center;
                     row-gap: 10px;
@@ -1182,6 +1183,12 @@ const articleTitlesJson = JSON.stringify(
                     /* Sur mobile, le logo passe en 2e ligne (voir .header-v2-center
                        plus haut) : plus besoin de recentrer sur son milieu. */
                     margin-top: 0;
+                }
+                .header-v2-right .auth-nav {
+                    position: absolute;
+                    top: 12px;
+                    right: 16px;
+                    z-index: 1;
                 }
                 .hv2-brand-logo {
                     width: 56px;
@@ -1421,6 +1428,10 @@ const articleTitlesJson = JSON.stringify(
                 .header-v2-row {
                     gap: 8px;
                     padding: 10px 12px;
+                }
+                .header-v2-right .auth-nav {
+                    top: 10px;
+                    right: 12px;
                 }
                 .header-v2-left,
                 .header-v2-right {
