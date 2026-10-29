@@ -475,7 +475,16 @@ collections:
             required: false
 
           # --- SECTION DROITE (BAS - DEUX PETITS) ---
-          - label: "Deux articles du bas"
+          - label: "Nombre d'articles dans la petite sidebar"
+            name: "sidebarSmallArticleCount"
+            widget: "select"
+            default: "2"
+            required: false
+            hint: "Les premiers articles de la liste ci-dessous sont utilisés. Avec 1 article, la carte prend toute la largeur."
+            options:
+              - { label: "1 article", value: "1" }
+              - { label: "2 articles", value: "2" }
+          - label: "Petits articles de la sidebar (max. 2)"
             name: "sidebarSmallArticles"
             widget: "list"
             label_singular: "Article"
@@ -496,6 +505,16 @@ collections:
 
           # --- SECTION DU BAS (TROIS ARTICLES) ---
           - { label: "Deuxième sidebar", name: "sep_sidebar_mid", widget: "separator", required: false }
+          - label: "Nombre d'articles dans la rangée du bas"
+            name: "bottomArticleCount"
+            widget: "select"
+            default: "3"
+            required: false
+            hint: "Les premiers articles de la liste ci-dessous sont utilisés et se partagent toute la largeur."
+            options:
+              - { label: "1 article", value: "1" }
+              - { label: "2 articles", value: "2" }
+              - { label: "3 articles", value: "3" }
           - label: "Rangée du bas (max. 3)"
             name: "bottomArticles"
             widget: "list"

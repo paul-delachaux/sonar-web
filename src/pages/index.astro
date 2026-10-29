@@ -97,6 +97,12 @@ const slotsSmall = (homeSettings.sidebarSmallArticles?.length > 0)
 const slotsBottom = (homeSettings.bottomArticles?.length > 0)
     ? homeSettings.bottomArticles
     : [null, null, null];
+const sidebarSmallArticleCount = [1, 2].includes(Number(homeSettings.sidebarSmallArticleCount))
+    ? Number(homeSettings.sidebarSmallArticleCount)
+    : 2;
+const bottomArticleCount = [1, 2, 3].includes(Number(homeSettings.bottomArticleCount))
+    ? Number(homeSettings.bottomArticleCount)
+    : 3;
 const slotsAsymLeft = (homeSettings.asymLeftArticles?.length > 0)
     ? homeSettings.asymLeftArticles
     : [null, null, null];
@@ -105,17 +111,17 @@ const slotsAsymLeft = (homeSettings.asymLeftArticles?.length > 0)
 let articleUneFR: any = reserverAdmin(homeSettings.heroArticle);
 let premierSecondaireLongFR: any = reserverAdmin(homeSettings.sidebarLongArticle);
 
-let autresSecondairesBasFR: any[] = slotsSmall.slice(0, 2).map((slug: any) => reserverAdmin(slug));
-while (autresSecondairesBasFR.length < 2) autresSecondairesBasFR.push(null);
+let autresSecondairesBasFR: any[] = slotsSmall.slice(0, sidebarSmallArticleCount).map((slug: any) => reserverAdmin(slug));
+while (autresSecondairesBasFR.length < sidebarSmallArticleCount) autresSecondairesBasFR.push(null);
 
-let articlesRangeeInferieureFR: any[] = slotsBottom.slice(0, 3).map((slug: any, index: number) =>
+let articlesRangeeInferieureFR: any[] = slotsBottom.slice(0, bottomArticleCount).map((slug: any, index: number) =>
     avecStyles(
         reserverAdmin(slug),
         homeSettings.bottomArticlesStyles?.[index],
         { fontSize: "1.2rem", fontWeight: "700", fontFamily: "sans-serif" }
     )
 );
-while (articlesRangeeInferieureFR.length < 3) articlesRangeeInferieureFR.push(null);
+while (articlesRangeeInferieureFR.length < bottomArticleCount) articlesRangeeInferieureFR.push(null);
 
 let articlesAsymGaucheFR: any[] = slotsAsymLeft.slice(0, 3).map((slug: any, index: number) =>
     avecStyles(
@@ -186,8 +192,8 @@ const assignerSlotsEN = (slotsFR: any[]) => {
     };
     pushAdminEn(homeSettings.heroArticle);
     pushAdminEn(homeSettings.sidebarLongArticle);
-    (homeSettings.sidebarSmallArticles || []).forEach(pushAdminEn);
-    (homeSettings.bottomArticles || []).forEach(pushAdminEn);
+    (homeSettings.sidebarSmallArticles || []).slice(0, sidebarSmallArticleCount).forEach(pushAdminEn);
+    (homeSettings.bottomArticles || []).slice(0, bottomArticleCount).forEach(pushAdminEn);
     (homeSettings.asymLeftArticles || []).forEach(pushAdminEn);
     pushAdminEn(homeSettings.asymRightArticle);
 
@@ -381,7 +387,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                 )}
 
                 {autresSecondairesBasFR.length > 0 && (
-                    <div class="sub-grid">
+                    <div class="sub-grid" style={`--article-count: ${sidebarSmallArticleCount};`}>
                         {autresSecondairesBasFR.map((artFR, idx) => {
                             const artEN = autresSecondairesBasResult[idx]?.article ?? null;
                             const hasEn = autresSecondairesBasResult[idx]?.hasEn ?? false;
@@ -444,7 +450,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
 
         <!-- RANGÉE DU BAS (3 ARTICLES) -->
         {articlesRangeeInferieureFR.length > 0 && (
-            <section class="bottom-row-grid scroll-interactive">
+            <section class="bottom-row-grid scroll-interactive" style={`--article-count: ${bottomArticleCount};`}>
                 {articlesRangeeInferieureFR.map((artFR, idx) => {
                     const artEN = articlesRangeeInferieureResult[idx]?.article ?? null;
                     const hasEn = articlesRangeeInferieureResult[idx]?.hasEn ?? false;
@@ -693,7 +699,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     .image-wrapper img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
     .sidebar-articles { display: flex; flex-direction: column; gap: 15px; }
     .article-sidebar.long, .sub-grid, .sidebar-articles > :global(.thumb-card--sidebar) { flex: 1; }
-    .sub-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; gap: 15px; align-items: stretch; min-height: 0; }
+    .sub-grid { display: grid; grid-template-columns: repeat(var(--article-count, 2), minmax(0, 1fr)); grid-template-rows: 1fr; gap: 15px; align-items: stretch; min-height: 0; }
     .sub-grid > .article-sidebar,
     .sub-grid > :global(.thumb-card) {
         height: 100%;
@@ -706,7 +712,7 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
     .article-sidebar { background: #01002d; padding: 15px; border: 0px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: color 0.3s ease, transform 0.2s ease;}
     .article-sidebar:hover {transform: translateY(-5px);}
     .article-sidebar h3 { margin: 0 0 8px 0; font-size: 1.1rem; color: #ffffff; }
-    .bottom-row-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; align-items: stretch; }
+    .bottom-row-grid { display: grid; grid-template-columns: repeat(var(--article-count, 3), minmax(0, 1fr)); gap: 20px; width: 100%; align-items: stretch; }
     .article-bottom-card { background: #01002d; padding: 20px; border: 0px solid rgba(255, 121, 0, 0.45); display: flex; flex-direction: column; justify-content: space-between; min-height: 320px; border-radius: 2%; transition: color 0.3s ease, transform 0.2s ease;}
     .article-bottom-card:hover {transform: translateY(-5px);}
     .card-content-top { margin-bottom: 5px; }

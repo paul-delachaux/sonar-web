@@ -60,7 +60,7 @@ consulted_sources:
     source_title_en: Second source for fun
 image_caption_en: This is a completely uninteresting image.
 author: Paul Delachaux
-isVisible: true
+isVisible: false
 image_position: 2
 author_about_en: That guy is incredibly handsome, on top of being super smart.
 image_info:
