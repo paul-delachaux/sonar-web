@@ -6,6 +6,7 @@
   var busy = false;
   var navTimer = null;
   var navLoading = false;
+  var navRetryAfter = 0;
 
   function authHeaders() {
     var search = global.SonarArticleSearch;
@@ -177,6 +178,7 @@
   function readForm(profile) {
     return {
       name: profile.name,
+      avatar: profile.avatar,
       account: global.__SONAR_CMS_ROLE === 'superadmin'
         ? document.getElementById('sonar-ap-account').value
         : profile.account,
@@ -302,11 +304,11 @@
     document.body.appendChild(button);
   }
 
-  function addNav() {
+  function addNav(providedSidebar) {
     var role = global.__SONAR_CMS_ROLE;
     if (role !== 'admin' && role !== 'superadmin') return Promise.resolve();
     var group = document.querySelector('[data-cms-group]');
-    var sidebar = group ? group.parentNode : null;
+    var sidebar = providedSidebar || (group ? group.parentNode : null);
     if (!sidebar) {
       var root = document.getElementById('nc-root') || document.body;
       var nodes = root.querySelectorAll('aside, [class*="Sidebar"], [class*="sidebar"]');
@@ -318,22 +320,25 @@
       }
     }
     if (!sidebar) {
-      if (role === 'superadmin') addFallbackButton();
-      return Promise.resolve();
+      addFallbackButton();
+      return Promise.resolve(false);
     }
     var existing = document.getElementById('cms-author-profile-nav');
     if (existing) return Promise.resolve();
     if (role === 'superadmin' &&
         !document.getElementById('cms-accounts-group') &&
         !document.getElementById('cms-accounts-nav')) return Promise.resolve(false);
-    if (navLoading) return Promise.resolve();
+    if (navLoading || Date.now() < navRetryAfter) return Promise.resolve(false);
     navLoading = true;
 
     return fetch('/api/admin/author-profiles', { headers: authHeaders(), cache: 'no-store' })
       .then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (data) {
           if (!response.ok) throw new Error(data.message || 'HTTP ' + response.status);
-          if (role !== 'superadmin' && !data.profile) return true;
+          if (role !== 'superadmin' && !data.profile) {
+            navRetryAfter = Date.now() + 5000;
+            return false;
+          }
           var item = document.createElement('button');
           item.type = 'button';
           item.id = 'cms-author-profile-nav';
@@ -365,10 +370,12 @@
           } else sidebar.appendChild(item);
           var fallback = document.getElementById('cms-author-profile-fallback');
           if (fallback) fallback.remove();
+          navRetryAfter = 0;
           return true;
         });
       })
       .catch(function (error) {
+        navRetryAfter = Date.now() + 5000;
         console.error('[sonar author profiles] navigation setup failed', error);
         return false;
       })
@@ -391,6 +398,6 @@
     }, 1000);
   }
 
-  global.SonarAuthorProfiles = { open: open, close: close };
+  global.SonarAuthorProfiles = { open: open, close: close, addNav: addNav };
   start();
 })(window);

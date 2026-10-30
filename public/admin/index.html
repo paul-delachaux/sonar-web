@@ -843,7 +843,7 @@
   <script src="/admin/bulk-admin.js?v=20260825r"></script>
   <script src="/admin/revue-fields.js?v=20260928a"></script>
   <script src="/admin/accounts-admin.js?v=20261030a"></script>
-  <script src="/admin/author-profiles-admin.js?v=20261030c"></script>
+  <script src="/admin/author-profiles-admin.js?v=20261030d"></script>
   <script src="/admin/cms-logs.js?v=20261014m"></script>
   <script src="/admin/admin-announcements.js?v=20261014m"></script>
   <script src="/admin/cms-media.js?v=20261014j"></script>
@@ -4395,6 +4395,9 @@
         }
         if (window.SonarAdminAnnouncements && window.SonarAdminAnnouncements.addNav) {
           window.SonarAdminAnnouncements.addNav(sidebarContainer);
+        }
+        if (window.SonarAuthorProfiles && window.SonarAuthorProfiles.addNav) {
+          window.SonarAuthorProfiles.addNav(sidebarContainer);
         }
       }
 
