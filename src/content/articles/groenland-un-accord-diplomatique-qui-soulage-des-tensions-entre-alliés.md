@@ -2,7 +2,7 @@
 layout_type: breve
 body_en: ""
 author: Victor Zhâ
-author2: Paul Delachaux
+author2: null
 author_info:
   - author_about: Ce mec est une merde
     author_about_en: No information provided at this time.
