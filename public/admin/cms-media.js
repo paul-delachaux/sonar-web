@@ -731,6 +731,7 @@
     var inputs = scope.querySelectorAll('input[type="file"]');
     for (var i = 0; i < inputs.length; i++) {
       var input = inputs[i];
+      if (input.closest && input.closest('#sonar-author-profiles')) continue;
       if (input.getAttribute('data-sonar-capture') === '1') continue;
       input.setAttribute('data-sonar-capture', '1');
       input.addEventListener('change', function (event) {
