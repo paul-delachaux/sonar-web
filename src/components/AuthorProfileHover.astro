@@ -37,8 +37,11 @@ const cardId = `author-hover-${authorSlug(name)}`;
     class="author-profile-link"
     href={authorHref(name)}
     aria-describedby={cardId}
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    data-author-hover-trigger
   >{name}</a>
-  <span class="author-hover-card" id={cardId} role="group" aria-label={`${t('author_about_heading', 'FR')} ${name}`}>
+  <span class="author-hover-card" id={cardId} role="dialog" aria-label={`${t('author_about_heading', 'FR')} ${name}`}>
     <span class="author-hover-card-accent"></span>
     <span class="author-hover-card-heading">
       <a class="author-hover-card-avatar-link" href={authorHref(name)} aria-label={`Profil de ${name}`}>
@@ -73,6 +76,41 @@ const cardId = `author-hover-${authorSlug(name)}`;
     )}
   </span>
 </span>
+
+<script>
+  const touchDevices = window.matchMedia('(hover: none), (pointer: coarse)');
+
+  function closeAuthorCards(except?: HTMLElement) {
+    document.querySelectorAll<HTMLElement>('.author-hover.is-open').forEach((wrapper) => {
+      if (wrapper === except) return;
+      wrapper.classList.remove('is-open');
+      wrapper.querySelector('[data-author-hover-trigger]')?.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const trigger = target.closest<HTMLAnchorElement>('[data-author-hover-trigger]');
+
+    if (trigger && touchDevices.matches) {
+      event.preventDefault();
+      const wrapper = trigger.closest<HTMLElement>('.author-hover');
+      if (!wrapper) return;
+      const shouldOpen = !wrapper.classList.contains('is-open');
+      closeAuthorCards(wrapper);
+      wrapper.classList.toggle('is-open', shouldOpen);
+      trigger.setAttribute('aria-expanded', String(shouldOpen));
+      return;
+    }
+
+    if (!target.closest('.author-hover.is-open')) closeAuthorCards();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAuthorCards();
+  });
+</script>
 
 <style>
   .author-hover {
@@ -246,9 +284,42 @@ const cardId = `author-hover-${authorSlug(name)}`;
   }
 
   @media (max-width: 600px) {
-    .author-hover:last-child .author-hover-card {
-      right: 0;
-      left: auto;
+    .author-hover-card {
+      top: 50%;
+      right: auto;
+      left: 50%;
+      width: min(360px, calc(100vw - 32px));
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      transform: translate(-50%, -50%);
+    }
+
+    .author-hover:hover .author-hover-card,
+    .author-hover:focus-within .author-hover-card {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .author-hover.is-open {
+      z-index: 1000;
+    }
+
+    .author-hover.is-open::before {
+      position: fixed;
+      z-index: 80;
+      inset: 0;
+      background: rgba(1, 0, 29, 0.72);
+      content: '';
+    }
+
+    .author-hover.is-open .author-hover-card {
+      z-index: 81;
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%);
+      transition-delay: 0s;
     }
   }
 
