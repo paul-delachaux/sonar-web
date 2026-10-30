@@ -1,12 +1,12 @@
 /**
  * API d’administration des annonces : recherche des comptes destinataires,
  * création et consultation des messages, et annulation ou suppression d’historique.
- * Toutes les opérations sont protégées par l’auth CMS et utilisent le client serveur.
+ * Toutes les opérations sont réservées aux superadmins et utilisent le client serveur.
  */
 import type { APIRoute } from 'astro';
 import { accountHasCmsLink } from '../../../utils/cms-accounts';
 import { loadCmsFile } from '../../../utils/cms-accounts-store';
-import { cmsGithubToken, requireCmsAdmin } from '../../../utils/admin-github';
+import { cmsGithubToken, requireCmsSuperadmin } from '../../../utils/admin-github';
 import { createServiceClient } from '../../../utils/service-client';
 
 export const prerender = false;
@@ -51,9 +51,9 @@ async function listAccounts(admin: NonNullable<ReturnType<typeof createServiceCl
 }
 
 export const GET: APIRoute = async ({ request }) => {
-  // Toutes les opérations utilisent l'identité CMS vérifiée côté serveur ;
+  // Toutes les opérations vérifient le rôle superadmin côté serveur ;
   // la clé service_role n'est jamais transmise au navigateur.
-  const auth = await requireCmsAdmin(request);
+  const auth = await requireCmsSuperadmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
 
   const admin = createServiceClient();
@@ -121,8 +121,8 @@ export const GET: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  // Création et programmation des annonces, réservées à un compte CMS autorisé.
-  const auth = await requireCmsAdmin(request);
+  // Création et programmation des annonces, réservées aux superadmins.
+  const auth = await requireCmsSuperadmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
 
   const admin = createServiceClient();
@@ -205,8 +205,8 @@ export const POST: APIRoute = async ({ request }) => {
 
 export const DELETE: APIRoute = async ({ request }) => {
   // Cette route permet soit de supprimer l'historique déjà publié, soit
-  // d'annuler un message planifié ; les deux opérations restent CMS-protégées.
-  const auth = await requireCmsAdmin(request);
+  // d'annuler un message planifié ; les deux opérations sont réservées aux superadmins.
+  const auth = await requireCmsSuperadmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
 
   const admin = createServiceClient();

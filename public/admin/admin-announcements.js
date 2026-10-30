@@ -306,7 +306,7 @@
   }
 
   function open() {
-    if (global.__SONAR_CMS_ROLE !== 'admin' && global.__SONAR_CMS_ROLE !== 'superadmin') return;
+    if (global.__SONAR_CMS_ROLE !== 'superadmin') return;
     ensurePanel().hidden = false;
     if (!loaded) {
       loaded = true;
@@ -320,11 +320,17 @@
 
   function addNav(sidebar) {
     var role = global.__SONAR_CMS_ROLE;
-    if (role !== 'admin' && role !== 'superadmin') return;
+    if (role !== 'superadmin') {
+      var restrictedItem = document.getElementById('cms-announcements-nav');
+      var restrictedGroup = document.getElementById('cms-announcements-group');
+      if (restrictedItem) restrictedItem.remove();
+      if (restrictedGroup) restrictedGroup.remove();
+      return;
+    }
     var item = document.getElementById('cms-announcements-nav');
     if (item) return;
     var accountsItem = document.getElementById('cms-accounts-nav');
-    if (role === 'superadmin' && accountsItem && accountsItem.parentNode) {
+    if (accountsItem && accountsItem.parentNode) {
       item = document.createElement('button');
       item.type = 'button';
       item.id = 'cms-announcements-nav';
@@ -336,27 +342,6 @@
       after.parentNode.insertBefore(item, after.nextSibling);
       return;
     }
-    if (!sidebar || role !== 'admin') return;
-    var header = document.createElement('div');
-    header.id = 'cms-announcements-group';
-    header.className = 'cms-sidebar-header';
-    header.style.cssText = 'cursor:pointer;font-weight:bold;font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;background:#01002b;color:#fff;padding:10px 14px;margin-top:8px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;user-select:none';
-    header.innerHTML = '<span>Administration</span><span class="arrow" style="font-size:.7rem">▼</span>';
-    item = document.createElement('button');
-    item.type = 'button';
-    item.id = 'cms-announcements-nav';
-    item.className = 'cms-moderation-item';
-    item.style.paddingLeft = '10px';
-    item.innerHTML = '<span>Messages &amp; notifications</span>';
-    item.addEventListener('click', open);
-    var collapsed = false;
-    header.addEventListener('click', function () {
-      collapsed = !collapsed;
-      header.querySelector('.arrow').textContent = collapsed ? '►' : '▼';
-      item.style.display = collapsed ? 'none' : 'flex';
-    });
-    sidebar.appendChild(header);
-    sidebar.appendChild(item);
   }
 
   global.SonarAdminAnnouncements = { open: open, close: close, addNav: addNav };
