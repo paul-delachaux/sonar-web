@@ -243,6 +243,20 @@
     });
   }
 
+  function patchNewArticleDefaults(config, authorName) {
+    var dateDefault = new Date().toISOString();
+    global.__SONAR_NEW_ARTICLE_DEFAULT_DATE = dateDefault;
+    var articleCollections = ['articles', 'breves', 'revues_musicales'];
+    (config.collections || []).forEach(function (collection) {
+      if (!collection || articleCollections.indexOf(collection.name) === -1) return;
+      (collection.fields || []).forEach(function (field) {
+        if (!field) return;
+        if (field.name === 'date') field.default = dateDefault;
+        if (field.name === 'author' && authorName) field.default = authorName;
+      });
+    });
+  }
+
   function loadDomainsFromGithub() {
     var token = githubToken();
     if (!token) return Promise.resolve(null);
@@ -296,6 +310,42 @@
       headers['X-Github-Token'] = token;
     }
     return headers;
+  }
+
+  function loadCurrentAuthorName(me) {
+    if (!me || !me.role || !me.login || me.login === 'local-dev') return Promise.resolve('');
+    return fetch('/api/admin/author-profiles', { headers: authHeaders(), cache: 'no-store' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Chargement du profil auteur associé impossible (' + res.status + ').');
+        return res.json();
+      })
+      .then(function (data) {
+        if (data && data.profile && typeof data.profile.name === 'string') {
+          return data.profile.name;
+        }
+        var profiles = data && Array.isArray(data.profiles) ? data.profiles : [];
+        var login = String(me.login).trim().toLowerCase();
+        var profile = profiles.find(function (item) {
+          return item && String(item.account || '').trim().toLowerCase() === login;
+        });
+        return profile && typeof profile.name === 'string' ? profile.name : '';
+      })
+      .catch(function (err) {
+        console.warn('[sonar cms] profil auteur par défaut indisponible', err);
+        return '';
+      });
+  }
+
+  function setDateForNewArticle(payload) {
+    if (!/^#\/collections\/(articles|breves|revues_musicales)\/new(?:[/?]|$)/.test(global.location.hash || '')) return;
+    var entry = payload && payload.entry;
+    if (!entry || typeof entry.get !== 'function') return;
+    var data = entry.get('data');
+    if (!data || typeof data.get !== 'function' || typeof data.set !== 'function') return;
+    var currentDate = data.get('date');
+    var initialDate = global.__SONAR_NEW_ARTICLE_DEFAULT_DATE;
+    if (currentDate && currentDate !== initialDate) return;
+    return data.set('date', new Date().toISOString());
   }
 
   function isLocalHost() {
@@ -487,6 +537,10 @@
       return global.__SONAR_CMS_READY;
     }
 
+    if (typeof global.CMS.registerEventListener === 'function') {
+      global.CMS.registerEventListener({ name: 'preSave', handler: setDateForNewArticle });
+    }
+
     global.__SONAR_CMS_READY = waitForGithubToken(isLocalHost() ? 0 : 8000).then(function () {
       return Promise.all([
         fetch('/admin/config.yml', { cache: 'no-store' }).then(function (res) { return res.text(); }),
@@ -510,18 +564,21 @@
         global.__SONAR_CMS_BOOTED = true;
         return;
       }
-      applyMe(me);
-      global.__SONAR_MAIN_DOMAINS = file.domains || [];
-      global.__SONAR_SUBDOMAINS = file.subdomains || [];
-      global.__SONAR_DOMAINS = flattenDomains(file);
-      config.load_config_file = false;
-      patchConfig(config, global.__SONAR_DOMAINS);
-      patchCategorySelect(config, global.__SONAR_DOMAINS);
-      patchAuthorSelects(config, authorNames);
-      applyRoleToConfig(config, me.role === 'superadmin' ? 'superadmin' : 'admin');
-      global.CMS.init({ config: config });
-      global.__SONAR_CMS_BOOTED = true;
-      if (me.anonymous || !me.role) watchLoginThenReload();
+      return loadCurrentAuthorName(me).then(function (authorName) {
+        applyMe(me);
+        global.__SONAR_MAIN_DOMAINS = file.domains || [];
+        global.__SONAR_SUBDOMAINS = file.subdomains || [];
+        global.__SONAR_DOMAINS = flattenDomains(file);
+        config.load_config_file = false;
+        patchConfig(config, global.__SONAR_DOMAINS);
+        patchCategorySelect(config, global.__SONAR_DOMAINS);
+        patchAuthorSelects(config, authorNames);
+        patchNewArticleDefaults(config, authorName);
+        applyRoleToConfig(config, me.role === 'superadmin' ? 'superadmin' : 'admin');
+        global.CMS.init({ config: config });
+        global.__SONAR_CMS_BOOTED = true;
+        if (me.anonymous || !me.role) watchLoginThenReload();
+      });
     }).catch(function (err) {
       console.error('[sonar cms] init dynamique impossible, repli config.yml', err);
       global.CMS.init();
