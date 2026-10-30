@@ -1,0 +1,260 @@
+---
+import { t } from '../utils/i18n.js';
+import { authorHref, authorSlug } from '../utils/authors';
+
+interface LatestArticle {
+  href: string;
+  titleFR: string;
+  titleEN: string;
+}
+
+interface Props {
+  name: string;
+  avatarUrl: string;
+  aboutFR: string;
+  aboutEN: string;
+  interestsFR: string;
+  interestsEN: string;
+  latestArticleFR?: LatestArticle | null;
+  latestArticleEN?: LatestArticle | null;
+}
+
+const {
+  name,
+  avatarUrl,
+  aboutFR,
+  aboutEN,
+  interestsFR,
+  interestsEN,
+  latestArticleFR = null,
+  latestArticleEN = null,
+} = Astro.props;
+const cardId = `author-hover-${authorSlug(name)}`;
+---
+
+<span class="author-hover">
+  <a
+    class="author-profile-link"
+    href={authorHref(name)}
+    aria-describedby={cardId}
+  >{name}</a>
+  <span class="author-hover-card" id={cardId} role="group" aria-label={`${t('author_about_heading', 'FR')} ${name}`}>
+    <span class="author-hover-card-accent"></span>
+    <span class="author-hover-card-heading">
+      <a class="author-hover-card-avatar-link" href={authorHref(name)} aria-label={`Profil de ${name}`}>
+        <img class="author-hover-card-avatar" src={avatarUrl} alt="" loading="lazy" />
+      </a>
+      <span class="author-hover-card-identity">
+        <span class="author-hover-card-kicker" data-fr="PROFIL AUTEUR" data-en="AUTHOR PROFILE">PROFIL AUTEUR</span>
+        <a class="author-hover-card-name" href={authorHref(name)}><strong>{name}</strong></a>
+      </span>
+    </span>
+    <span class="author-hover-card-section">
+      <strong data-i18n="author_about_heading">{t('author_about_heading', 'FR')}</strong>
+      <span data-fr={aboutFR} data-en={aboutEN}>{aboutFR}</span>
+    </span>
+    {(interestsFR || interestsEN) && (
+      <span class="author-hover-card-section">
+        <strong data-i18n="author_interests_label">{t('author_interests_label', 'FR')}</strong>
+        <span data-fr={interestsFR} data-en={interestsEN}>{interestsFR}</span>
+      </span>
+    )}
+    {latestArticleFR && (
+      <a class="author-hover-card-latest" href={latestArticleFR.href} data-lang-content="FR">
+        <span data-i18n="author_last_article">{t('author_last_article', 'FR')}</span>
+        <strong>{latestArticleFR.titleFR}</strong>
+      </a>
+    )}
+    {latestArticleEN && (
+      <a class="author-hover-card-latest" href={latestArticleEN.href} data-lang-content="EN" hidden aria-hidden="true">
+        <span data-i18n="author_last_article">{t('author_last_article', 'EN')}</span>
+        <strong>{latestArticleEN.titleEN}</strong>
+      </a>
+    )}
+  </span>
+</span>
+
+<style>
+  .author-hover {
+    position: relative;
+    display: inline-block;
+  }
+
+  .author-hover:hover,
+  .author-hover:focus-within {
+    z-index: 80;
+  }
+
+  .author-hover-card {
+    position: absolute;
+    z-index: 81;
+    top: 100%;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(330px, calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: 16px;
+    overflow: hidden;
+    border: 1px solid #34324f;
+    border-radius: 12px;
+    background: #10102d;
+    color: #f4f3fa;
+    box-shadow: 0 16px 42px #000b;
+    font: 400 14px/1.5 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    text-align: left;
+    white-space: normal;
+    visibility: hidden;
+    opacity: 0;
+    transform: none;
+    transition: opacity 140ms ease, visibility 0s linear 180ms;
+  }
+
+  .author-hover-card::before {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 18px;
+    content: '';
+  }
+
+  .author-hover:hover .author-hover-card,
+  .author-hover:focus-within .author-hover-card {
+    visibility: visible;
+    opacity: 1;
+    transition-delay: 0s;
+  }
+
+  .author-hover-card-accent {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, #ff7900, #ffad52 70%, transparent);
+  }
+
+  .author-hover-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .author-hover-card-avatar-link {
+    display: block;
+    flex: 0 0 auto;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+  }
+
+  .author-hover-card-avatar {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 auto;
+    border: 2px solid #ff7900;
+    border-radius: 50%;
+    background: #242342;
+    object-fit: cover;
+  }
+
+  .author-hover-card-identity {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .author-hover-card-identity strong {
+    overflow-wrap: anywhere;
+    color: #fff;
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  .author-hover-card-name,
+  .author-hover-card-name:hover {
+    display: inline-block;
+    width: fit-content;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .author-hover-card-kicker {
+    margin-bottom: 3px;
+    color: #ff9a3c;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+  }
+
+  .author-hover-card-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #d7d6e2;
+  }
+
+  .author-hover-card-section + .author-hover-card-section {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid #34324f;
+  }
+
+  .author-hover-card-section strong,
+  .author-hover-card-latest > span {
+    color: #ff9a3c;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+  }
+
+  .author-hover-card-latest {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 13px;
+    padding: 11px 12px;
+    border: 1px solid #34324f;
+    border-radius: 8px;
+    background: #080725;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .author-hover-card-latest[hidden] {
+    display: none;
+  }
+
+  .author-hover-card-latest strong {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .author-hover-card-latest:hover strong,
+  .author-hover-card-latest:focus-visible strong {
+    color: #ff9a3c;
+    text-decoration: underline;
+  }
+
+  .author-hover-card-latest:focus-visible,
+  .author-profile-link:focus-visible,
+  .author-hover-card-name:focus-visible,
+  .author-hover-card-avatar-link:focus-visible {
+    outline: 2px solid #ff9a3c;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 600px) {
+    .author-hover:last-child .author-hover-card {
+      right: 0;
+      left: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .author-hover-card {
+      transition: none;
+    }
+  }
+</style>

@@ -46,7 +46,7 @@ definitions:
   - term: Estimant que la puissance douce
     definition: Je sais pas il me faut des groupes de mots pour tester ce que je dis.
 author: Victor Zhâ
-author2: Paul-test
+author2: null
 author_info:
   - author_about: Diplômé de l'université de la Sorbone et issu des écoles
       préparatoires françaises aux grandes écoles.

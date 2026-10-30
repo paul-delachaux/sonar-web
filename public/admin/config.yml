@@ -92,15 +92,15 @@ collections:
         name: "author_info"
         widget: "list"
         required: false
-        collapsed: false
+        collapsed: true
         max: 2
         fields:
-          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", required: false }
-          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", required: false }
-          - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
-          - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
-          - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
-          - { label: "Partenaires (EN)", name: "author_partners_en", widget: "text", required: false }
+          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", required: false, collapsed: true }
+          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", required: false, collapsed: true }
+          - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false, collapsed: true }
+          - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false, collapsed: true }
+          - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false, collapsed: true }
+          - { label: "Partenaires (EN)", name: "author_partners_en", widget: "text", required: false, collapsed: true }
       
       - { label: "Temps de lecture (minutes)", name: "reading_time", widget: "number", default: 5, value_type: "int" }
       
@@ -193,7 +193,7 @@ collections:
         name: "author_info"
         widget: "list"
         required: false
-        collapsed: false
+        collapsed: true
         max: 2
         fields:
           - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", required: false }
@@ -350,7 +350,7 @@ collections:
         name: "author_info"
         widget: "list"
         required: false
-        collapsed: false
+        collapsed: true
         max: 2
         fields:
           - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", required: false }

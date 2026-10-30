@@ -9,9 +9,10 @@ import FavoriteStar from '../../components/FavoriteStar.astro';
 import ReadLaterClock from '../../components/ReadLaterClock.astro';
 import CategoryBadge from '../../components/CategoryBadge.astro';
 import RevueMusicaleLayout from '../../components/RevueMusicaleLayout.astro';
+import AuthorProfileHover from '../../components/AuthorProfileHover.astro';
 import { supabase } from '../../utils/supabase';
 import { normalizeMediaBlocks } from '../../utils/body-blocks';
-import { authorAvatarUrl, authorHref, getAuthorProfile } from '../../utils/authors';
+import { articleAuthorNames, authorAvatarUrl, getAuthorProfile, normalizeAuthorName } from '../../utils/authors';
 import { loadAuthorProfilesOrBundled } from '../../utils/author-profiles-store';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
@@ -156,6 +157,20 @@ const authorProfiles = selectedAuthors.map(({ name, index }) => {
     authorData?.author_partners_en,
     index === 0 ? article.data.author_partners_en : '',
   ]) || profile.partners_en?.trim() || partnersFR;
+  const authorArticles = articles
+    .filter((candidate) =>
+      candidate.id !== article.id &&
+      candidate.data.isVisible !== false &&
+      articleAuthorNames(candidate).some((candidateName) =>
+        normalizeAuthorName(candidateName) === normalizeAuthorName(name)
+      )
+    )
+    .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+  const latestArticleFR = authorArticles[0];
+  const latestArticleEN = authorArticles.find((candidate) =>
+    Boolean(candidate.data.title_en?.trim())
+  );
+  const latestArticleENTitle = latestArticleEN?.data.title_en?.trim() || '';
 
   return {
     name,
@@ -166,6 +181,20 @@ const authorProfiles = selectedAuthors.map(({ name, index }) => {
     interestsEN,
     partnersFR,
     partnersEN,
+    latestArticleFR: latestArticleFR
+      ? {
+          href: `/articles/${latestArticleFR.id}`,
+          titleFR: latestArticleFR.data.title,
+          titleEN: latestArticleFR.data.title_en?.trim() || latestArticleFR.data.title,
+        }
+      : null,
+    latestArticleEN: latestArticleEN
+      ? {
+          href: `/articles/${latestArticleEN.id}`,
+          titleFR: latestArticleEN.data.title,
+          titleEN: latestArticleENTitle,
+        }
+      : null,
   };
 });
 
@@ -259,7 +288,7 @@ const descEN = hasEn && article.data.description_en
                     {authorProfiles.map((author, index) => (
                       <>
                         {index > 0 && <>{" "}<span data-i18n="author_separator">et</span>{" "}</>}
-                        <a class="author-profile-link" href={authorHref(author.name)}>{author.name}</a>
+                        <AuthorProfileHover {...author} />
                       </>
                     ))}
                   </p>
@@ -351,7 +380,7 @@ const descEN = hasEn && article.data.description_en
                 {authorProfiles.map((author, index) => (
                   <>
                     {index > 0 && <>{" "}<span data-i18n="author_separator">et</span>{" "}</>}
-                    <a class="author-profile-link" href={authorHref(author.name)}>{author.name}</a>
+                    <AuthorProfileHover {...author} />
                   </>
                 ))}
               </p>

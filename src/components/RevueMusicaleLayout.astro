@@ -1,8 +1,8 @@
 ---
 import FavoriteStar from './FavoriteStar.astro';
 import ReadLaterClock from './ReadLaterClock.astro';
+import AuthorProfileHover from './AuthorProfileHover.astro';
 import { t } from '../utils/i18n.js';
-import { authorHref } from '../utils/authors';
 
 interface Track {
   file?: string | null;
@@ -41,6 +41,16 @@ interface Author {
   interestsEN: string;
   partnersFR: string;
   partnersEN: string;
+  latestArticleFR?: {
+    href: string;
+    titleFR: string;
+    titleEN: string;
+  } | null;
+  latestArticleEN?: {
+    href: string;
+    titleFR: string;
+    titleEN: string;
+  } | null;
 }
 
 interface Props {
@@ -183,7 +193,7 @@ function waveHeights(seed: string, count: number) {
                 {authors.map((author, index) => (
                   <>
                     {index > 0 && <>{" "}<span data-i18n="author_separator">et</span>{" "}</>}
-                    <a class="author-profile-link" href={authorHref(author.name)}>{author.name}</a>
+                    <AuthorProfileHover {...author} />
                   </>
                 ))}
               </p>

@@ -530,9 +530,9 @@ author2: Victor Zhâ
 author_info:
   - author_about: Ce mec est une crème
     author_about_en: This guys is so sweet
-  - author_about: Lui aussi
+  - author_about: ""
     author_about_en: No information provided at this time.
-reading_time: 5
+reading_time: 10
 isVisible: true
 image: /assets/uploads/inabsentia.jpg.avif
 use_thumbnail: false
