@@ -2,6 +2,7 @@
 import FavoriteStar from './FavoriteStar.astro';
 import ReadLaterClock from './ReadLaterClock.astro';
 import { t } from '../utils/i18n.js';
+import { authorHref } from '../utils/authors';
 
 interface Track {
   file?: string | null;
@@ -48,8 +49,6 @@ interface Props {
   titleEN: string;
   descFR: string;
   descEN: string;
-  authorNameFR: string;
-  authorNameEN: string;
   authors: Author[];
   readingTime: number;
   dateAfficheeFR: string;
@@ -66,8 +65,6 @@ const {
   titleEN,
   descFR,
   descEN,
-  authorNameFR,
-  authorNameEN,
   authors,
   readingTime,
   dateAfficheeFR,
@@ -174,7 +171,7 @@ function waveHeights(seed: string, count: number) {
       <div class="revue-header-top">
         <div class="revue-header-main">
           <h1 class="revue-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
-          <a href="#author-info-section" class="author-meta-block revue-author-meta">
+          <div class="author-meta-block revue-author-meta">
             <div class="author-avatar-group">
               {authors.map((author) => (
                 <img src={author.avatarUrl} alt={`Portrait de ${author.name}`} class="author-avatar" />
@@ -183,7 +180,12 @@ function waveHeights(seed: string, count: number) {
             <div class="author-text-meta">
               <p class="author-name">
                 <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}
-                <span data-fr={authorNameFR} data-en={authorNameEN}>{authorNameFR}</span>
+                {authors.map((author, index) => (
+                  <>
+                    {index > 0 && <>{" "}<span data-i18n="author_separator">et</span>{" "}</>}
+                    <a class="author-profile-link" href={authorHref(author.name)}>{author.name}</a>
+                  </>
+                ))}
               </p>
               <p class="publication-date">
                 {readingTime}{" "}
@@ -195,7 +197,7 @@ function waveHeights(seed: string, count: number) {
                 <span data-fr={heureAfficheeFR} data-en={heureAfficheeEN}>{heureAfficheeFR}</span>
               </p>
             </div>
-          </a>
+          </div>
         </div>
         {descFR && (
           <div class="revue-description" data-fr={descFR} data-en={descEN}>{descFR}</div>

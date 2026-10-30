@@ -11,6 +11,7 @@ import CategoryBadge from '../../components/CategoryBadge.astro';
 import RevueMusicaleLayout from '../../components/RevueMusicaleLayout.astro';
 import { supabase } from '../../utils/supabase';
 import { normalizeMediaBlocks } from '../../utils/body-blocks';
+import { authorAvatarUrl, authorHref, getAuthorProfile } from '../../utils/authors';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
 //    getStaticPaths reste obligatoire si Astro tourne en mode statique.
@@ -34,12 +35,6 @@ const article = articles.find((a) => a.id === slug);
 if (!article || article.data.isVisible === false) {
   return Astro.redirect('/404');
 }
-
-const AUTHORS_DATA: Record<string, { avatarUrl: string }> = {
-  "Victor Zhâ": { avatarUrl: "/assets/uploads/avatar-victor.jpg" },
-  "Paul Delachaux": { avatarUrl: "/assets/uploads/avatar-paul.jpg" },
-  "Amaury Renouf": { avatarUrl: "/assets/uploads/avatar-amaury.png" }
-};
 
 const markdownToHtml = (md: string) => {
   const escaped = String(md || '')
@@ -117,20 +112,52 @@ const selectedAuthors = [article.data.author, article.data.author2]
   );
 if (selectedAuthors.length === 0) selectedAuthors.push({ name: 'Auteur Anonyme', index: 0 });
 
+const articleAuthorText = (values: unknown[], placeholders: string[] = []) => {
+  const ignored = new Set(placeholders.map((value) => value.trim().toLocaleLowerCase()));
+  return values
+    .map((value) => String(value || '').trim())
+    .find((value) => value && !ignored.has(value.toLocaleLowerCase())) || '';
+};
+
+const defaultAboutValues = [
+  t('author_about_empty', 'FR'),
+  t('author_about_empty', 'EN'),
+  'No information provided at this time.',
+];
+
 const authorProfiles = selectedAuthors.map(({ name, index }) => {
   const authorData = article.data.author_info?.[index];
+  const profile = getAuthorProfile(name);
   const legacyAbout = index === 0 ? article.data.author_about : undefined;
-  const aboutFR = authorData?.author_about || legacyAbout || t('author_about_empty', 'FR');
   const legacyAboutEN = index === 0 ? article.data.author_about_en : undefined;
-  const aboutEN = authorData?.author_about_en || legacyAboutEN || aboutFR;
-  const interestsFR = authorData?.author_interests || (index === 0 ? article.data.author_interests : '') || '';
-  const interestsEN = authorData?.author_interests_en || (index === 0 ? article.data.author_interests_en : '') || interestsFR;
-  const partnersFR = authorData?.author_partners || (index === 0 ? article.data.author_partners : '') || '';
-  const partnersEN = authorData?.author_partners_en || (index === 0 ? article.data.author_partners_en : '') || partnersFR;
+  const aboutFR = articleAuthorText(
+    [authorData?.author_about, legacyAbout],
+    defaultAboutValues,
+  ) || profile.about?.trim() || t('author_about_empty', 'FR');
+  const aboutEN = articleAuthorText(
+    [authorData?.author_about_en, legacyAboutEN],
+    defaultAboutValues,
+  ) || profile.about_en?.trim() || aboutFR;
+  const interestsFR = articleAuthorText([
+    authorData?.author_interests,
+    index === 0 ? article.data.author_interests : '',
+  ]) || profile.interests?.trim() || '';
+  const interestsEN = articleAuthorText([
+    authorData?.author_interests_en,
+    index === 0 ? article.data.author_interests_en : '',
+  ]) || profile.interests_en?.trim() || interestsFR;
+  const partnersFR = articleAuthorText([
+    authorData?.author_partners,
+    index === 0 ? article.data.author_partners : '',
+  ]) || profile.partners?.trim() || '';
+  const partnersEN = articleAuthorText([
+    authorData?.author_partners_en,
+    index === 0 ? article.data.author_partners_en : '',
+  ]) || profile.partners_en?.trim() || partnersFR;
 
   return {
     name,
-    avatarUrl: AUTHORS_DATA[name]?.avatarUrl || '/assets/uploads/avatar-default.jpg',
+    avatarUrl: authorAvatarUrl(name),
     aboutFR,
     aboutEN,
     interestsFR,
@@ -139,9 +166,6 @@ const authorProfiles = selectedAuthors.map(({ name, index }) => {
     partnersEN,
   };
 });
-
-const authorNameFR = authorProfiles.map((author) => author.name).join(' et ');
-const authorNameEN = authorProfiles.map((author) => author.name).join(' and ');
 
 const mediaBlocksJson = JSON.stringify(mediaBlocks).replace(/</g, '\\u003c');
 
@@ -171,8 +195,6 @@ const descEN = hasEn && article.data.description_en
       titleEN={titleEN}
       descFR={descFR}
       descEN={descEN}
-      authorNameFR={authorNameFR}
-      authorNameEN={authorNameEN}
       authors={authorProfiles}
       readingTime={readingTime}
       dateAfficheeFR={dateAfficheeFR}
@@ -231,7 +253,14 @@ const descEN = hasEn && article.data.description_en
                   ))}
                 </div>
                 <div class="breve-author-header-text">
-                  <p class="breve-author-name" data-fr={authorNameFR} data-en={authorNameEN}>{authorNameFR}</p>
+                  <p class="breve-author-name">
+                    {authorProfiles.map((author, index) => (
+                      <>
+                        {index > 0 && <>{" "}<span data-i18n="author_separator">et</span>{" "}</>}
+                        <a class="author-profile-link" href={authorHref(author.name)}>{author.name}</a>
+                      </>
+                    ))}
+                  </p>
                 </div>
               </div>
               {authorProfiles.map((author) => (
@@ -308,7 +337,7 @@ const descEN = hasEn && article.data.description_en
           <h1 class="main-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
           {descFR && <p class="main-description" data-fr={descFR} data-en={descEN}>{descFR}</p>}
 
-          <a href="#author-info-section" class="author-meta-block">
+          <div class="author-meta-block">
             <div class="author-avatar-group">
               {authorProfiles.map((author) => (
                 <img src={author.avatarUrl} alt={`Portrait de ${author.name}`} class="author-avatar" />
@@ -317,7 +346,12 @@ const descEN = hasEn && article.data.description_en
             <div class="author-text-meta">
               <p class="author-name">
                 <span data-i18n="by_author">{t('by_author', 'FR')}</span>{" "}
-                <span data-fr={authorNameFR} data-en={authorNameEN}>{authorNameFR}</span>
+                {authorProfiles.map((author, index) => (
+                  <>
+                    {index > 0 && <>{" "}<span data-i18n="author_separator">et</span>{" "}</>}
+                    <a class="author-profile-link" href={authorHref(author.name)}>{author.name}</a>
+                  </>
+                ))}
               </p>
               <p class="publication-date">
                 {readingTime}{" "}
@@ -329,7 +363,7 @@ const descEN = hasEn && article.data.description_en
                 <span data-fr={heureAfficheeFR} data-en={heureAfficheeEN}>{heureAfficheeFR}</span>
               </p>
             </div>
-          </a>
+          </div>
         </header>
 
         <div class="article-grid">
@@ -809,6 +843,7 @@ const descEN = hasEn && article.data.description_en
   .breve-avatar-group .breve-avatar + .breve-avatar { margin-left: -12px; border: 2px solid #02001d; }
   .breve-author-header-text { flex: 1; min-width: 0; }
   .breve-author-name { font-weight: 700; color: #ff8826; margin: 0 0 4px 0; font-size: 0.95rem; }
+  .breve-author-name .author-profile-link { color: inherit; }
   .breve-author-about { margin: 0; font-size: 0.8rem; line-height: 1.4; color: #d7dee6; }
   .breve-author-profile + .breve-author-profile { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1f2937; }
   .breve-author-detail { margin: 14px 0 0 0; font-size: 0.8rem; line-height: 1.5; color: #d7dee6; }
@@ -828,8 +863,9 @@ const descEN = hasEn && article.data.description_en
   header.article-header { position: relative; z-index: 1; border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; text-align: left; }
   .main-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.8rem; font-weight: 800; color: #ffffff; line-height: 1.3; margin: 0 0 15px 0; }
   .main-description { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: 500; color: #ffffff; line-height: 1.5; margin: 0 0 30px 0; }
-  .author-meta-block { display: flex; align-items: center; gap: 20px; text-decoration: none; color: inherit; cursor: pointer; width: fit-content; }
-  .author-meta-block:hover .author-name { text-decoration: underline; color: #ea580c; }
+  .author-meta-block { display: flex; align-items: center; gap: 20px; text-decoration: none; color: inherit; width: fit-content; }
+  .author-profile-link { color: inherit; text-decoration: none; transition: color 0.2s ease; }
+  .author-profile-link:hover { color: #ea580c; text-decoration: underline; }
   .author-avatar-group { display: flex; flex-shrink: 0; }
   .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; flex-shrink: 0; }
   .author-avatar-group .author-avatar + .author-avatar { margin-left: -12px; border: 2px solid #02001d; }

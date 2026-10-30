@@ -1,0 +1,33 @@
+---
+import { getCollection } from 'astro:content';
+import AuthorLayout from '../../layouts/AuthorLayout.astro';
+import { articleAuthorNames, authorSlug } from '../../utils/authors';
+
+export const prerender = false;
+
+const articles = await getCollection('articles');
+const authors = new Map<string, string>();
+
+for (const article of articles) {
+  if (article.data.isVisible === false) continue;
+  for (const name of articleAuthorNames(article)) {
+    const slug = authorSlug(name);
+    if (slug && !authors.has(slug)) authors.set(slug, name);
+  }
+}
+
+const { author } = Astro.params;
+const authorName = authors.get(String(author || ''));
+const authorArticles = articles
+  .filter((article) =>
+    article.data.isVisible !== false &&
+    articleAuthorNames(article).some((name) => authorSlug(name) === author)
+  )
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+if (!authorName || authorArticles.length === 0) {
+  return new Response(null, { status: 404 });
+}
+---
+
+<AuthorLayout authorName={authorName} articles={authorArticles} />

@@ -12,6 +12,7 @@
     connexion: true,
     inscription: true,
     journaliste: true,
+    auteurs: true,
     favoris: true,
     'lire-plus-tard': true,
     charte: true,

@@ -1,9 +1,4 @@
 ---
-layout_type: breve
-title: "Le « Manifeste » de Palantir : L'IA militaire et le réarmement au cœur
-  d'une doctrine décomplexée"
-title_en: "Palantir’s “Manifesto”: Military AI and Rearmament at the Heart of an
-  Unabashed Doctrine"
 description_en: "description IN ENGLISH PLEASE Description relativement longue
   qui sera présent e dans des articles plus travaillée que ce truc fait à
   l'arrache, j'écris afin de voir le rendu final sur la "
@@ -50,8 +45,8 @@ definitions:
     definition_en: In english je voulais un mot
   - term: Estimant que la puissance douce
     definition: Je sais pas il me faut des groupes de mots pour tester ce que je dis.
-date: 2026-08-14T15:03:00.000+02:00
 author: Victor Zhâ
+author2: Paul-test
 author_info:
   - author_about: Diplômé de l'université de la Sorbone et issu des écoles
       préparatoires françaises aux grandes écoles.
@@ -67,11 +62,6 @@ author_info:
     author_partners_en: Name of another journalist or organization with whom I
       discussed obtaining information, or for whom I am producing this
       information.
-image: /assets/uploads/palantir-technologies.png.webp
-image_info:
-  - image_caption: "photo pompée sur internet pour illustrer le logo de cette entreprise "
-    image_caption_en: "ce que j'ai mis sur e truc en fr mais écrit in english "
-image_position: 0
 isVisible: true
 consulted_sources:
   - source_title: "Article du Monde "
@@ -80,6 +70,17 @@ consulted_sources:
   - source_title: "Site internet officiel de  Palantir "
     source_title_en: "Official Palantir WebSite "
     source_url: https://www.palantir.com
+image_position: 0
+layout_type: breve
+title_en: "Palantir’s “Manifesto”: Military AI and Rearmament at the Heart of an
+  Unabashed Doctrine"
+date: 2026-08-14T15:03:00.000+02:00
+image_info:
+  - image_caption: "photo pompée sur internet pour illustrer le logo de cette entreprise "
+    image_caption_en: "ce que j'ai mis sur e truc en fr mais écrit in english "
+title: "Le « Manifeste » de Palantir : L'IA militaire et le réarmement au cœur
+  d'une doctrine décomplexée"
+image: /assets/uploads/palantir-technologies.png.webp
 overlay_opacity: 0
 description: Description relativement longue qui sera présent e dans des
   articles plus travaillée que ce truc fait à l'arrache, j'écris afin de voir le

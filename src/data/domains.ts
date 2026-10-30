@@ -20,6 +20,7 @@ export const RESERVED_PAGE_SLUGS = [
     'connexion',
     'inscription',
     'journaliste',
+    'auteurs',
     'favoris',
     'lire-plus-tard',
     'charte',

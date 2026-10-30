@@ -227,6 +227,22 @@
     });
   }
 
+  function patchAuthorSelects(config, authors) {
+    var options = (authors || []).filter(function (name) {
+      return typeof name === 'string' && name.trim();
+    }).map(function (name) {
+      return { label: name, value: name };
+    });
+    if (!options.length) return;
+    (config.collections || []).forEach(function (col) {
+      if (!col || !Array.isArray(col.fields)) return;
+      col.fields.forEach(function (field) {
+        if (!field || (field.name !== 'author' && field.name !== 'author2')) return;
+        field.options = options;
+      });
+    });
+  }
+
   function loadDomainsFromGithub() {
     var token = githubToken();
     if (!token) return Promise.resolve(null);
@@ -463,12 +479,17 @@
       return Promise.all([
         fetch('/admin/config.yml', { cache: 'no-store' }).then(function (res) { return res.text(); }),
         loadDomains(),
-        loadMe()
+        loadMe(),
+        fetch('/api/author-names', { cache: 'no-store' }).then(function (res) {
+          if (!res.ok) throw new Error('Chargement des auteurs impossible.');
+          return res.json();
+        })
       ]);
     }).then(function (parts) {
       var config = jsyaml.load(parts[0]);
       var file = parts[1] || { domains: [], subdomains: [] };
       var me = parts[2] || {};
+      var authorNames = parts[3] && Array.isArray(parts[3].authors) ? parts[3].authors : [];
       if (me.forbidden) {
         showForbidden(me.message);
         global.__SONAR_CMS_BOOTED = true;
@@ -481,6 +502,7 @@
       config.load_config_file = false;
       patchConfig(config, global.__SONAR_DOMAINS);
       patchCategorySelect(config, global.__SONAR_DOMAINS);
+      patchAuthorSelects(config, authorNames);
       applyRoleToConfig(config, me.role === 'superadmin' ? 'superadmin' : 'admin');
       global.CMS.init({ config: config });
       global.__SONAR_CMS_BOOTED = true;

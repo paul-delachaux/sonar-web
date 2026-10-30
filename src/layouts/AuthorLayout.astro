@@ -1,0 +1,220 @@
+---
+import MainLayout from './Layout.astro';
+import { categoryLabel, t } from '../utils/i18n.js';
+import { authorAvatarUrl, getAuthorProfile } from '../utils/authors';
+import CategoryBadge from '../components/CategoryBadge.astro';
+
+interface Props {
+  authorName: string;
+  articles: any[];
+}
+
+const { authorName, articles } = Astro.props;
+const groupsByCategory = new Map<string, any[]>();
+for (const article of articles) {
+  const category = String(article.data.category || '').trim() || 'autres';
+  const group = groupsByCategory.get(category) || [];
+  group.push(article);
+  groupsByCategory.set(category, group);
+}
+const groups = Array.from(groupsByCategory.entries())
+  .sort(([a], [b]) => categoryLabel(a, 'FR').localeCompare(categoryLabel(b, 'FR'), 'fr'));
+const avatarUrl = authorAvatarUrl(authorName);
+const authorProfile = getAuthorProfile(authorName);
+const aboutFR = authorProfile.about?.trim() || '';
+const aboutEN = authorProfile.about_en?.trim() || aboutFR;
+const aboutDisplayFR = aboutFR || t('author_about_empty', 'FR');
+const aboutDisplayEN = aboutEN || t('author_about_empty', 'EN');
+---
+
+<MainLayout title={authorName}>
+  <div class="author-page">
+    <header class="author-header">
+      <div class="author-identity">
+        <img class="author-avatar" src={avatarUrl} alt={`Portrait de ${authorName}`} />
+        <div>
+          <p class="author-kicker" data-i18n="author_page_kicker">Auteur</p>
+          <h1 class="author-title">{authorName}</h1>
+          <p class="author-count">
+            <span>{articles.length}</span>{" "}
+            <span data-i18n={articles.length === 1 ? 'author_page_article_singular' : 'author_page_article_plural'}>
+              {articles.length === 1 ? 'article publié' : 'articles publiés'}
+            </span>
+          </p>
+        </div>
+      </div>
+      <section class="author-about-section" aria-labelledby="author-about-title">
+        <h2 id="author-about-title" data-i18n="author_about_heading">À propos de l'auteur</h2>
+        <p class="author-about" data-fr={aboutDisplayFR} data-en={aboutDisplayEN}>{aboutDisplayFR}</p>
+      </section>
+    </header>
+
+    <div class="author-toolbar" role="group" aria-label="Classer les articles">
+      <span class="author-sort-label" data-i18n="author_page_sort">Classer par :</span>
+      <button type="button" class="author-sort-button is-active" data-author-sort="date" aria-pressed="true" data-i18n="author_page_sort_date">
+        Date
+      </button>
+      <button type="button" class="author-sort-button" data-author-sort="category" aria-pressed="false" data-i18n="author_page_sort_category">
+        Catégorie
+      </button>
+    </div>
+
+    <div class="author-articles" id="author-articles">
+      <div class="author-date-list" id="author-date-list">
+        {articles.map((article) => {
+          const date = new Date(article.data.date);
+          const dateIso = Number.isNaN(date.getTime()) ? '' : date.toISOString();
+          const category = String(article.data.category || '').trim() || 'autres';
+          const image = article.data.image || article.data.article_image || '';
+          const hasEnglish = Boolean(article.data.title_en && String(article.data.title_en).trim());
+          return (
+            <a
+              class="author-article-card"
+              href={`/articles/${article.id}`}
+              data-author-article
+              data-date={dateIso}
+              data-category={category}
+              data-has-en={hasEnglish ? 'true' : 'false'}
+              data-href-fr={`/articles/${article.id}`}
+              data-href-en={hasEnglish ? `/articles/${article.id}` : ''}
+            >
+              {image ? <img class="author-article-image" src={image} alt="" loading="lazy" /> : <div class="author-article-image author-article-image--empty" />}
+              <div class="author-article-copy">
+                <p class="author-article-category"><CategoryBadge slug={category} /></p>
+                <h2 data-fr={article.data.title} data-en={hasEnglish ? article.data.title_en : ''}>{article.data.title}</h2>
+                {article.data.description && (
+                  <p class="author-article-description" data-fr={article.data.description} data-en={hasEnglish ? article.data.description_en || article.data.description : ''}>
+                    {article.data.description}
+                  </p>
+                )}
+                <time datetime={dateIso} data-date={dateIso}>
+                  {Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </time>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+
+      <div class="author-category-groups" id="author-category-groups" hidden>
+        {groups.map(([category]) => (
+          <section class="author-category-group" data-category-group={category}>
+            <h2 class="author-category-heading" data-fr={categoryLabel(category, 'FR')} data-en={categoryLabel(category, 'EN')}>
+              {categoryLabel(category, 'FR')}
+            </h2>
+            <div class="author-category-list"></div>
+          </section>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const root = document.getElementById('author-articles');
+    const dateList = document.getElementById('author-date-list');
+    const categoryGroups = document.getElementById('author-category-groups');
+    const sortButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-author-sort]'));
+
+    function sortByDate(cards: HTMLElement[]) {
+      return cards.sort((a, b) =>
+        (b.dataset.date || '').localeCompare(a.dataset.date || '')
+      );
+    }
+
+    function applySort(sort: string) {
+      if (!root || !dateList || !categoryGroups) return;
+      const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-author-article]'));
+      sortButtons.forEach((button) => {
+        const active = button.dataset.authorSort === sort;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      if (sort === 'category') {
+        const byCategory = new Map<string, HTMLElement[]>();
+        for (const card of cards) {
+          const category = card.dataset.category || 'autres';
+          const items = byCategory.get(category) || [];
+          items.push(card);
+          byCategory.set(category, items);
+        }
+        categoryGroups.querySelectorAll<HTMLElement>('[data-category-group]').forEach((group) => {
+          const category = group.dataset.categoryGroup || '';
+          const list = group.querySelector<HTMLElement>('.author-category-list');
+          if (list) sortByDate(byCategory.get(category) || []).forEach((card) => list.appendChild(card));
+          group.hidden = !byCategory.has(category);
+        });
+        dateList.hidden = true;
+        categoryGroups.hidden = false;
+        return;
+      }
+
+      sortByDate(cards).forEach((card) => dateList.appendChild(card));
+      dateList.hidden = false;
+      categoryGroups.hidden = true;
+    }
+
+    sortButtons.forEach((button) => {
+      button.addEventListener('click', () => applySort(button.dataset.authorSort || 'date'));
+    });
+
+    document.addEventListener('languageChanged', () => {
+      document.querySelectorAll<HTMLElement>('.author-article-card time[data-date]').forEach((time) => {
+        const date = new Date(time.dataset.date || '');
+        if (Number.isNaN(date.getTime())) return;
+        time.textContent = date.toLocaleDateString(
+          document.documentElement.lang === 'en' ? 'en-US' : 'fr-FR',
+          { day: 'numeric', month: 'long', year: 'numeric' },
+        );
+      });
+    });
+
+    applySort('date');
+  </script>
+</MainLayout>
+
+<style>
+  .author-page { max-width: 1200px; margin: 40px auto; padding: 0 20px 80px; }
+  .author-header { display: grid; grid-template-columns: minmax(260px, .75fr) minmax(0, 1.25fr); align-items: center; gap: 24px; margin-bottom: 28px; padding: 22px 24px; border: 1px solid rgba(255,255,255,.55); border-radius: 6px; background: #02001d; }
+  .author-identity { display: flex; align-items: center; gap: 20px; }
+  .author-avatar { width: 76px; height: 76px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; background: #374151; }
+  .author-kicker { margin: 0 0 4px; color: #ea580c; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .author-title { margin: 0; color: #fff; font-size: 1.8rem; line-height: 1.2; }
+  .author-count { margin: 8px 0 0; color: #c9c8d2; font-size: .9rem; }
+  .author-about-section { min-width: 0; text-align: left; }
+  .author-about-section h2 { margin: 0 0 8px; color: #fff; font-size: 1.05rem; }
+  .author-about { margin: 0; color: #e0dfe8; font-size: .95rem; line-height: 1.6; }
+  .author-toolbar { display: flex; align-items: center; gap: 8px; margin: 0 0 18px; }
+  .author-sort-label { margin-right: 4px; color: #ddd; font-size: .9rem; }
+  .author-sort-button { padding: 8px 14px; border: 1px solid #494765; border-radius: 999px; background: #1a1a4a; color: #fff; font: inherit; font-size: .85rem; cursor: pointer; }
+  .author-sort-button.is-active, .author-sort-button:hover { border-color: #ff7900; background: #ff7900; color: #111; }
+  .author-articles { display: flex; flex-direction: column; gap: 18px; }
+  .author-date-list, .author-category-list { display: flex; flex-direction: column; gap: 16px; }
+  .author-category-group { margin-bottom: 24px; }
+  .author-category-heading { margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid #fff; color: #fff; font-size: 1.15rem; letter-spacing: .04em; }
+  .author-article-card { display: grid; grid-template-columns: minmax(180px, 30%) minmax(0, 1fr); min-height: 170px; overflow: hidden; border: 1px solid rgba(255,255,255,.35); border-radius: 5px; background: #02001d; color: #fff; text-decoration: none; transition: transform .2s ease, border-color .2s ease; }
+  .author-article-card:hover { transform: translateY(-2px); border-color: #ff7900; }
+  .author-article-image { width: 100%; height: 100%; min-height: 170px; object-fit: cover; background: #101020; }
+  .author-article-image--empty { background: linear-gradient(135deg, #171638, #09081d); }
+  .author-article-copy { display: flex; flex-direction: column; align-items: flex-start; padding: 18px 20px; min-width: 0; }
+  .author-article-category { margin: 0 0 7px; color: #ff7900; font-size: .72rem; font-weight: 800; letter-spacing: .05em; }
+  .author-article-copy h2 { margin: 0; color: #fff; font-size: 1.2rem; line-height: 1.3; }
+  .author-article-card:hover h2 { color: #ff7900; }
+  .author-article-description { display: -webkit-box; overflow: hidden; margin: 8px 0 0; color: #dedde6; font-size: .88rem; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .author-article-copy time { margin-top: auto; padding-top: 10px; color: #aaa9b7; font-size: .78rem; }
+  [hidden] { display: none !important; }
+  @media (max-width: 640px) {
+    .author-page { margin: 20px auto; padding: 0 4px 48px; }
+    .author-header { grid-template-columns: 1fr; gap: 18px; padding: 16px; }
+    .author-identity { gap: 14px; }
+    .author-avatar { width: 58px; height: 58px; }
+    .author-title { font-size: 1.35rem; }
+    .author-toolbar { flex-wrap: wrap; }
+    .author-sort-button { padding: 7px 12px; }
+    .author-article-card { grid-template-columns: 105px minmax(0, 1fr); min-height: 140px; }
+    .author-article-image { min-height: 140px; }
+    .author-article-copy { padding: 12px; }
+    .author-article-copy h2 { font-size: 1rem; }
+    .author-article-description { font-size: .8rem; }
+  }
+</style>

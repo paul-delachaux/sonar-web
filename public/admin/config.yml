@@ -95,8 +95,8 @@ collections:
         collapsed: false
         max: 2
         fields:
-          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
-          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
+          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", required: false }
+          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
           - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
@@ -196,8 +196,8 @@ collections:
         collapsed: false
         max: 2
         fields:
-          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
-          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
+          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", required: false }
+          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
           - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
@@ -353,8 +353,8 @@ collections:
         collapsed: false
         max: 2
         fields:
-          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", default: "Aucune information fournie pour le moment.", required: false }
-          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", default: "No information provided at this time.", required: false }
+          - { label: "À propos de l'auteur (FR)", name: "author_about", widget: "text", required: false }
+          - { label: "À propos de l'auteur (EN)", name: "author_about_en", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (FR)", name: "author_interests", widget: "text", required: false }
           - { label: "Déclaration d'intérêt (EN)", name: "author_interests_en", widget: "text", required: false }
           - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
