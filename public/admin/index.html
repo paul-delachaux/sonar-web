@@ -837,7 +837,7 @@
   <script src="/admin/article-search.js?v=20260825r"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/cms-boot.js?v=20261030a"></script>
+  <script src="/admin/cms-boot.js?v=20261030b"></script>
   <script src="/admin/domains-admin.js?v=20260825r"></script>
   <script src="/admin/moderation.js?v=20260825r"></script>
   <script src="/admin/bulk-admin.js?v=20260825r"></script>
@@ -2073,7 +2073,8 @@
     };
 
     function getAuthorAvatar(name) {
-      return AUTHORS_AVATARS[name] || "/assets/uploads/avatar-default.jpg";
+      const currentAvatars = window.__SONAR_AUTHOR_AVATARS || {};
+      return currentAvatars[name] || AUTHORS_AVATARS[name] || "/assets/uploads/avatar-default.jpg";
     }
 
     function getCategoryPartsFR(cat) {

@@ -502,6 +502,9 @@
       var file = parts[1] || { domains: [], subdomains: [] };
       var me = parts[2] || {};
       var authorNames = parts[3] && Array.isArray(parts[3].authors) ? parts[3].authors : [];
+      global.__SONAR_AUTHOR_AVATARS = parts[3] && parts[3].avatars && typeof parts[3].avatars === 'object'
+        ? parts[3].avatars
+        : {};
       if (me.forbidden) {
         showForbidden(me.message);
         global.__SONAR_CMS_BOOTED = true;
