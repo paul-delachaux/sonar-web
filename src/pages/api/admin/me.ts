@@ -18,6 +18,8 @@ export const GET: APIRoute = async ({ request }) => {
     JSON.stringify({
       login: auth.login,
       role: auth.role,
+      githubName: auth.githubName || '',
+      avatarUrl: auth.avatarUrl || '',
       superadmin: auth.role === 'superadmin',
       accounts: auth.role === 'superadmin' ? accounts : undefined,
     }),

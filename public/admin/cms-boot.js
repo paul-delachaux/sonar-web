@@ -362,8 +362,14 @@
     global.__SONAR_CMS_LOGIN = me.login || '';
     global.__SONAR_CMS_ROLE = me.role || '';
     global.__SONAR_CMS_SUPERADMIN = me.role === 'superadmin';
+    if (me.login && me.login !== 'local-dev') global.__SONAR_GH_LOGIN = me.login;
+    global.__SONAR_GH_NAME = me.githubName || me.login || '';
+    if (me.avatarUrl) global.__SONAR_GH_AVATAR_URL = me.avatarUrl;
     document.body.classList.toggle('sonar-role-superadmin', me.role === 'superadmin');
     document.body.classList.toggle('sonar-role-admin', me.role === 'admin');
+    if (global.SonarAuthorProfiles && global.SonarAuthorProfiles.updateIdentity) {
+      global.SonarAuthorProfiles.updateIdentity();
+    }
   }
 
   function loadMe() {
@@ -374,7 +380,13 @@
             .then(function (res) {
               return res.json().catch(function () { return {}; }).then(function (data) {
                 if (res.ok && data.role) {
-                  return { login: data.login || '', role: data.role, forbidden: false };
+                  return {
+                    login: data.login || '',
+                    role: data.role,
+                    githubName: data.githubName || '',
+                    avatarUrl: data.avatarUrl || '',
+                    forbidden: false
+                  };
                 }
                 return {
                   login: data.login || '',

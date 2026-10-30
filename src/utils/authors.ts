@@ -36,16 +36,16 @@ export function authorHref(name: unknown): string {
   return `/auteurs/${authorSlug(name)}`;
 }
 
-export function authorAvatarUrl(name: string): string {
-  const profile = authorProfiles.find((item) =>
+export function authorAvatarUrl(name: string, profiles: AuthorProfile[] = authorProfiles): string {
+  const profile = profiles.find((item) =>
     normalizeAuthorName(item.name) === normalizeAuthorName(name)
   );
   return profile?.avatar || AUTHOR_AVATARS[name] || '/assets/uploads/avatar-default.jpg';
 }
 
-export function getAuthorProfile(name: unknown): AuthorProfile {
+export function getAuthorProfile(name: unknown, profiles: AuthorProfile[] = authorProfiles): AuthorProfile {
   const authorName = String(name || '').trim();
-  return authorProfiles.find((profile) =>
+  return profiles.find((profile) =>
     normalizeAuthorName(profile.name) === normalizeAuthorName(authorName)
   ) || { name: authorName };
 }

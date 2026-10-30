@@ -7,6 +7,8 @@
   var navTimer = null;
   var navLoading = false;
   var navRetryAfter = 0;
+  var accountIdentity = null;
+  var identityObserver = null;
 
   function authHeaders() {
     var search = global.SonarArticleSearch;
@@ -33,7 +35,8 @@
       '#sonar-author-profiles[hidden]{display:none!important}#sonar-author-profiles{position:fixed;inset:0;z-index:100000;font-family:Helvetica,Arial,sans-serif;color:#fff}' +
       '.sonar-ap-backdrop{position:absolute;inset:0;background:rgba(0,0,20,.76)}.sonar-ap-panel{position:absolute;inset:20px 20px 20px auto;width:min(680px,calc(100% - 40px));overflow:auto;background:#080725;border:1px solid #34324f;border-radius:12px;box-shadow:0 20px 70px #000;padding:24px}' +
       '.sonar-ap-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid #34324f;padding-bottom:16px}.sonar-ap-header h2{margin:2px 0;font-size:22px}.sonar-ap-kicker{margin:0;color:#ff7900;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}' +
-      '.sonar-ap-header h2{color:#fff!important}.sonar-ap-close,.sonar-ap-button{border:1px solid #54516e;border-radius:6px;background:#171538;color:#fff;padding:9px 13px;font-weight:700;cursor:pointer}.sonar-ap-button.primary{background:#ff7900;border-color:#ff7900;color:#090820}.sonar-ap-button.danger{border-color:#9c3d3d;color:#ffb1b1}.sonar-ap-body{padding-top:16px}.sonar-ap-status{min-height:20px;color:#d4d2e3}.sonar-ap-status[data-error=true]{color:#ff9292}.sonar-ap-hint{color:#b9b7cb;font-size:13px;line-height:1.5}.sonar-ap-field{display:block;margin:14px 0}.sonar-ap-field span{display:block;margin:0 0 6px;font-size:13px;font-weight:700}.sonar-ap-field input,.sonar-ap-field textarea,.sonar-ap-field select,.sonar-ap-select{box-sizing:border-box;width:100%;border:1px solid #494765;border-radius:6px;background:#01001d;color:#fff;padding:10px;font:inherit}.sonar-ap-field textarea{min-height:90px;resize:vertical}.sonar-ap-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.sonar-ap-new{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:10px;margin:18px 0;padding:14px;border:1px solid #34324f;border-radius:8px}.sonar-ap-new .sonar-ap-field{margin:0}.sonar-ap-profile-picker{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin:14px 0}.sonar-ap-avatar-control{display:flex;align-items:center;gap:14px;margin:16px 0;padding:14px;border:1px solid #34324f;border-radius:8px}.sonar-ap-avatar-preview{width:72px;height:72px;border-radius:50%;object-fit:cover;background:#20203b}.sonar-ap-avatar-input{min-width:0;color:#ddd}.sonar-ap-avatar-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;flex:1}@media(max-width:600px){.sonar-ap-panel{inset:0;width:auto;border-radius:0;padding:18px}.sonar-ap-new{grid-template-columns:1fr}.sonar-ap-profile-picker{grid-template-columns:1fr}.sonar-ap-avatar-control{align-items:flex-start;flex-direction:column}.sonar-ap-avatar-actions{width:100%}}';
+      '.sonar-ap-header h2{color:#fff!important}.sonar-ap-close,.sonar-ap-button{border:1px solid #54516e;border-radius:6px;background:#171538;color:#fff;padding:9px 13px;font-weight:700;cursor:pointer}.sonar-ap-button.primary{background:#ff7900;border-color:#ff7900;color:#090820}.sonar-ap-button.danger{border-color:#9c3d3d;color:#ffb1b1}.sonar-ap-body{padding-top:16px}.sonar-ap-status{min-height:20px;color:#d4d2e3}.sonar-ap-status[data-error=true]{color:#ff9292}.sonar-ap-hint{color:#b9b7cb;font-size:13px;line-height:1.5}.sonar-ap-field{display:block;margin:14px 0}.sonar-ap-field span{display:block;margin:0 0 6px;font-size:13px;font-weight:700}.sonar-ap-field input,.sonar-ap-field textarea,.sonar-ap-field select,.sonar-ap-select{box-sizing:border-box;width:100%;border:1px solid #494765;border-radius:6px;background:#01001d;color:#fff;padding:10px;font:inherit}.sonar-ap-field textarea{min-height:90px;resize:vertical}.sonar-ap-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.sonar-ap-new{display:grid;grid-template-columns:1fr 1fr auto;align-items:end;gap:10px;margin:18px 0;padding:14px;border:1px solid #34324f;border-radius:8px}.sonar-ap-new .sonar-ap-field{margin:0}.sonar-ap-profile-picker{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin:14px 0}.sonar-ap-avatar-control{display:flex;align-items:center;gap:14px;margin:16px 0;padding:14px;border:1px solid #34324f;border-radius:8px}.sonar-ap-avatar-preview{width:72px;height:72px;border-radius:50%;object-fit:cover;background:#20203b}.sonar-ap-avatar-input{min-width:0;color:#ddd}.sonar-ap-avatar-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;flex:1}@media(max-width:600px){.sonar-ap-panel{inset:0;width:auto;border-radius:0;padding:18px}.sonar-ap-new{grid-template-columns:1fr}.sonar-ap-profile-picker{grid-template-columns:1fr}.sonar-ap-avatar-control{align-items:flex-start;flex-direction:column}.sonar-ap-avatar-actions{width:100%}}' +
+      '.sonar-ap-account-identity{display:flex;align-items:center;gap:12px;margin:4px 0 18px;padding:12px;border:1px solid #34324f;border-radius:8px;background:#10102d}.sonar-ap-account-avatar{width:42px;height:42px;flex:0 0 auto;border-radius:50%;object-fit:cover;background:#20203b}.sonar-ap-account-copy{min-width:0}.sonar-ap-account-copy strong,.sonar-ap-account-copy span{display:block;overflow:hidden;text-overflow:ellipsis}.sonar-ap-account-copy span{margin-top:3px;color:#b9b7cb;font-size:13px}.sonar-ap-github-avatar{width:32px;height:32px;margin-right:8px;border-radius:50%;object-fit:cover;vertical-align:middle}';
     document.head.appendChild(style);
   }
 
@@ -62,6 +65,38 @@
     if (!el) return;
     el.textContent = message || '';
     el.setAttribute('data-error', error ? 'true' : 'false');
+  }
+
+  function updateIdentity() {
+    var login = (accountIdentity && accountIdentity.login) || global.__SONAR_GH_LOGIN || global.__SONAR_CMS_LOGIN || '';
+    var avatarUrl = (accountIdentity && accountIdentity.avatarUrl) || global.__SONAR_GH_AVATAR_URL || '';
+    if (!login) return;
+
+    Array.prototype.slice.call(document.querySelectorAll('span,div,p')).forEach(function (element) {
+      if (element.children.length || String(element.textContent || '').trim() !== 'Unknown') return;
+      element.textContent = '@' + login;
+      if (!avatarUrl) return;
+      var parent = element.parentElement;
+      var foundImage = false;
+      for (var depth = 0; parent && depth < 4; depth++, parent = parent.parentElement) {
+        var image = parent.querySelector('img');
+        if (!image) continue;
+        image.src = avatarUrl;
+        image.alt = 'Photo de profil GitHub de @' + login;
+        image.style.objectFit = 'cover';
+        image.style.borderRadius = '50%';
+        foundImage = true;
+        break;
+      }
+      if (!foundImage && element.parentElement && !element.parentElement.querySelector('[data-sonar-github-avatar]')) {
+        var avatar = document.createElement('img');
+        avatar.src = avatarUrl;
+        avatar.alt = 'Photo de profil GitHub de @' + login;
+        avatar.className = 'sonar-ap-github-avatar';
+        avatar.setAttribute('data-sonar-github-avatar', 'true');
+        element.parentElement.insertBefore(avatar, element);
+      }
+    });
   }
 
   function selectedProfile() {
@@ -109,6 +144,13 @@
         ? '<form id="sonar-ap-new" class="sonar-ap-new"><label class="sonar-ap-field"><span>Nom du nouvel auteur</span><input id="sonar-ap-new-name" maxlength="100" required></label><label class="sonar-ap-field"><span>Compte admin associé</span><select id="sonar-ap-new-account" required>' + accountOptions('', '') + '</select></label><button class="sonar-ap-button primary" type="submit">Créer</button></form>'
         : '') +
       picker +
+      (accountIdentity || global.__SONAR_GH_LOGIN
+        ? '<div class="sonar-ap-account-identity">' +
+          ((accountIdentity && accountIdentity.avatarUrl) || global.__SONAR_GH_AVATAR_URL
+            ? '<img class="sonar-ap-account-avatar" src="' + escapeHtml((accountIdentity && accountIdentity.avatarUrl) || global.__SONAR_GH_AVATAR_URL) + '" alt="">'
+            : '') +
+          '<div class="sonar-ap-account-copy"><strong>' + escapeHtml((accountIdentity && accountIdentity.githubName) || global.__SONAR_GH_NAME || global.__SONAR_GH_LOGIN) + '</strong><span>@' + escapeHtml((accountIdentity && accountIdentity.login) || global.__SONAR_GH_LOGIN) + '</span></div></div>'
+        : '') +
       '<p class="sonar-ap-hint">Ces valeurs sont utilisées par défaut sur la page auteur et les articles. Une valeur saisie directement dans un article reste prioritaire.</p>' +
       '<div class="sonar-ap-avatar-control"><img class="sonar-ap-avatar-preview" id="sonar-ap-avatar-preview" src="' + escapeHtml(profile.avatar || '') + '" alt="Portrait de ' + escapeHtml(profile.name) + '" ' + (profile.avatar ? '' : 'hidden') + '><div class="sonar-ap-avatar-actions"><label class="sonar-ap-field"><span>Image de profil (PNG, JPEG ou WebP, max. 4 Mo)</span><input class="sonar-ap-avatar-input" id="sonar-ap-avatar-file" type="file" accept="image/png,image/jpeg,image/webp"></label><button type="button" class="sonar-ap-button" id="sonar-ap-avatar-upload">Envoyer l’image</button></div></div>' +
       '<label class="sonar-ap-field"><span>À propos de l’auteur (FR)</span><textarea id="sonar-ap-about">' + escapeHtml(profile.about) + '</textarea></label>' +
@@ -268,6 +310,12 @@
       .then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (data) {
           if (!response.ok) throw new Error(data.message || 'HTTP ' + response.status);
+          accountIdentity = {
+            login: data.login || '',
+            githubName: data.githubName || data.login || '',
+            avatarUrl: data.avatarUrl || '',
+          };
+          updateIdentity();
           current = data.profile || null;
           profiles = data.profiles || (current ? [current] : []);
           accounts = data.accounts || [];
@@ -293,17 +341,6 @@
     if (root) root.hidden = true;
   }
 
-  function addFallbackButton() {
-    if (document.getElementById('cms-author-profile-fallback')) return;
-    var button = document.createElement('button');
-    button.id = 'cms-author-profile-fallback';
-    button.type = 'button';
-    button.textContent = global.__SONAR_CMS_ROLE === 'superadmin' ? 'Profils d’auteur' : 'Mon profil d’auteur';
-    button.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:99999;padding:12px 16px;border:0;border-radius:8px;background:#ff7900;color:#090820;font-weight:800;box-shadow:0 4px 16px #0008;cursor:pointer';
-    button.addEventListener('click', open);
-    document.body.appendChild(button);
-  }
-
   function addNav(providedSidebar) {
     var role = global.__SONAR_CMS_ROLE;
     if (role !== 'admin' && role !== 'superadmin') return Promise.resolve();
@@ -320,7 +357,6 @@
       }
     }
     if (!sidebar) {
-      addFallbackButton();
       return Promise.resolve(false);
     }
     var existing = document.getElementById('cms-author-profile-nav');
@@ -368,8 +404,6 @@
             sidebar.appendChild(header);
             sidebar.appendChild(item);
           } else sidebar.appendChild(item);
-          var fallback = document.getElementById('cms-author-profile-fallback');
-          if (fallback) fallback.remove();
           navRetryAfter = 0;
           return true;
         });
@@ -388,8 +422,13 @@
 
   function start() {
     var attempts = 0;
+    if (global.MutationObserver && document.body) {
+      identityObserver = new MutationObserver(updateIdentity);
+      identityObserver.observe(document.body, { childList: true, subtree: true });
+    }
     navTimer = global.setInterval(function () {
       attempts += 1;
+      updateIdentity();
       if (!global.__SONAR_CMS_BOOTED) return;
       if (global.__SONAR_CMS_ROLE === 'admin' || global.__SONAR_CMS_ROLE === 'superadmin') {
         addNav();
@@ -398,6 +437,11 @@
     }, 1000);
   }
 
-  global.SonarAuthorProfiles = { open: open, close: close, addNav: addNav };
+  global.SonarAuthorProfiles = {
+    open: open,
+    close: close,
+    addNav: addNav,
+    updateIdentity: updateIdentity,
+  };
   start();
 })(window);

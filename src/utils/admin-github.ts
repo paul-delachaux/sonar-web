@@ -1,7 +1,13 @@
 import { findAccount, type CmsRole } from './cms-accounts';
 import { loadCmsAccounts } from './cms-accounts-store';
 
-export type CmsAuthOk = { ok: true; login: string; role: CmsRole };
+export type CmsAuthOk = {
+  ok: true;
+  login: string;
+  role: CmsRole;
+  githubName?: string;
+  avatarUrl?: string;
+};
 export type CmsAuthErr = { ok: false; status: number; message: string };
 export type CmsAuth = CmsAuthOk | CmsAuthErr;
 
@@ -23,7 +29,7 @@ export function cmsGithubToken(request: Request): string {
 
 const CMS_REPO = 'paul-delachaux/sonar-web';
 
-async function githubLogin(token: string): Promise<string> {
+async function githubUser(token: string): Promise<{ login: string; githubName?: string; avatarUrl?: string }> {
   const res = await fetch('https://api.github.com/user', {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -32,8 +38,12 @@ async function githubLogin(token: string): Promise<string> {
     },
   });
   if (!res.ok) throw new Error(res.status === 401 ? 'Session admin invalide.' : 'GitHub indisponible.');
-  const user = await res.json();
-  return String(user?.login || '').toLowerCase();
+  const user = await res.json() as { login?: string; name?: string | null; avatar_url?: string };
+  return {
+    login: String(user.login || '').toLowerCase(),
+    ...(user.name ? { githubName: user.name } : {}),
+    ...(user.avatar_url ? { avatarUrl: user.avatar_url } : {}),
+  };
 }
 
 async function isGithubRepoAdmin(token: string, login: string): Promise<boolean> {
@@ -62,15 +72,30 @@ export async function requireCmsAdmin(request: Request): Promise<CmsAuth> {
   }
 
   try {
-    const login = await githubLogin(token);
+    const user = await githubUser(token);
+    const login = user.login;
     if (!login) {
       return { ok: false, status: 401, message: 'Session admin invalide.' };
     }
     const accounts = await loadCmsAccounts(token);
     const account = findAccount(accounts, login) || findAccount(await loadCmsAccounts(), login);
-    if (account) return { ok: true, login: account.login, role: account.role };
+    if (account) {
+      return {
+        ok: true,
+        login: account.login,
+        role: account.role,
+        githubName: user.githubName,
+        avatarUrl: user.avatarUrl,
+      };
+    }
     if (await isGithubRepoAdmin(token, login)) {
-      return { ok: true, login, role: 'superadmin' };
+      return {
+        ok: true,
+        login,
+        role: 'superadmin',
+        githubName: user.githubName,
+        avatarUrl: user.avatarUrl,
+      };
     }
     return { ok: false, status: 403, message: 'Compte GitHub non autorisé.' };
   } catch (error) {

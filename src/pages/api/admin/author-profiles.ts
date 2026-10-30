@@ -4,9 +4,8 @@ import { loadCmsAccounts } from '../../../utils/cms-accounts-store';
 import { editableProfileText, parseAuthorProfiles } from '../../../utils/author-profiles';
 import {
   loadAuthorProfiles,
-  readLocalAuthorProfiles,
-  writeGithubAuthorProfiles,
-  writeLocalAuthorProfiles,
+  replaceAuthorProfiles,
+  saveAuthorProfile,
 } from '../../../utils/author-profiles-store';
 import type { AuthorProfile } from '../../../utils/authors';
 import { normalizeLogin } from '../../../utils/cms-accounts';
@@ -20,28 +19,13 @@ function json(data: unknown, status = 200) {
   });
 }
 
-async function saveProfiles(request: Request, profiles: AuthorProfile[]): Promise<void> {
-  const token = cmsGithubToken(request);
-  if (import.meta.env.DEV) {
-    await writeLocalAuthorProfiles(profiles);
-    return;
-  }
-  if (!token) throw new Error('Connectez-vous à GitHub dans l’admin.');
-  await writeGithubAuthorProfiles(token, profiles);
-}
-
-async function getAuthorProfiles(request: Request): Promise<AuthorProfile[]> {
-  if (import.meta.env.DEV) return readLocalAuthorProfiles();
-  return loadAuthorProfiles(cmsGithubToken(request) || undefined);
-}
-
 export const GET: APIRoute = async ({ request }) => {
   const auth = await requireCmsAdmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
 
   const token = cmsGithubToken(request);
   try {
-    const profiles = await getAuthorProfiles(request);
+    const profiles = await loadAuthorProfiles();
     if (auth.role === 'superadmin') {
       const accounts = import.meta.env.DEV
         ? await loadCmsAccounts()
@@ -49,14 +33,33 @@ export const GET: APIRoute = async ({ request }) => {
       if (!accounts.some((account) => normalizeLogin(account.login) === normalizeLogin(auth.login))) {
         accounts.push({ login: auth.login, role: 'superadmin' });
       }
-      return json({ profiles, accounts, login: auth.login, role: auth.role });
+      return json({
+        profiles,
+        accounts,
+        login: auth.login,
+        role: auth.role,
+        githubName: auth.githubName || '',
+        avatarUrl: auth.avatarUrl || '',
+      });
     }
 
     const profile = profiles.find((candidate) =>
       normalizeLogin(candidate.account || '') === normalizeLogin(auth.login)
     );
-    if (!profile) return json({ profile: null, login: auth.login, role: auth.role });
-    return json({ profile, login: auth.login, role: auth.role });
+    if (!profile) return json({
+      profile: null,
+      login: auth.login,
+      role: auth.role,
+      githubName: auth.githubName || '',
+      avatarUrl: auth.avatarUrl || '',
+    });
+    return json({
+      profile,
+      login: auth.login,
+      role: auth.role,
+      githubName: auth.githubName || '',
+      avatarUrl: auth.avatarUrl || '',
+    });
   } catch (error) {
     return json({
       message: error instanceof Error ? error.message : 'Lecture des profils auteurs impossible.',
@@ -72,7 +75,7 @@ export const PUT: APIRoute = async ({ request }) => {
   if (!body) return json({ message: 'Données de profil invalides.' }, 400);
   let current: AuthorProfile[];
   try {
-    current = await getAuthorProfiles(request);
+    current = await loadAuthorProfiles();
   } catch (error) {
     return json({
       message: error instanceof Error ? error.message : 'Lecture des profils auteurs impossible.',
@@ -107,7 +110,15 @@ export const PUT: APIRoute = async ({ request }) => {
   }
 
   try {
-    await saveProfiles(request, updated);
+    if (auth.role === 'superadmin') {
+      await replaceAuthorProfiles(updated);
+    } else {
+      const profile = updated.find((candidate) =>
+        normalizeLogin(candidate.account || '') === normalizeLogin(auth.login)
+      );
+      if (!profile) return json({ message: 'Aucun profil auteur n’est associé à ce compte.' }, 403);
+      await saveAuthorProfile(profile);
+    }
   } catch (error) {
     return json({
       message: error instanceof Error ? error.message : 'Enregistrement des profils auteurs impossible.',

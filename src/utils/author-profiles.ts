@@ -41,7 +41,21 @@ export function parseAuthorProfiles(data: unknown): AuthorProfile[] {
 
     const profile: AuthorProfile = { name, ...(account ? { account } : {}) };
     if (avatar) {
-      if (!/^\/assets\/uploads\/[a-zA-Z0-9._-]+$/.test(avatar)) {
+      const localAvatar = /^\/assets\/uploads\/[a-zA-Z0-9._-]+$/.test(avatar);
+      let publicSupabaseAvatar = false;
+      try {
+        const url = new URL(avatar);
+        publicSupabaseAvatar =
+          url.protocol === 'https:' &&
+          !url.username &&
+          !url.password &&
+          url.pathname.startsWith('/storage/v1/object/public/author-avatars/') &&
+          !url.search &&
+          !url.hash;
+      } catch {
+        publicSupabaseAvatar = false;
+      }
+      if (!localAvatar && !publicSupabaseAvatar) {
         throw new Error('Le chemin de l’image auteur est invalide.');
       }
       profile.avatar = avatar;

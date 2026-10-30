@@ -12,6 +12,7 @@ import RevueMusicaleLayout from '../../components/RevueMusicaleLayout.astro';
 import { supabase } from '../../utils/supabase';
 import { normalizeMediaBlocks } from '../../utils/body-blocks';
 import { authorAvatarUrl, authorHref, getAuthorProfile } from '../../utils/authors';
+import { loadAuthorProfilesOrBundled } from '../../utils/author-profiles-store';
 
 // 1. Force le rendu dynamique (SSR) quand l'adaptateur le permet.
 //    getStaticPaths reste obligatoire si Astro tourne en mode statique.
@@ -111,6 +112,7 @@ const selectedAuthors = [article.data.author, article.data.author2]
     authors.findIndex((candidate) => candidate.name === author.name) === index
   );
 if (selectedAuthors.length === 0) selectedAuthors.push({ name: 'Auteur Anonyme', index: 0 });
+const authorProfilesData = await loadAuthorProfilesOrBundled();
 
 const articleAuthorText = (values: unknown[], placeholders: string[] = []) => {
   const ignored = new Set(placeholders.map((value) => value.trim().toLocaleLowerCase()));
@@ -127,7 +129,7 @@ const defaultAboutValues = [
 
 const authorProfiles = selectedAuthors.map(({ name, index }) => {
   const authorData = article.data.author_info?.[index];
-  const profile = getAuthorProfile(name);
+  const profile = getAuthorProfile(name, authorProfilesData);
   const legacyAbout = index === 0 ? article.data.author_about : undefined;
   const legacyAboutEN = index === 0 ? article.data.author_about_en : undefined;
   const aboutFR = articleAuthorText(
@@ -157,7 +159,7 @@ const authorProfiles = selectedAuthors.map(({ name, index }) => {
 
   return {
     name,
-    avatarUrl: authorAvatarUrl(name),
+    avatarUrl: authorAvatarUrl(name, authorProfilesData),
     aboutFR,
     aboutEN,
     interestsFR,

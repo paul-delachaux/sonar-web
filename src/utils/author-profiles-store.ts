@@ -1,134 +1,109 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import bundledProfiles from '../data/author-profiles.json';
-import { parseAuthorProfiles, serializeAuthorProfiles } from './author-profiles';
+import { parseAuthorProfiles } from './author-profiles';
+import { createServiceClient } from './service-client';
 import type { AuthorProfile } from './authors';
 
-const REPO = 'paul-delachaux/sonar-web';
-const BRANCH = 'main';
-const FILE_PATH = 'src/data/author-profiles.json';
-const LOCAL_FILE = path.join(process.cwd(), FILE_PATH);
-const LOCAL_UPLOADS = path.join(process.cwd(), 'public', 'assets', 'uploads');
+const PROFILE_COLUMNS =
+  'name, account, avatar, about, about_en, interests, interests_en, partners, partners_en';
 
-function parseJson(text: string): AuthorProfile[] {
-  return parseAuthorProfiles(JSON.parse(text));
+function database() {
+  const client = createServiceClient();
+  if (!client) {
+    throw new Error('La configuration Supabase serveur (SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY) est indisponible.');
+  }
+  return client;
 }
 
-export async function readLocalAuthorProfiles(): Promise<AuthorProfile[]> {
+function fromRows(rows: unknown): AuthorProfile[] {
+  return parseAuthorProfiles({ authors: rows });
+}
+
+export async function loadAuthorProfiles(): Promise<AuthorProfile[]> {
+  const { data, error } = await database()
+    .from('author_profiles')
+    .select(PROFILE_COLUMNS)
+    .order('name');
+  if (error) {
+    throw new Error(
+      error.code === '42P01'
+        ? 'La table author_profiles manque dans Supabase. Exécutez supabase/author-profiles.sql.'
+        : error.message || 'Lecture des profils auteurs impossible.',
+    );
+  }
+  return fromRows(data || []);
+}
+
+export async function loadAuthorProfilesOrBundled(): Promise<AuthorProfile[]> {
   try {
-    return parseJson(await fs.readFile(LOCAL_FILE, 'utf8'));
+    const profiles = await loadAuthorProfiles();
+    return profiles.length ? profiles : fromRows((bundledProfiles as { authors?: unknown[] }).authors || []);
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-      return parseAuthorProfiles(bundledProfiles);
-    }
-    throw error;
+    console.error('[author-profiles] Supabase read failed; using bundled profile data:', error);
+    return fromRows((bundledProfiles as { authors?: unknown[] }).authors || []);
   }
 }
 
-export async function readGithubAuthorProfiles(token: string): Promise<AuthorProfile[] | null> {
-  const response = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.raw+json',
-        'User-Agent': 'le-sonar-admin',
-      },
-    },
-  );
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Lecture des profils auteurs impossible (GitHub HTTP ${response.status}).`);
-  return parseJson(await response.text());
+export async function saveAuthorProfile(profile: AuthorProfile): Promise<AuthorProfile> {
+  const { data, error } = await database()
+    .from('author_profiles')
+    .upsert({ ...profile, updated_at: new Date().toISOString() }, { onConflict: 'name' })
+    .select(PROFILE_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message || 'Enregistrement du profil auteur impossible.');
+  return fromRows([data])[0];
 }
 
-export async function loadAuthorProfiles(token?: string): Promise<AuthorProfile[]> {
-  if (token) {
-    const remote = await readGithubAuthorProfiles(token);
-    if (remote) return remote;
+export async function replaceAuthorProfiles(profiles: AuthorProfile[]): Promise<AuthorProfile[]> {
+  const client = database();
+  const { data: existing, error: listError } = await client
+    .from('author_profiles')
+    .select('name');
+  if (listError) throw new Error(listError.message || 'Lecture des profils auteurs impossible.');
+
+  if (profiles.length) {
+    const { error } = await client
+      .from('author_profiles')
+      .upsert(profiles.map((profile) => ({
+        ...profile,
+        updated_at: new Date().toISOString(),
+      })), { onConflict: 'name' });
+    if (error) throw new Error(error.message || 'Enregistrement des profils auteurs impossible.');
   }
-  return readLocalAuthorProfiles();
+
+  const names = new Set(profiles.map((profile) => profile.name));
+  for (const row of existing || []) {
+    if (names.has(row.name)) continue;
+    const { error } = await client.from('author_profiles').delete().eq('name', row.name);
+    if (error) throw new Error(error.message || 'Suppression des profils auteurs retirés impossible.');
+  }
+  return profiles;
 }
 
-export async function writeLocalAuthorProfiles(profiles: AuthorProfile[]): Promise<void> {
-  await fs.writeFile(LOCAL_FILE, serializeAuthorProfiles(profiles), 'utf8');
-}
-
-export async function writeLocalAuthorAvatar(fileName: string, bytes: Uint8Array): Promise<void> {
-  await fs.mkdir(LOCAL_UPLOADS, { recursive: true });
-  await fs.writeFile(path.join(LOCAL_UPLOADS, fileName), bytes);
-}
-
-export async function writeGithubAuthorAvatar(
-  token: string,
+export async function uploadAuthorAvatar(
+  profileName: string,
   fileName: string,
   bytes: Uint8Array,
-): Promise<void> {
-  const filePath = `public/assets/uploads/${fileName}`;
-  const url = `https://api.github.com/repos/${REPO}/contents/${filePath}`;
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github+json',
-    'User-Agent': 'le-sonar-admin',
-  };
-  const currentResponse = await fetch(`${url}?ref=${BRANCH}`, { headers });
-  let sha: string | undefined;
-  if (currentResponse.status !== 404) {
-    if (!currentResponse.ok) {
-      throw new Error(`Lecture de l’image auteur impossible (GitHub HTTP ${currentResponse.status}).`);
-    }
-    const current = await currentResponse.json() as { sha?: string };
-    sha = current.sha;
-    if (!sha) throw new Error('GitHub n’a pas fourni la version du fichier image.');
+  contentType: string,
+): Promise<AuthorProfile> {
+  const client = database();
+  const path = `${profileName.toLocaleLowerCase().replace(/[^a-z0-9]+/g, '-')}/${fileName}`;
+  const { error: uploadError } = await client.storage
+    .from('author-avatars')
+    .upload(path, bytes, { upsert: true, contentType, cacheControl: '31536000' });
+  if (uploadError) {
+    throw new Error(
+      uploadError.message.toLowerCase().includes('bucket')
+        ? 'Le bucket author-avatars manque. Exécutez supabase/author-profiles.sql.'
+        : uploadError.message || 'Envoi de l’image auteur impossible.',
+    );
   }
-
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: 'admin: mise à jour d’une image de profil auteur',
-      content: Buffer.from(bytes).toString('base64'),
-      ...(sha ? { sha } : {}),
-      branch: BRANCH,
-    }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({})) as { message?: string };
-    throw new Error(error.message || `Enregistrement de l’image auteur impossible (GitHub HTTP ${response.status}).`);
-  }
-}
-
-export async function writeGithubAuthorProfiles(token: string, profiles: AuthorProfile[]): Promise<void> {
-  const url = `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`;
-  const currentResponse = await fetch(`${url}?ref=${BRANCH}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'le-sonar-admin',
-    },
-  });
-  if (!currentResponse.ok) {
-    throw new Error(`Lecture des profils auteurs impossible (GitHub HTTP ${currentResponse.status}).`);
-  }
-  const current = await currentResponse.json() as { sha?: string };
-  if (!current.sha) throw new Error('GitHub n’a pas fourni la version du fichier des profils auteurs.');
-
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'le-sonar-admin',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      message: 'admin: mise à jour des profils auteurs',
-      content: Buffer.from(serializeAuthorProfiles(profiles), 'utf8').toString('base64'),
-      sha: current.sha,
-      branch: BRANCH,
-    }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({})) as { message?: string };
-    throw new Error(error.message || `Enregistrement des profils auteurs impossible (GitHub HTTP ${response.status}).`);
-  }
+  const { data } = client.storage.from('author-avatars').getPublicUrl(path);
+  const { data: saved, error: saveError } = await client
+    .from('author_profiles')
+    .update({ avatar: data.publicUrl, updated_at: new Date().toISOString() })
+    .eq('name', profileName)
+    .select(PROFILE_COLUMNS)
+    .single();
+  if (saveError) throw new Error(saveError.message || 'Enregistrement de l’image auteur impossible.');
+  return fromRows([saved])[0];
 }

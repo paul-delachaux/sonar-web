@@ -2,6 +2,7 @@
 import MainLayout from './Layout.astro';
 import { categoryLabel, t } from '../utils/i18n.js';
 import { authorAvatarUrl, getAuthorProfile } from '../utils/authors';
+import { loadAuthorProfilesOrBundled } from '../utils/author-profiles-store';
 import CategoryBadge from '../components/CategoryBadge.astro';
 
 interface Props {
@@ -19,8 +20,9 @@ for (const article of articles) {
 }
 const groups = Array.from(groupsByCategory.entries())
   .sort(([a], [b]) => categoryLabel(a, 'FR').localeCompare(categoryLabel(b, 'FR'), 'fr'));
-const avatarUrl = authorAvatarUrl(authorName);
-const authorProfile = getAuthorProfile(authorName);
+const profiles = await loadAuthorProfilesOrBundled();
+const avatarUrl = authorAvatarUrl(authorName, profiles);
+const authorProfile = getAuthorProfile(authorName, profiles);
 const aboutFR = authorProfile.about?.trim() || '';
 const aboutEN = authorProfile.about_en?.trim() || aboutFR;
 const aboutDisplayFR = aboutFR || t('author_about_empty', 'FR');

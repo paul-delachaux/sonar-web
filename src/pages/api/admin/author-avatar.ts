@@ -1,15 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { APIRoute } from 'astro';
-import { cmsGithubToken, requireCmsAdmin } from '../../../utils/admin-github';
-import { parseAuthorProfiles } from '../../../utils/author-profiles';
-import {
-  loadAuthorProfiles,
-  readLocalAuthorProfiles,
-  writeGithubAuthorAvatar,
-  writeGithubAuthorProfiles,
-  writeLocalAuthorAvatar,
-  writeLocalAuthorProfiles,
-} from '../../../utils/author-profiles-store';
+import { requireCmsAdmin } from '../../../utils/admin-github';
+import { loadAuthorProfiles, uploadAuthorAvatar } from '../../../utils/author-profiles-store';
 import { authorSlug, type AuthorProfile } from '../../../utils/authors';
 import { normalizeLogin } from '../../../utils/cms-accounts';
 
@@ -44,16 +36,6 @@ function json(data: unknown, status = 200) {
   });
 }
 
-async function saveProfiles(request: Request, profiles: AuthorProfile[]) {
-  if (import.meta.env.DEV) {
-    await writeLocalAuthorProfiles(profiles);
-    return;
-  }
-  const token = cmsGithubToken(request);
-  if (!token) throw new Error('Connectez-vous à GitHub dans l’admin.');
-  await writeGithubAuthorProfiles(token, profiles);
-}
-
 export const POST: APIRoute = async ({ request }) => {
   const auth = await requireCmsAdmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
@@ -78,9 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   let profiles: AuthorProfile[];
   try {
-    profiles = import.meta.env.DEV
-      ? await readLocalAuthorProfiles()
-      : await loadAuthorProfiles(cmsGithubToken(request) || undefined);
+    profiles = await loadAuthorProfiles();
   } catch (error) {
     return json({
       message: error instanceof Error ? error.message : 'Lecture des profils auteurs impossible.',
@@ -99,29 +79,18 @@ export const POST: APIRoute = async ({ request }) => {
   if (!slug) return json({ message: 'Le nom du profil ne permet pas de créer un nom de fichier.' }, 400);
   const imageHash = createHash('sha256').update(bytes).digest('hex').slice(0, 12);
   const fileName = `avatar-${slug}-${imageHash}.${imageType.extension}`;
-  const avatar = `/assets/uploads/${fileName}`;
-  const updated = profiles.map((candidate) =>
-    candidate.name === profile.name ? { ...candidate, avatar } : candidate
-  );
   try {
-    if (import.meta.env.DEV) {
-      await writeLocalAuthorAvatar(fileName, bytes);
-    } else {
-      const token = cmsGithubToken(request);
-      if (!token) return json({ message: 'Connectez-vous à GitHub dans l’admin.' }, 401);
-      await writeGithubAuthorAvatar(token, fileName, bytes);
-    }
-    await saveProfiles(request, parseAuthorProfiles({ authors: updated }));
+    const savedProfile = await uploadAuthorAvatar(profile.name, fileName, bytes, file.type);
+    return json({
+      ok: true,
+      profile: savedProfile,
+      ...(auth.role === 'superadmin'
+        ? { profiles: profiles.map((candidate) => candidate.name === profile.name ? savedProfile : candidate) }
+        : {}),
+    });
   } catch (error) {
     return json({
       message: error instanceof Error ? error.message : 'Enregistrement de l’image auteur impossible.',
     }, 500);
   }
-
-  const savedProfile = updated.find((candidate) => candidate.name === profile.name)!;
-  return json({
-    ok: true,
-    profile: savedProfile,
-    ...(auth.role === 'superadmin' ? { profiles: updated } : {}),
-  });
 };
