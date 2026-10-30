@@ -104,6 +104,11 @@ const cardId = `author-hover-${authorSlug(name)}`;
       return;
     }
 
+    if (target.matches('.author-hover.is-open')) {
+      closeAuthorCards();
+      return;
+    }
+
     if (!target.closest('.author-hover.is-open')) closeAuthorCards();
   });
 
@@ -285,11 +290,12 @@ const cardId = `author-hover-${authorSlug(name)}`;
 
   @media (max-width: 600px) {
     .author-hover-card {
-      top: 50%;
+      position: fixed;
+      top: 50dvh;
       right: auto;
-      left: 50%;
+      left: 50vw;
       width: min(360px, calc(100vw - 32px));
-      max-height: calc(100vh - 40px);
+      max-height: calc(100dvh - 40px);
       overflow-y: auto;
       transform: translate(-50%, -50%);
     }
