@@ -11,6 +11,7 @@ import HeaderInner from '../components/HeaderInner.astro';
 import AccountDrawer from '../components/AccountDrawer.astro';
 import NavDomains from '../components/NavDomains.astro';
 import { getCollection } from 'astro:content';
+import { categoryLabel } from '../utils/i18n.js';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '';
@@ -22,7 +23,9 @@ const searchIndex = visibleArticles.map((art) => ({
     slug: art.id,
     title: art.data.title,
     titleEn: art.data.title_en || null,
-    category: art.data.category,
+    category: categoryLabel(art.data.category, 'FR'),
+    categoryEn: categoryLabel(art.data.category, 'EN'),
+    image: art.data.image || art.data.article_image || null,
 }));
 const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
 
@@ -767,9 +770,8 @@ const articleTitlesJson = JSON.stringify(
                 top: 100%;
                 left: 0;
                 margin: 8px 0 0 0;
-                min-width: 280px;
-                width: max-content;
-                max-width: min(420px, 70vw);
+                width: min(420px, calc(100vw - 100px));
+                box-sizing: border-box;
                 background-color: #02001d;
                 border: 1px solid #1f2937;
                 border-radius: 10px;
@@ -798,8 +800,11 @@ const articleTitlesJson = JSON.stringify(
                 text-align: left;
             }
             .hv2-search-results li a {
-                display: block;
-                padding: 7px 14px;
+                display: grid;
+                grid-template-columns: 76px minmax(0, 1fr);
+                align-items: center;
+                gap: 12px;
+                padding: 9px 12px;
                 color: #ffffff;
                 text-decoration: none;
                 font-size: 0.85rem;
@@ -808,9 +813,47 @@ const articleTitlesJson = JSON.stringify(
                 text-align: left;
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             }
+            .hv2-search-results li a.hv2-search-result-no-image {
+                grid-template-columns: minmax(0, 1fr);
+            }
             .hv2-search-results li a:hover {
                 background-color: rgba(255, 255, 255, 0.08);
-                color: #ff8826;
+            }
+            .hv2-search-result-image {
+                display: block;
+                width: 76px;
+                height: 56px;
+                border-radius: 6px;
+                background: #17162f;
+                object-fit: cover;
+            }
+            .hv2-search-result-copy {
+                display: flex;
+                min-width: 0;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .hv2-search-result-category {
+                color: #ff9a3c;
+                font-size: 0.67rem;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                line-height: 1.2;
+                text-transform: uppercase;
+            }
+            .hv2-search-result-title {
+                display: -webkit-box;
+                overflow: hidden;
+                color: #fff;
+                font-size: 0.84rem;
+                line-height: 1.35;
+                overflow-wrap: anywhere;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+            }
+            .hv2-search-results li a:hover .hv2-search-result-title,
+            .hv2-search-results li a:focus-visible .hv2-search-result-title {
+                color: #ffad52;
             }
             .hv2-search-empty {
                 padding: 7px 14px;
@@ -1865,7 +1908,26 @@ const articleTitlesJson = JSON.stringify(
                             const li = document.createElement('li');
                             const a = document.createElement('a');
                             a.href = `/articles/${item.slug}`;
-                            a.textContent = title;
+                            if (item.image) {
+                                const image = document.createElement('img');
+                                image.className = 'hv2-search-result-image';
+                                image.src = item.image;
+                                image.alt = '';
+                                image.loading = 'lazy';
+                                a.appendChild(image);
+                            } else {
+                                a.classList.add('hv2-search-result-no-image');
+                            }
+                            const copy = document.createElement('span');
+                            copy.className = 'hv2-search-result-copy';
+                            const category = document.createElement('span');
+                            category.className = 'hv2-search-result-category';
+                            category.textContent = (langKey === 'EN' && item.categoryEn) ? item.categoryEn : item.category;
+                            const resultTitle = document.createElement('span');
+                            resultTitle.className = 'hv2-search-result-title';
+                            resultTitle.textContent = title;
+                            copy.append(category, resultTitle);
+                            a.appendChild(copy);
                             li.appendChild(a);
                             resultsList.appendChild(li);
                         });
