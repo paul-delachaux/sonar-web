@@ -260,15 +260,16 @@ collections:
       - { name: "title_en", label: "Titre (EN)", widget: "string", required: false }
       - { name: "description_en", label: "Description (EN)", widget: "text", required: false }
 
-      - { label: "LIGNES DU LAYOUT (2 blocs par ligne)", name: "sep_rows", widget: "separator", required: false }
+      - { label: "LIGNES DU LAYOUT", name: "sep_rows", widget: "separator", required: false }
       - label: "Lignes"
         name: "revue_rows"
         widget: "list"
         label_singular: "Ligne"
         summary: "{{left.type}} · {{right.type}}"
         required: false
-        hint: "Chaque ligne a deux blocs. Pour chacun, choisis Texte, Image ou Audio. Tu peux mettre du texte des deux côtés."
+        hint: "Chaque ligne affiche deux blocs côte à côte par défaut. Active « Pleine largeur » pour utiliser uniquement le bloc gauche sur toute la largeur."
         fields:
+          - { label: "Pleine largeur (utiliser uniquement le bloc gauche)", name: "full_width", widget: "boolean", default: false, required: false }
           - label: "Bloc gauche"
             name: "left"
             widget: "object"

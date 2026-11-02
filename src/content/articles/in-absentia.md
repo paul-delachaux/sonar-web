@@ -25,6 +25,7 @@ revue_rows:
     right:
       type: image
       image: ""
+    full_width: true
   - left:
       type: image
       image: /assets/uploads/2d5e5e08abf3a16dbfe9837538c47866.jpg
@@ -57,9 +58,23 @@ revue_rows:
     right:
       type: texte
       text: ""
+    full_width: true
   - left:
       type: texte
-      text: ""
+      text: On the pop side, the album delivers catchy hooks, sweet melodies, and
+        Wilson's soft vocals. On the metal side, it unleashes distorted and
+        layered guitars, as well as powerful and technical drumming, featuring
+        occasional double-kick fills. Finally, the psychedelic side weaves in
+        trippy instrumental sections, atmospheric soundscapes, a variety of
+        audio effects, and hypnotic, repetitive basslines. All of these
+        influences are blended in the record without any friction.
+      text_en: On the pop side, the album delivers catchy hooks, sweet melodies, and
+        Wilson's soft vocals. On the metal side, it unleashes distorted and
+        layered guitars, as well as powerful and technical drumming, featuring
+        occasional double-kick fills. Finally, the psychedelic side weaves in
+        trippy instrumental sections, atmospheric soundscapes, a variety of
+        audio effects, and hypnotic, repetitive basslines. All of these
+        influences are blended in the record without any friction.
     right:
       type: texte
       text: On the pop side, the album delivers catchy hooks, sweet melodies, and
@@ -76,6 +91,7 @@ revue_rows:
         trippy instrumental sections, atmospheric soundscapes, a variety of
         audio effects, and hypnotic, repetitive basslines. All of these
         influences are blended in the record without any friction.
+    full_width: true
   - left:
       type: texte
       text: One of the record's strengths is the impeccable pacing of compositions and
@@ -100,8 +116,23 @@ revue_rows:
         compelling way.
     right:
       type: texte
+    full_width: true
   - left:
       type: texte
+      text: The record achieves a great balance between all of its aspects. It remains
+        accessible whilst being a prog record. There are a handful of odd time
+        signatures and rhythmic switch ups happening, yet done very smoothly,
+        and the complex arrangements are not distracting from the essence of the
+        music. This balance is also reflected in the dynamic of the tracks,
+        ranging from quiet to nervous and creating a sense of journey throughout
+        the album.
+      text_en: The record achieves a great balance between all of its aspects. It
+        remains accessible whilst being a prog record. There are a handful of
+        odd time signatures and rhythmic switch ups happening, yet done very
+        smoothly, and the complex arrangements are not distracting from the
+        essence of the music. This balance is also reflected in the dynamic of
+        the tracks, ranging from quiet to nervous and creating a sense of
+        journey throughout the album.
     right:
       type: texte
       text: The record achieves a great balance between all of its aspects. It remains
@@ -118,6 +149,7 @@ revue_rows:
         essence of the music. This balance is also reflected in the dynamic of
         the tracks, ranging from quiet to nervous and creating a sense of
         journey throughout the album.
+    full_width: true
   - left:
       type: texte
       text: If the songwriting of this album is nothing short of incredible by itself,
@@ -204,6 +236,7 @@ revue_rows:
         music, the experience is very immersive.
     right:
       type: texte
+    full_width: true
   - left:
       type: image
       image: /assets/uploads/capture-d’écran-2026-10-09-à-21.51.26.png
@@ -262,6 +295,7 @@ revue_rows:
         slept away from him too fast."
     right:
       type: texte
+    full_width: true
   - left:
       type: image
       image: /assets/uploads/d461d3ff9519387f2730ff39168b8996.jpg
@@ -335,8 +369,33 @@ revue_rows:
         the verses, which I find ironic.
     right:
       type: texte
+    full_width: true
   - left:
       type: texte
+      text: Next we have Heartattack in a Layby, a song about the last thoughts of a
+        man dying on the side of the road, not realising that he’ll never find
+        his way back home. This track is more minimalistic compared to others,
+        really focusing on setting up the scene for the devastating story it
+        tells. Somehow the acoustic guitar of the chorus makes you understand
+        that something tragic is happening. Born in the aftermath of the
+        9/11/2001 events, the closer track Collapse the Light Into Earth stands
+        as a haunting meditation on grief. The song is utterly sublime, drawing
+        the album to a closure in a delicate interplay between light and shadow,
+        reminiscent of a sunset (hence the title). This is not a happy ending,
+        it’s bitter but hopeful at the same time, similar to when one loses
+        something forever but lies in a state of acceptance.
+      text_en: Next we have Heartattack in a Layby, a song about the last thoughts of
+        a man dying on the side of the road, not realising that he’ll never find
+        his way back home. This track is more minimalistic compared to others,
+        really focusing on setting up the scene for the devastating story it
+        tells. Somehow the acoustic guitar of the chorus makes you understand
+        that something tragic is happening. Born in the aftermath of the
+        9/11/2001 events, the closer track Collapse the Light Into Earth stands
+        as a haunting meditation on grief. The song is utterly sublime, drawing
+        the album to a closure in a delicate interplay between light and shadow,
+        reminiscent of a sunset (hence the title). This is not a happy ending,
+        it’s bitter but hopeful at the same time, similar to when one loses
+        something forever but lies in a state of acceptance.
     right:
       type: texte
       text: Next we have Heartattack in a Layby, a song about the last thoughts of a
@@ -363,6 +422,7 @@ revue_rows:
         reminiscent of a sunset (hence the title). This is not a happy ending,
         it’s bitter but hopeful at the same time, similar to when one loses
         something forever but lies in a state of acceptance.
+    full_width: true
   - left:
       type: texte
       text: As for the other songs, they’re expanding more on insanity, worsening as
@@ -469,8 +529,36 @@ revue_rows:
       type: texte
       text: ""
       text_en: ""
+    full_width: true
   - left:
       type: texte
+      text: The Creator Has a Mastertape is a breathless, chaotic descent into mania.
+        The track captures a deeply unhinged protagonist who has surrendered all
+        psychological restraint, abandoning himself entirely to his most violent
+        and macabre impulses. The song does a great job at capturing the frantic
+        madness of the mind of a serial killer, it sounds like an unleashed
+        beast, completely beyond the reach of control. By now we’ve arrived at
+        the final stage of human insanity, Strip the Soul closes this trend of
+        brutality with a climax. Here the protagonist thrives on the different
+        abuses he is inflicting to others, always delving deeper into violence,
+        ultimately becoming a killing machine. Like a black hole getting bigger
+        as it absorbs matter, his hole needs ever more killing to be filled. The
+        outro of the song is absolutely crushing, reflecting the insatiable
+        appetite for destruction of the protagonist.
+      text_en: The Creator Has a Mastertape is a breathless, chaotic descent into
+        mania. The track captures a deeply unhinged protagonist who has
+        surrendered all psychological restraint, abandoning himself entirely to
+        his most violent and macabre impulses. The song does a great job at
+        capturing the frantic madness of the mind of a serial killer, it sounds
+        like an unleashed beast, completely beyond the reach of control. By now
+        we’ve arrived at the final stage of human insanity, Strip the Soul
+        closes this trend of brutality with a climax. Here the protagonist
+        thrives on the different abuses he is inflicting to others, always
+        delving deeper into violence, ultimately becoming a killing machine.
+        Like a black hole getting bigger as it absorbs matter, his hole needs
+        ever more killing to be filled. The outro of the song is absolutely
+        crushing, reflecting the insatiable appetite for destruction of the
+        protagonist.
     right:
       type: texte
       text: The Creator Has a Mastertape is a breathless, chaotic descent into mania.
@@ -500,6 +588,7 @@ revue_rows:
         ever more killing to be filled. The outro of the song is absolutely
         crushing, reflecting the insatiable appetite for destruction of the
         protagonist.
+    full_width: true
   - left:
       type: texte
       text: Ultimately, In Absentia stands as a milestone in Porcupine Tree’s
@@ -524,6 +613,7 @@ revue_rows:
         that deserves to be heard from start to finish.
     right:
       type: texte
+    full_width: true
 date: 2026-09-24T11:27:00.000+02:00
 author: Amaury Renouf
 author2: Victor Zhâ

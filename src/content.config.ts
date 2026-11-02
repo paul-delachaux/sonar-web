@@ -115,6 +115,7 @@ const articles = defineCollection({
 
     revue_rows: z.array(
       z.object({
+        full_width: z.boolean().default(false),
         left: z.object({
           type: z.enum(['texte', 'image', 'audio']).default('texte'),
           text: z.string().nullish().optional(),

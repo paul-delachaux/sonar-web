@@ -3222,6 +3222,7 @@
       .revue-header .author-meta-block { margin: 0; text-align: left; }
       .revue-rows { display: flex; flex-direction: column; gap: 22px; }
       .revue-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+      .revue-row.is-full-width { grid-template-columns: minmax(0, 1fr); }
       .revue-cell { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
       .revue-cell-image { min-height: 200px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
       .revue-figure { display: flex; flex-direction: column; width: 100%; margin: 0; }
@@ -3316,9 +3317,9 @@
               ),
               h('div', { className: 'revue-rows' },
                 (rows.length ? rows : [{}]).map(function (row, i) {
-                  return h('div', { key: i, className: 'revue-row' },
+                  return h('div', { key: i, className: 'revue-row' + (row.full_width ? ' is-full-width' : '') },
                     renderCell(row.left),
-                    renderCell(row.right)
+                    !row.full_width && renderCell(row.right)
                   );
                 })
               ),

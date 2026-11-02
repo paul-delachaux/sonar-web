@@ -22,6 +22,7 @@ interface Cell {
 }
 
 interface Row {
+  full_width?: boolean;
   left?: Cell | null;
   right?: Cell | null;
 }
@@ -150,6 +151,14 @@ function cellHasContent(cell: Cell | null | undefined) {
   return Boolean(cell?.text?.trim() || cell?.text_en?.trim());
 }
 
+function rowSides(row: Row): ('left' | 'right')[] {
+  return row.full_width ? ['left'] : ['left', 'right'];
+}
+
+function rowIsEmpty(row: Row) {
+  return rowSides(row).every((side) => !cellHasContent(row[side]));
+}
+
 function waveHeights(seed: string, count: number) {
   let s = 2166136261;
   for (let i = 0; i < seed.length; i += 1) {
@@ -217,8 +226,8 @@ function waveHeights(seed: string, count: number) {
 
     <div class="revue-rows">
       {rows.map((row, rowIndex) => (
-        <div class:list={['revue-row', !cellHasContent(row.left) && !cellHasContent(row.right) && 'is-empty']}>
-          {(['left', 'right'] as const).map((side) => {
+        <div class:list={['revue-row', row.full_width && 'is-full-width', rowIsEmpty(row) && 'is-empty']}>
+          {rowSides(row).map((side) => {
             const cell = row[side];
             const type = cellType(cell);
             const isEmpty = !cellHasContent(cell);
@@ -754,6 +763,7 @@ function waveHeights(seed: string, count: number) {
     gap: 28px;
     align-items: stretch;
   }
+  .revue-row.is-full-width { grid-template-columns: minmax(0, 1fr); }
   .revue-cell {
     min-width: 0;
     min-height: 0;
