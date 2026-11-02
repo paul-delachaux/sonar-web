@@ -711,15 +711,11 @@ const descEN = hasEn && article.data.description_en
       return Math.min(1, scale);
     }
 
-    function collapseTweetLayout(wrapper, scale, baseH) {
-      var inner = wrapper.querySelector('.tweet-scale-inner');
+    function collapseTweetLayout(wrapper, scale) {
       wrapper.style.width = Math.round(TWEET_NATIVE_W * scale) + 'px';
       wrapper.style.maxWidth = '100%';
       wrapper.style.height = 'auto';
       wrapper.style.overflow = 'visible';
-      if (inner) {
-        inner.style.marginBottom = baseH ? Math.round((scale - 1) * baseH) + 'px' : '';
-      }
     }
 
     function applyTweetLayout(wrapper, block) {
@@ -730,19 +726,17 @@ const descEN = hasEn && article.data.description_en
       wrapper.dataset.heightPct = String(hPct);
       wrapper.dataset.tweetScale = String(scale);
       var inner = ensureTweetInner(wrapper);
-      inner.style.transformOrigin = 'top left';
       inner.style.width = TWEET_NATIVE_W + 'px';
       inner.style.maxWidth = 'none';
-      inner.style.transform = scale === 1 ? 'none' : 'scale(' + scale + ')';
+      inner.style.transform = 'none';
+      inner.style.zoom = String(scale);
       var frame = wrapper.querySelector('iframe, .twitter-tweet');
       if (frame) {
         frame.style.width = TWEET_NATIVE_W + 'px';
         frame.style.maxWidth = 'none';
         frame.style.minWidth = TWEET_NATIVE_W + 'px';
       }
-      var baseH = Number(wrapper.dataset.baseHeight || (frame && frame.dataset.baseHeight) || 0);
-      if (!baseH && frame) baseH = Math.round(frame.getBoundingClientRect().height / (scale || 1));
-      collapseTweetLayout(wrapper, scale, baseH);
+      collapseTweetLayout(wrapper, scale);
     }
 
     function applyMediaSize(el, block) {
@@ -776,7 +770,8 @@ const descEN = hasEn && article.data.description_en
           wrap.dataset.baseHeight = String(height);
           var scale = Number(wrap.dataset.tweetScale || 1);
           if (!isFinite(scale) || scale <= 0) scale = 1;
-          collapseTweetLayout(wrap, scale, height);
+          if (!frame.isConnected || !wrap.isConnected) return;
+          collapseTweetLayout(wrap, scale);
         });
       });
     }
