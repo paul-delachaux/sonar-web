@@ -31,6 +31,12 @@ export const dictionary = {
     no_more_articles: "Pas d'autres articles pour le moment.",
     author_about_empty: "Aucune information fournie pour le moment.",
     author_interests_empty: "L'auteur déclare n'avoir aucun conflit d'intérêt.",
+    brief_recommendations_title: "À lire aussi",
+    brief_recommendations_author: "Du même auteur",
+    brief_recommendations_all: "Tous les articles",
+    brief_recommendations_category: "Par catégorie",
+    brief_recommendations_empty_author: "Aucun autre article de cet auteur pour le moment.",
+    brief_recommendations_empty_all: "Aucun autre article disponible.",
 
     // Titres des blocs / Sidebars
     sidebar_other_news: "AUTRES ACTUALITÉS",
@@ -238,6 +244,12 @@ export const dictionary = {
     no_more_articles: "No more articles for now.",
     author_about_empty: "No information provided yet.",
     author_interests_empty: "The author declares no conflict of interest.",
+    brief_recommendations_title: "Read also",
+    brief_recommendations_author: "Same author",
+    brief_recommendations_all: "All articles",
+    brief_recommendations_category: "By category",
+    brief_recommendations_empty_author: "No other articles by this author yet.",
+    brief_recommendations_empty_all: "No other articles available.",
 
     // Titres des blocs / Sidebars
     sidebar_other_news: "OTHER NEWS",

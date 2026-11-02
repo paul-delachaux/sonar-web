@@ -1,0 +1,23 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { categoryLabel } from '../utils/i18n.js';
+
+interface Props {
+  article: CollectionEntry<'articles'>;
+}
+
+const { article } = Astro.props;
+const category = String(article.data.category || '').trim() || 'autres';
+const categoryFR = categoryLabel(category, 'FR');
+const categoryEN = categoryLabel(category, 'EN');
+const image = article.data.image || article.data.article_image || '';
+const titleEN = article.data.title_en?.trim() || article.data.title;
+---
+
+<a class="breve-related-card" href={`/articles/${article.id}`}>
+  {image && <img src={image} alt="" loading="lazy" />}
+  <span class="breve-related-card-copy">
+    <strong data-fr={article.data.title} data-en={titleEN}>{article.data.title}</strong>
+    <span class="breve-related-card-category" data-fr={categoryFR} data-en={categoryEN}>{categoryFR}</span>
+  </span>
+</a>

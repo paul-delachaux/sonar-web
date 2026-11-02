@@ -27,6 +27,10 @@ const aboutFR = authorProfile.about?.trim() || '';
 const aboutEN = authorProfile.about_en?.trim() || aboutFR;
 const aboutDisplayFR = aboutFR || t('author_about_empty', 'FR');
 const aboutDisplayEN = aboutEN || t('author_about_empty', 'EN');
+const interestsFR = authorProfile.interests?.trim() || '';
+const interestsEN = authorProfile.interests_en?.trim() || interestsFR;
+const partnersFR = authorProfile.partners?.trim() || '';
+const partnersEN = authorProfile.partners_en?.trim() || partnersFR;
 ---
 
 <MainLayout title={authorName}>
@@ -48,6 +52,22 @@ const aboutDisplayEN = aboutEN || t('author_about_empty', 'EN');
       <section class="author-about-section" aria-labelledby="author-about-title">
         <h2 id="author-about-title" data-i18n="author_about_heading">À propos de l'auteur</h2>
         <p class="author-about" data-fr={aboutDisplayFR} data-en={aboutDisplayEN}>{aboutDisplayFR}</p>
+        {(interestsFR || interestsEN || partnersFR || partnersEN) && (
+          <div class="author-profile-details">
+            {(interestsFR || interestsEN) && (
+              <section>
+                <h3 data-i18n="author_interests_label">{t('author_interests_label', 'FR')}</h3>
+                <p data-fr={interestsFR} data-en={interestsEN}>{interestsFR}</p>
+              </section>
+            )}
+            {(partnersFR || partnersEN) && (
+              <section>
+                <h3 data-i18n="author_partners_label">{t('author_partners_label', 'FR')}</h3>
+                <p data-fr={partnersFR} data-en={partnersEN}>{partnersFR}</p>
+              </section>
+            )}
+          </div>
+        )}
       </section>
     </header>
 
@@ -186,6 +206,10 @@ const aboutDisplayEN = aboutEN || t('author_about_empty', 'EN');
   .author-about-section { min-width: 0; text-align: left; }
   .author-about-section h2 { margin: 0 0 8px; color: #fff; font-size: 1.05rem; }
   .author-about { margin: 0; color: #e0dfe8; font-size: .95rem; line-height: 1.6; }
+  .author-profile-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 16px; }
+  .author-profile-details section { min-width: 0; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.16); }
+  .author-profile-details h3 { margin: 0 0 6px; color: #ff9a3c; font-size: .76rem; letter-spacing: .05em; text-transform: uppercase; }
+  .author-profile-details p { margin: 0; color: #d7d6e2; font-size: .88rem; line-height: 1.5; white-space: pre-wrap; }
   .author-toolbar { display: flex; align-items: center; gap: 8px; margin: 0 0 18px; }
   .author-sort-label { margin-right: 4px; color: #ddd; font-size: .9rem; }
   .author-sort-button { padding: 8px 14px; border: 1px solid #494765; border-radius: 999px; background: #1a1a4a; color: #fff; font: inherit; font-size: .85rem; cursor: pointer; }

@@ -2,12 +2,13 @@
 import { getCollection, render } from 'astro:content';
 import MainLayout from '../../layouts/Layout.astro';
 import { Tweet } from 'astro-embed';
-import { t } from '../../utils/i18n.js';
+import { categoryLabel, t } from '../../utils/i18n.js';
 import CommentsSection from '../../components/CommentsSection.astro';
 import DefinitionTooltips from '../../components/DefinitionTooltips.astro';
 import FavoriteStar from '../../components/FavoriteStar.astro';
 import ReadLaterClock from '../../components/ReadLaterClock.astro';
 import CategoryBadge from '../../components/CategoryBadge.astro';
+import BriefRecommendationCard from '../../components/BriefRecommendationCard.astro';
 import RevueMusicaleLayout from '../../components/RevueMusicaleLayout.astro';
 import AuthorProfileHover from '../../components/AuthorProfileHover.astro';
 import { supabase } from '../../utils/supabase';
@@ -102,6 +103,34 @@ const sidebarSlots = articlesSimilairesFR.map((artFR) => {
   }
   return { artFR, artEN: null, hasEn: false };
 });
+
+const recentVisibleArticles = articles
+  .filter((candidate) =>
+    candidate.id !== article.id &&
+    candidate.data.isVisible !== false
+  )
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+const briefRecommendationsByDate = recentVisibleArticles.slice(0, 15);
+const briefAuthorNames = articleAuthorNames(article);
+const briefRecommendationsByAuthor = recentVisibleArticles
+  .filter((candidate) =>
+    articleAuthorNames(candidate).some((candidateName) =>
+      briefAuthorNames.some((authorName) =>
+        normalizeAuthorName(candidateName) === normalizeAuthorName(authorName)
+      )
+    )
+  )
+  .slice(0, 15);
+const briefRecommendationsByCategory = Array.from(
+  briefRecommendationsByDate.reduce((groups, candidate) => {
+    const category = String(candidate.data.category || '').trim() || 'autres';
+    const group = groups.get(category) || [];
+    group.push(candidate);
+    groups.set(category, group);
+    return groups;
+  }, new Map<string, typeof briefRecommendationsByDate>())
+    .entries()
+).sort(([a], [b]) => categoryLabel(a, 'FR').localeCompare(categoryLabel(b, 'FR'), 'fr'));
 
 const mediaBlocks = isRevue ? [] : normalizeMediaBlocks(article.data);
 const tweetBlocks = mediaBlocks.filter((block) => block.type === 'tweet' && block.url);
@@ -294,26 +323,72 @@ const descEN = hasEn && article.data.description_en
                   </p>
                 </div>
               </div>
-              {authorProfiles.map((author) => (
-                <div class="breve-author-profile">
-                  <p class="breve-author-about" data-fr={author.aboutFR} data-en={author.aboutEN}>{author.aboutFR}</p>
-                  {(author.interestsFR || author.interestsEN) && (
-                    <p class="breve-author-detail">
-                      <strong data-i18n="author_interests_label">{t('author_interests_label', 'FR')}</strong>
-                      {" : "}
-                      <span data-fr={author.interestsFR} data-en={author.interestsEN}>{author.interestsFR}</span>
-                    </p>
-                  )}
-                  {(author.partnersFR || author.partnersEN) && (
-                    <p class="breve-author-detail">
-                      <strong data-i18n="author_partners_label">{t('author_partners_label', 'FR')}</strong>
-                      {" : "}
-                      <span data-fr={author.partnersFR} data-en={author.partnersEN}>{author.partnersFR}</span>
+            </div>
+            <section class="breve-related" data-brief-related>
+              <header class="breve-related-header">
+                <h2 id="brief-related-title" data-fr={t('brief_recommendations_title', 'FR')} data-en={t('brief_recommendations_title', 'EN')}>
+                  {t('brief_recommendations_title', 'FR')}
+                </h2>
+                <button
+                  type="button"
+                  class="breve-related-toggle"
+                  data-brief-related-toggle
+                  aria-expanded="true"
+                  aria-controls="brief-related-content"
+                  data-fr="Réduire"
+                  data-en="Minimize"
+                >Réduire</button>
+              </header>
+              <div class="breve-related-content" id="brief-related-content" data-brief-related-content>
+                <div class="breve-related-modes" role="group" aria-labelledby="brief-related-title">
+                  <button type="button" class="is-active" data-brief-related-mode="author" aria-pressed="true" data-fr={t('brief_recommendations_author', 'FR')} data-en={t('brief_recommendations_author', 'EN')}>
+                    Du même auteur
+                  </button>
+                  <button type="button" data-brief-related-mode="date" aria-pressed="false" data-fr={t('brief_recommendations_all', 'FR')} data-en={t('brief_recommendations_all', 'EN')}>
+                    Tous les articles
+                  </button>
+                  <button type="button" data-brief-related-mode="category" aria-pressed="false" data-fr={t('brief_recommendations_category', 'FR')} data-en={t('brief_recommendations_category', 'EN')}>
+                    Par catégorie
+                  </button>
+                </div>
+
+                <div class="breve-related-view" data-brief-related-view="author">
+                  {briefRecommendationsByAuthor.length ? (
+                    briefRecommendationsByAuthor.map((recommendation) => <BriefRecommendationCard article={recommendation} />)
+                  ) : (
+                    <p class="breve-related-empty" data-fr={t('brief_recommendations_empty_author', 'FR')} data-en={t('brief_recommendations_empty_author', 'EN')}>
+                      {t('brief_recommendations_empty_author', 'FR')}
                     </p>
                   )}
                 </div>
-              ))}
-            </div>
+
+                <div class="breve-related-view" data-brief-related-view="date" hidden>
+                  {briefRecommendationsByDate.length ? briefRecommendationsByDate.map((recommendation) => (
+                    <BriefRecommendationCard article={recommendation} />
+                  )) : (
+                    <p class="breve-related-empty" data-fr={t('brief_recommendations_empty_all', 'FR')} data-en={t('brief_recommendations_empty_all', 'EN')}>
+                      {t('brief_recommendations_empty_all', 'FR')}
+                    </p>
+                  )}
+                </div>
+
+                <div class="breve-related-view" data-brief-related-view="category" hidden>
+                  {briefRecommendationsByCategory.map(([category, recommendations]) => (
+                    <details class="breve-related-category">
+                      <summary data-fr={categoryLabel(category, 'FR')} data-en={categoryLabel(category, 'EN')}>
+                        {categoryLabel(category, 'FR')}
+                      </summary>
+                      {recommendations.map((recommendation) => <BriefRecommendationCard article={recommendation} />)}
+                    </details>
+                  ))}
+                  {!briefRecommendationsByCategory.length && (
+                    <p class="breve-related-empty" data-fr={t('brief_recommendations_empty_all', 'FR')} data-en={t('brief_recommendations_empty_all', 'EN')}>
+                      {t('brief_recommendations_empty_all', 'FR')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
           </aside>
         </div>
 
@@ -466,67 +541,36 @@ const descEN = hasEn && article.data.description_en
 
         </div>
 
-        <footer id="author-info-section" class="article-footer-transparency">
-          {authorProfiles.map((author) => (
-            <>
-              <div class="transparency-card">
-                <div class="card-accent-bar"></div>
-                <h3>
-                  <span data-i18n="transparency_author">{t('transparency_author', 'FR')}</span>{" "}
-                  — {author.name}
-                </h3>
-                <p data-fr={author.aboutFR} data-en={author.aboutEN}>{author.aboutFR}</p>
-              </div>
+        <footer id="author-info-section" class="article-sources">
+          <h2 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h2>
+          {article.data.consulted_sources && article.data.consulted_sources.length > 0 ? (
+            <ul class="sources-list">
+              {article.data.consulted_sources.map((src: any) => {
+                const titleFR = src.source_title;
+                const titleEN = src.source_title_en || titleFR;
 
-              <div class="transparency-card">
-                <div class="card-accent-bar"></div>
-                <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
-                {author.interestsFR || author.interestsEN ? (
-                  <p data-fr={author.interestsFR} data-en={author.interestsEN}>{author.interestsFR}</p>
-                ) : (
-                  <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
-                )}
-              </div>
-            </>
-          ))}
-
-          <div class="transparency-card">
-            <div class="card-accent-bar"></div>
-            <h3 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h3>
-            {article.data.consulted_sources && article.data.consulted_sources.length > 0 ? (
-              <ul class="sources-list">
-                {article.data.consulted_sources.map((src: any) => {
-                  const titleFR = src.source_title;
-                  const titleEN = src.source_title_en || titleFR;
-
-                  return (
-                    <li>
-                      {src.source_url ? (
-                        <a 
-                          href={src.source_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          data-fr={titleFR}
-                          data-en={titleEN}
-                        >
-                          {titleFR}
-                        </a>
-                      ) : (
-                        <span 
-                          data-fr={titleFR}
-                          data-en={titleEN}
-                        >
-                          {titleFR}
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
-            )}
-          </div>
+                return (
+                  <li>
+                    {src.source_url ? (
+                      <a
+                        href={src.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-fr={titleFR}
+                        data-en={titleEN}
+                      >
+                        {titleFR}
+                      </a>
+                    ) : (
+                      <span data-fr={titleFR} data-en={titleEN}>{titleFR}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p class="article-sources-empty" data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
+          )}
         </footer>
 
         <div id="read-also-anchor"></div>
@@ -816,6 +860,75 @@ const descEN = hasEn && article.data.description_en
       if (e.key === 'site_lang') updateLanguageUI(e.newValue);
     });
 
+    const briefRelated = document.querySelector('.breve-related[data-brief-related]');
+    if (briefRelated) {
+      const toggle = briefRelated.querySelector('[data-brief-related-toggle]');
+      const modeButtons = Array.from(briefRelated.querySelectorAll('[data-brief-related-mode]'));
+      const views = Array.from(briefRelated.querySelectorAll('[data-brief-related-view]'));
+      const mainContent = document.querySelector('.breve-main-content');
+      const authorBlock = briefRelated.previousElementSibling;
+      const collapsedKey = 'sonar:brief-related:collapsed';
+
+      const setCollapsed = (collapsed, animate = true) => {
+        if (!animate) briefRelated.classList.add('is-initializing');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        toggle.textContent = collapsed
+          ? (getSiteLang() === 'EN' ? 'Show' : 'Afficher')
+          : (getSiteLang() === 'EN' ? 'Minimize' : 'Réduire');
+        toggle.setAttribute('data-fr', collapsed ? 'Afficher' : 'Réduire');
+        toggle.setAttribute('data-en', collapsed ? 'Show' : 'Minimize');
+        briefRelated.classList.toggle('is-collapsed', collapsed);
+        const sidebar = briefRelated.closest('.breve-sidebar');
+        if (sidebar) sidebar.classList.toggle('has-collapsed-related', collapsed);
+        try {
+          localStorage.setItem(collapsedKey, collapsed ? 'true' : 'false');
+        } catch {}
+        if (!animate) {
+          window.requestAnimationFrame(() => briefRelated.classList.remove('is-initializing'));
+        }
+      };
+
+      let isCollapsed = false;
+      try {
+        isCollapsed = localStorage.getItem(collapsedKey) === 'true';
+      } catch {}
+      setCollapsed(isCollapsed, false);
+
+      toggle.addEventListener('click', () => {
+        setCollapsed(toggle.getAttribute('aria-expanded') === 'true');
+      });
+
+      modeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const mode = button.getAttribute('data-brief-related-mode');
+          modeButtons.forEach((item) => {
+            const active = item === button;
+            item.classList.toggle('is-active', active);
+            item.setAttribute('aria-pressed', String(active));
+          });
+          views.forEach((view) => {
+            view.hidden = view.getAttribute('data-brief-related-view') !== mode;
+          });
+        });
+      });
+
+      const syncBriefRelatedHeight = () => {
+        if (!mainContent || window.matchMedia('(max-width: 968px)').matches) {
+          briefRelated.style.removeProperty('--brief-related-max-height');
+          return;
+        }
+        const reservedHeight = authorBlock ? authorBlock.getBoundingClientRect().height + 16 : 0;
+        const availableHeight = Math.max(280, Math.ceil(mainContent.getBoundingClientRect().height - reservedHeight));
+        briefRelated.style.setProperty('--brief-related-max-height', availableHeight + 'px');
+      };
+
+      syncBriefRelatedHeight();
+      if (typeof ResizeObserver !== 'undefined' && mainContent) {
+        new ResizeObserver(syncBriefRelatedHeight).observe(mainContent);
+      }
+      window.addEventListener('resize', syncBriefRelatedHeight);
+    }
+
     const readAlsoAside = document.querySelector('.article-sidebar');
     const readAlsoGrid = document.querySelector('.article-grid');
     const readAlsoAnchor = document.getElementById('read-also-anchor');
@@ -861,13 +974,14 @@ const descEN = hasEn && article.data.description_en
   .breve-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 2.2rem; font-weight: 800; line-height: 1.15; color: #ffffff; margin: 0; letter-spacing: -0.02em; text-align: left; flex: 1; margin-left: 25px; }
   .breve-description { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 0.9rem; line-height: 1.5; color: #e5e7eb; font-weight: 400; text-align: left; margin: 0; width: 500px; flex-shrink: 0; }
   .breve-divider { border: none; border-top: 1px solid #1f2937; height: 0; margin: 25px 0 35px 0; }
-  .breve-body-grid { display: grid; grid-template-columns: 7fr 3fr; gap: 50px; align-items: start; }
+  .breve-body-grid { display: grid; grid-template-columns: 7fr 3fr; gap: 50px; align-items: stretch; }
   .breve-main-content { display: flex; flex-direction: column; gap: 20px; }
   .breve-figure { margin: 25px 0; width: 100%; }
   .breve-image { width: 100%; height: auto; display: block; object-fit: cover; border-radius: 4px; }
   .breve-caption { margin-top: 8px; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .breve-sidebar { position: static; }
-  .breve-author-block { display: flex; flex-direction: column; text-align: left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .breve-sidebar { position: static; display: flex; min-width: 0; min-height: 280px; flex-direction: column; gap: 16px; }
+  .breve-sidebar.has-collapsed-related { min-height: 0; }
+  .breve-author-block { flex: 0 0 auto; display: flex; flex-direction: column; text-align: left; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .breve-author-header { display: flex; align-items: center; gap: 12px; }
   .breve-avatar-group { display: flex; flex-shrink: 0; }
   .breve-avatar { width: 48px; height: 48px; border-radius: 50%; background-color: #d9d9d9; object-fit: cover; flex-shrink: 0; }
@@ -875,10 +989,36 @@ const descEN = hasEn && article.data.description_en
   .breve-author-header-text { flex: 1; min-width: 0; }
   .breve-author-name { font-weight: 700; color: #ff8826; margin: 0 0 4px 0; font-size: 0.95rem; }
   .breve-author-name .author-profile-link { color: inherit; }
-  .breve-author-about { margin: 0; font-size: 0.8rem; line-height: 1.4; color: #d7dee6; }
-  .breve-author-profile + .breve-author-profile { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1f2937; }
-  .breve-author-detail { margin: 14px 0 0 0; font-size: 0.8rem; line-height: 1.5; color: #d7dee6; }
-  .breve-author-detail strong { color: #ffffff; font-weight: 700; }
+  .breve-related { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; flex: 1 1 auto; overflow: hidden; max-height: var(--brief-related-max-height, 520px); border: 1px solid #34324f; border-radius: 10px; background: linear-gradient(160deg, #10102d, #080725 74%); font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; transition: max-height 260ms ease; }
+  .breve-related > .breve-related-header { position: relative; display: flex; min-width: 0; box-sizing: border-box; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 10px 12px; border: 0; border-top: 3px solid #ff7900; border-radius: 0; background: transparent; line-height: normal; text-align: left; }
+  .breve-related-header h2 { min-width: 0; margin: 0; color: #fff; font-size: .82rem; font-weight: 800; line-height: 1.3; letter-spacing: .07em; text-align: left; text-transform: uppercase; overflow-wrap: anywhere; }
+  .breve-related-toggle { position: static; display: inline-flex; flex: 0 0 auto; min-width: 0; align-items: center; justify-content: center; margin: 0; padding: 3px 5px; border: 0; border-radius: 4px; background: transparent; color: #bdbbc9; font: inherit; font-size: .64rem; line-height: 1.2; cursor: pointer; }
+  .breve-related-toggle:hover, .breve-related-toggle:focus-visible { background: rgba(255,121,0,.12); color: #ffad52; }
+  .breve-related-toggle:focus-visible { outline: 2px solid #ff7900; outline-offset: 2px; }
+  .breve-related-content { display: flex; min-height: 0; max-height: var(--brief-related-max-height, 520px); flex-direction: column; overflow: hidden; opacity: 1; transition: max-height 260ms ease, opacity 180ms ease; }
+  .breve-related.is-collapsed { min-height: 0; flex: 0 0 auto; max-height: 42px; }
+  .breve-related.is-collapsed .breve-related-content { max-height: 0; opacity: 0; pointer-events: none; }
+  .breve-related.is-collapsed .breve-related-header { border-bottom: 0; }
+  .breve-related.is-initializing,
+  .breve-related.is-initializing .breve-related-content { transition: none !important; }
+  .breve-related-modes { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; border-bottom: 1px solid #34324f; }
+  .breve-related-modes button { padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: #c9c8d2; font: inherit; font-size: .72rem; cursor: pointer; }
+  .breve-related-modes button:hover, .breve-related-modes button:focus-visible { border-color: #45435e; color: #fff; }
+  .breve-related-modes button.is-active { border-color: #ff7900; background: rgba(255,121,0,.14); color: #ffad52; }
+  .breve-related-view { min-height: 0; flex: 1 1 auto; overflow-x: hidden; overflow-y: auto; padding: 4px 12px 12px; scrollbar-color: #56536f #11102a; scrollbar-width: thin; }
+  .breve-related-view[hidden] { display: none; }
+  .breve-related-card { display: flex; min-width: 0; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.1); color: #fff; text-decoration: none; }
+  .breve-related-card:last-child { border-bottom: 0; }
+  .breve-related-card img { width: 64px; height: 54px; flex: 0 0 auto; border-radius: 5px; background: #1b1a38; object-fit: cover; }
+  .breve-related-card-copy { display: flex; min-width: 0; flex-direction: column; gap: 5px; }
+  .breve-related-card-copy strong { display: -webkit-box; overflow: hidden; color: #f5f4fa; font-size: .8rem; line-height: 1.35; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+  .breve-related-card:hover strong, .breve-related-card:focus-visible strong { color: #ff9a3c; text-decoration: underline; }
+  .breve-related-card-category { color: #aaa9b7; font-size: .68rem; line-height: 1.3; }
+  .breve-related-empty { margin: 12px 2px; color: #c9c8d2; font-size: .8rem; line-height: 1.5; }
+  .breve-related-category { border-bottom: 1px solid rgba(255,255,255,.1); }
+  .breve-related-category:last-child { border-bottom: 0; }
+  .breve-related-category summary { padding: 10px 2px; color: #ff9a3c; font-size: .76rem; font-weight: 800; cursor: pointer; }
+  .breve-related-category .breve-related-card { margin-left: 8px; }
   .breve-sources-section { margin-top: 25px; margin-bottom: 20px; }
   .breve-sources-title { color: #ea580c; font-size: 0.95rem; font-weight: 700; margin-bottom: 15px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .breve-sources-list { list-style-type: none; padding: 0; margin: 0; }
@@ -936,15 +1076,14 @@ const descEN = hasEn && article.data.description_en
   .sidebar-card-title { margin: 0; font-size: 0.95rem; font-weight: 600; color: #ffffff; line-height: 1.4; transition: color 0.2s ease; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .sidebar-card:hover .sidebar-card-title { color: #ea580c; }
   .article-sidebar .article-card-item.is-lang-hidden { display: none !important; }
-  .article-footer-transparency { display: flex; justify-content: center; gap: 30px; margin-top: 60px; padding: 30px; background-color: #02001d; border-radius: 8px; scroll-margin-top: 40px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .transparency-card { position: relative; width: 160px; height: 210px; background-color: #00002c; border-radius: 8px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; overflow: hidden; }
-  .card-accent-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background-color: #ea580c; border-top-left-radius: 8px; border-top-right-radius: 8px; }
-  .transparency-card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #ffffff; margin: 8px 0 10px 0; font-weight: 700; line-height: 1.2; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .transparency-card p { font-size: 0.8rem; line-height: 1.5; color: #9ca3af; margin: 0; flex-grow: 1; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .sources-list { margin: 0; padding-left: 15px; font-size: 0.8rem; color: #9ca3af; list-style-type: disc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-  .sources-list li { margin-bottom: 5px; }
-  .sources-list a { color: #ea580c; text-decoration: none; font-weight: 500; transition: color 0.2s ease; }
-  .sources-list a:hover { color: #d4510b; text-decoration: underline; }
+  .article-sources { position: relative; margin: 60px auto 0; padding: 24px 28px 26px; border: 1px solid #27253f; border-top: 3px solid #ea580c; border-radius: 10px; background: linear-gradient(135deg, #090824, #02001d 72%); box-sizing: border-box; scroll-margin-top: 40px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .article-sources h2 { margin: 0 0 16px; color: #fff; font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .article-sources-empty { margin: 0; color: #aaa9b7; font-size: .9rem; line-height: 1.5; }
+  .sources-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px 24px; margin: 0; padding: 0; color: #d7d6e2; list-style: none; font-size: .88rem; }
+  .sources-list li { position: relative; min-width: 0; padding-left: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+  .sources-list li::before { position: absolute; left: 0; color: #ea580c; content: '▪'; }
+  .sources-list a { color: #f28a36; text-decoration: none; font-weight: 600; transition: color 0.2s ease; }
+  .sources-list a:hover { color: #ffb36e; text-decoration: underline; }
 
   @media (max-width: 968px) {
     .prose-content { font-size: 1.1rem; line-height: 1.6; }
@@ -960,10 +1099,7 @@ const descEN = hasEn && article.data.description_en
     .breve-body-grid { grid-template-columns: 1fr; gap: 25px; }
     .breve-main-content, .breve-sidebar { min-width: 0; }
     .breve-sidebar { position: static; top: auto; border-top: 1px solid #1f2937; padding-top: 20px; }
-    .article-footer-transparency { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; margin-top: 40px; }
-    .transparency-card { width: 75%; height: auto; min-height: 140px; }
-    .transparency-card:has([data-i18n="transparency_sources"]) { width: 88%; } 
-    .transparency-card:nth-child(3) { grid-column: 1 / -1; }
+    .breve-related { min-height: 260px; max-height: 420px; }
     .article-sidebar { height: auto; margin-top: 40px; border: 0px solid #1f2937; }
     .sidebar-sticky-box { position: static; top: auto; border: 1px solid #ffffff; border-radius: 4px; padding: 15px; box-sizing: border-box; background-color: #02001d; display: flex; flex-direction: column; }
     .sidebar-label { margin-bottom: 12px; display: block; width: 100%; }
@@ -1022,23 +1158,8 @@ const descEN = hasEn && article.data.description_en
       font-size: 1.3rem;
       margin-top: 30px;
     }
-    .article-footer-transparency {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
-      padding: 0;
-      margin-top: 28px;
-    }
-    .transparency-card,
-    .transparency-card:has([data-i18n="transparency_sources"]) {
-      grid-column: 1;
-      width: 100%;
-      min-height: 0;
-      padding: 16px;
-      box-sizing: border-box;
-    }
-    .transparency-card h3 {
-      font-size: 0.8rem;
-    }
+    .article-sources { margin-top: 32px; padding: 18px 16px; }
+    .article-sources h2 { margin-bottom: 12px; }
     .article-sidebar {
       margin-top: 24px;
     }

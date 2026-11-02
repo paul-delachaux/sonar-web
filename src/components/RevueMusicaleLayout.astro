@@ -304,53 +304,29 @@ function waveHeights(seed: string, count: number) {
       ))}
     </div>
 
-    <footer id="author-info-section" class="article-footer-transparency">
-      {authors.map((author) => (
-        <>
-          <div class="transparency-card">
-            <div class="card-accent-bar"></div>
-            <h3>
-              <span data-i18n="transparency_author">{t('transparency_author', 'FR')}</span>{" "}
-              — {author.name}
-            </h3>
-            <p data-fr={author.aboutFR} data-en={author.aboutEN}>{author.aboutFR}</p>
-          </div>
-          <div class="transparency-card">
-            <div class="card-accent-bar"></div>
-            <h3 data-i18n="transparency_interests">{t('transparency_interests', 'FR')}</h3>
-            {author.interestsFR || author.interestsEN ? (
-              <p data-fr={author.interestsFR} data-en={author.interestsEN}>{author.interestsFR}</p>
-            ) : (
-              <p data-i18n="author_interests_empty">{t('author_interests_empty', 'FR')}</p>
-            )}
-          </div>
-        </>
-      ))}
-      <div class="transparency-card">
-        <div class="card-accent-bar"></div>
-        <h3 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h3>
-        {sources.length > 0 ? (
-          <ul class="sources-list">
-            {sources.map((src) => {
-              const srcTitleFR = src.source_title;
-              const srcTitleEN = src.source_title_en || srcTitleFR;
-              return (
-                <li>
-                  {src.source_url ? (
-                    <a href={src.source_url} target="_blank" rel="noopener noreferrer" data-fr={srcTitleFR} data-en={srcTitleEN}>
-                      {srcTitleFR}
-                    </a>
-                  ) : (
-                    <span data-fr={srcTitleFR} data-en={srcTitleEN}>{srcTitleFR}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
-        )}
-      </div>
+    <footer id="author-info-section" class="article-sources">
+      <h2 data-i18n="transparency_sources">{t('transparency_sources', 'FR')}</h2>
+      {sources.length > 0 ? (
+        <ul class="sources-list">
+          {sources.map((src) => {
+            const srcTitleFR = src.source_title;
+            const srcTitleEN = src.source_title_en || srcTitleFR;
+            return (
+              <li>
+                {src.source_url ? (
+                  <a href={src.source_url} target="_blank" rel="noopener noreferrer" data-fr={srcTitleFR} data-en={srcTitleEN}>
+                    {srcTitleFR}
+                  </a>
+                ) : (
+                  <span data-fr={srcTitleFR} data-en={srcTitleEN}>{srcTitleFR}</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p class="article-sources-empty" data-i18n="transparency_no_sources">{t('transparency_no_sources', 'FR')}</p>
+      )}
     </footer>
   </article>
 </div>
@@ -757,6 +733,14 @@ function waveHeights(seed: string, count: number) {
     text-align: left;
   }
   .revue-rows { display: flex; flex-direction: column; gap: 28px; }
+  .article-sources { position: relative; margin: 60px auto 0; padding: 24px 28px 26px; border: 1px solid #34324f; border-top: 3px solid #ff7900; border-radius: 10px; background: linear-gradient(135deg, #10102d, #080725 72%); box-sizing: border-box; scroll-margin-top: 40px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .article-sources h2 { margin: 0 0 16px; color: #fff; font-size: .9rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .article-sources-empty { margin: 0; color: #c9c8d2; font-size: .9rem; line-height: 1.5; }
+  .sources-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px 24px; margin: 0; padding: 0; color: #d7d6e2; list-style: none; font-size: .88rem; }
+  .sources-list li { position: relative; min-width: 0; padding-left: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+  .sources-list li::before { position: absolute; left: 0; color: #ff7900; content: '▪'; }
+  .sources-list a { color: #ff9a3c; text-decoration: none; font-weight: 600; }
+  .sources-list a:hover { color: #ffc184; text-decoration: underline; }
   .revue-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1002,6 +986,8 @@ function waveHeights(seed: string, count: number) {
       font-size: 0.95rem;
       line-height: 1.65;
     }
+    .article-sources { margin-top: 32px; padding: 18px 16px; }
+    .article-sources h2 { margin-bottom: 12px; }
     .revue-row {
       gap: 14px;
     }

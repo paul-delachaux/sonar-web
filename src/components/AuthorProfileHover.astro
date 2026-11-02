@@ -15,6 +15,8 @@ interface Props {
   aboutEN: string;
   interestsFR: string;
   interestsEN: string;
+  partnersFR: string;
+  partnersEN: string;
   latestArticleFR?: LatestArticle | null;
   latestArticleEN?: LatestArticle | null;
 }
@@ -26,6 +28,8 @@ const {
   aboutEN,
   interestsFR,
   interestsEN,
+  partnersFR,
+  partnersEN,
   latestArticleFR = null,
   latestArticleEN = null,
 } = Astro.props;
@@ -60,6 +64,12 @@ const cardId = `author-hover-${authorSlug(name)}`;
       <span class="author-hover-card-section">
         <strong data-i18n="author_interests_label">{t('author_interests_label', 'FR')}</strong>
         <span data-fr={interestsFR} data-en={interestsEN}>{interestsFR}</span>
+      </span>
+    )}
+    {(partnersFR || partnersEN) && (
+      <span class="author-hover-card-section">
+        <strong data-i18n="author_partners_label">{t('author_partners_label', 'FR')}</strong>
+        <span data-fr={partnersFR} data-en={partnersEN}>{partnersFR}</span>
       </span>
     )}
     {latestArticleFR && (
