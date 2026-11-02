@@ -19,6 +19,11 @@
       "login": "amauritoss",
       "role": "admin",
       "label": "Amaury"
+    },
+    {
+      "login": "1-3-4-1",
+      "role": "admin",
+      "label": "Cerise"
     }
   ],
   "siteAccess": [
