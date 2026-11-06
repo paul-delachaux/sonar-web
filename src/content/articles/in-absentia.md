@@ -271,7 +271,7 @@ revue_rows:
     right:
       type: texte
       text: "In Absentia’s emotional landscape shifts inside the spectrum of a
-        sickened mind : from wistful nostalgia and tense, sedative lulls to
+        sickened mind : from wistful nostalgia and tense, sedative lulls - to
         isolation, insanity and outbursts of violence. While it eschews the
         traditional narrative of a concept album, there’s a dark, psychological
         thread binding most of the tracks together. The collection acts as a
@@ -279,8 +279,8 @@ revue_rows:
         of mental illness, alienation, and the bleak emptiness that defines the
         minds of serial killers. The opener of the album Blackest Eyes announces
         right away the kind of dichotomy between mellow tunes and aggressive
-        tones interspersed with ambient sections that we can find throughout the
-        record."
+        tones, interspersed with ambient sections, that we can find throughout
+        the record."
       text_en: "In Absentia’s emotional landscape shifts inside the spectrum of a
         sickened mind : from wistful nostalgia and tense, sedative lulls to
         isolation, insanity and outbursts of violence. While it eschews the
@@ -301,11 +301,7 @@ revue_rows:
         opening riff functions as an overture : a cinematic curtain-raiser
         signaling the tragic birth of a protagonist. From this initial burst of
         trauma, the character is steadily drawn toward the precarious edge of
-        sanity. Some songs on the album do not directly fit into this narrative
-        though, for instance Trains which is a lot more about nostalgia.  Steven
-        used to hear trains passing through from his bedroom, so in his psyche
-        trains are attached to childhood and more innocent times. On this track
-        he laments how the good times of that era slept away from him too fast."
+        sanity."
       text_en: "In fact the song intertwines all of those aspects : the atmospheric
         intro is reiterated later during the bridge but as a very heavy riff,
         and, amidst the ballad-like verses, we can pick up creepy whispers
@@ -313,15 +309,25 @@ revue_rows:
         distorted opening riff functions as an overture : a cinematic
         curtain-raiser signaling the tragic birth of a protagonist. From this
         initial burst of trauma, the character is steadily drawn toward the
-        precarious edge of sanity. Some songs on the album do not directly fit
-        into this narrative though, for instance Trains which is a lot more
-        about nostalgia.  Steven used to hear trains passing through from his
-        bedroom, so in his psyche trains are attached to childhood and more
-        innocent times. On this track he laments how the good times of that era
-        slept away from him too fast."
+        precarious edge of sanity."
     right:
       type: texte
     full_width: true
+  - full_width: true
+    left:
+      type: texte
+      text: Some songs on the album do not directly fit into this narrative though,
+        for instance Trains, which is a lot more about nostalgia. Steven used to
+        hear trains passing through from his bedroom, so in his psyche they are
+        attached to childhood and more innocent times. On this track, he laments
+        how the good times of that era slept away from him too fast.
+      text_en: Some songs on the album do not directly fit into this narrative though,
+        for instance Trains which is a lot more about nostalgia. Steven used to
+        hear trains passing through from his bedroom, so in his psyche trains
+        are attached to childhood and more innocent times. On this track he
+        laments how the good times of that era slept away from him too fast.
+    right:
+      type: texte
   - left:
       type: image
       image: /assets/uploads/d461d3ff9519387f2730ff39168b8996.jpg
@@ -363,67 +369,18 @@ revue_rows:
         ironic.
   - left:
       type: texte
-      text: Sound of Muzak elegises the quiet devaluation of music. Steven is drawing
-        a parallel between the music industry and Muzak, an asepticized and
-        normalised acoustic wallpaper engineered for the sterile corridors of
-        commercial infrastructures, from humming elevators to sprawling shopping
-        malls and airports. Muzak traces its origins to the eponymous company
-        founded in the 1930s. Its initial aim was to improve workers’
-        productivity and increase consumers’ willingness to buy. The purpose of
-        this track is to mourn a cultural shift, the transformation of music
-        from a vessel of artistic expression into a consumer product. This
-        critique feels remarkably clairvoyant, anticipating the
-        hyper-commodified landscape of the streaming era, as we remind you this
-        album came out in 2002, years before Spotify established itself. What
-        makes the song so compelling to me is that it succeeds in being catchy
-        as probably the most commercial song of the album, while preserving a
-        real musical appeal with for instance the use of a 7/4 time signature in
-        the verses, which I find ironic.
-      text_en: Sound of Muzak elegises the quiet devaluation of music. Steven is
-        drawing a parallel between the music industry and Muzak, an asepticized
-        and normalised acoustic wallpaper engineered for the sterile corridors
-        of commercial infrastructures, from humming elevators to sprawling
-        shopping malls and airports. Muzak traces its origins to the eponymous
-        company founded in the 1930s. Its initial aim was to improve workers’
-        productivity and increase consumers’ willingness to buy. The purpose of
-        this track is to mourn a cultural shift, the transformation of music
-        from a vessel of artistic expression into a consumer product. This
-        critique feels remarkably clairvoyant, anticipating the
-        hyper-commodified landscape of the streaming era, as we remind you this
-        album came out in 2002, years before Spotify established itself. What
-        makes the song so compelling to me is that it succeeds in being catchy
-        as probably the most commercial song of the album, while preserving a
-        real musical appeal with for instance the use of a 7/4 time signature in
-        the verses, which I find ironic.
-    right:
-      type: texte
-    full_width: true
-  - left:
-      type: texte
       text: Next we have Heartattack in a Layby, a song about the last thoughts of a
         man dying on the side of the road, not realising that he’ll never find
         his way back home. This track is more minimalistic compared to others,
         really focusing on setting up the scene for the devastating story it
         tells. Somehow the acoustic guitar of the chorus makes you understand
-        that something tragic is happening. Born in the aftermath of the
-        9/11/2001 events, the closer track Collapse the Light Into Earth stands
-        as a haunting meditation on grief. The song is utterly sublime, drawing
-        the album to a closure in a delicate interplay between light and shadow,
-        reminiscent of a sunset (hence the title). This is not a happy ending,
-        it’s bitter but hopeful at the same time, similar to when one loses
-        something forever but lies in a state of acceptance.
+        that something tragic is happening.
       text_en: Next we have Heartattack in a Layby, a song about the last thoughts of
         a man dying on the side of the road, not realising that he’ll never find
         his way back home. This track is more minimalistic compared to others,
         really focusing on setting up the scene for the devastating story it
         tells. Somehow the acoustic guitar of the chorus makes you understand
-        that something tragic is happening. Born in the aftermath of the
-        9/11/2001 events, the closer track Collapse the Light Into Earth stands
-        as a haunting meditation on grief. The song is utterly sublime, drawing
-        the album to a closure in a delicate interplay between light and shadow,
-        reminiscent of a sunset (hence the title). This is not a happy ending,
-        it’s bitter but hopeful at the same time, similar to when one loses
-        something forever but lies in a state of acceptance.
+        that something tragic is happening.
     right:
       type: texte
       text: Next we have Heartattack in a Layby, a song about the last thoughts of a
@@ -451,6 +408,25 @@ revue_rows:
         it’s bitter but hopeful at the same time, similar to when one loses
         something forever but lies in a state of acceptance.
     full_width: true
+  - full_width: true
+    left:
+      type: texte
+      text: Born in the aftermath of the 9/11/2001 events, the closer track Collapse
+        the Light Into Earth stands as a haunting meditation on grief. The song
+        is utterly sublime, drawing the album to a closure in a delicate
+        interplay between light and shadow, reminiscent of a sunset (hence the
+        title). This is not a happy ending, it’s bitter, but hopeful at the same
+        time, similar to when one loses something forever but lies in a state of
+        acceptance.
+      text_en: Born in the aftermath of the 9/11/2001 events, the closer track
+        Collapse the Light Into Earth stands as a haunting meditation on grief.
+        The song is utterly sublime, drawing the album to a closure in a
+        delicate interplay between light and shadow, reminiscent of a sunset
+        (hence the title). This is not a happy ending, it’s bitter but hopeful
+        at the same time, similar to when one loses something forever but lies
+        in a state of acceptance.
+    right:
+      type: texte
   - left:
       type: texte
       text: As for the other songs, they’re expanding more on insanity, worsening as
@@ -460,13 +436,6 @@ revue_rows:
         into a state of apathy. The track captures these emotions with a
         spellbinding, breath-taking grace, evoking the disorienting stillness of
         drifting through deep space or being submerged beneath an endless ocean.
-        Gravity Eyelids carries on the mesmerizing setting established in Lips
-        Of Ashes, but here the vulnerability of the previous song is swapped
-        with a sedated and tense atmosphere, as if the protagonist is losing
-        touch with reality and has become emotionally numb. This track for me is
-        the heart of In Absentia, it’s the one that matches the album cover and
-        conveys that feeling of absence the most, where the protagonist reaches
-        the point of no return.
       text_en: As for the other songs, they’re expanding more on insanity, worsening
         as the album goes by. Lips of Ashes evokes a profound sense of social
         alienation, a rupture of human connection where the ability to reach
@@ -474,18 +443,44 @@ revue_rows:
         into a state of apathy. The track captures these emotions with a
         spellbinding, breath-taking grace, evoking the disorienting stillness of
         drifting through deep space or being submerged beneath an endless ocean.
-        Gravity Eyelids carries on the mesmerizing setting established in Lips
-        Of Ashes, but here the vulnerability of the previous song is swapped
-        with a sedated and tense atmosphere, as if the protagonist is losing
-        touch with reality and has become emotionally numb. This track for me is
-        the heart of In Absentia, it’s the one that matches the album cover and
-        conveys that feeling of absence the most, where the protagonist reaches
-        the point of no return.
     right:
       type: image
       image: /assets/uploads/capture-d’écran-2026-10-09-à-21.56.17.png
       image_caption: ""
       image_caption_en: Porcupine Tree - Blackest Eyes (Visualiser) on Youtube
+  - full_width: true
+    left:
+      type: texte
+      text: Gravity Eyelids carries on the mesmerizing setting established in Lips Of
+        Ashes, but here the vulnerability of the previous song is swapped with a
+        sedated and tense atmosphere, as if the protagonist is losing touch with
+        reality and has become emotionally numb. This track for me is the heart
+        of In Absentia, it’s the one that matches the album cover and conveys
+        that feeling of absence the most, where the protagonist reaches the
+        point of no return. The song is slowly building up, starting off with
+        mellotron choirs and a trip-hopish drumbeat, giving it an underground
+        and ominous vibe. The song becomes eerier by the minute, with completely
+        stoned vocals and mystical sounding keys. Then, about halfway through
+        the track, there's a teasing towards heaviness, followed by a drop of
+        distorted guitars and a wild synth lead. It’s a strike of violence,
+        probably illustrating the protagonist’s act of defiance, finally
+        releasing his contained madness.
+      text_en: Gravity Eyelids carries on the mesmerizing setting established in Lips
+        Of Ashes, but here the vulnerability of the previous song is swapped
+        with a sedated and tense atmosphere, as if the protagonist is losing
+        touch with reality and has become emotionally numb. This track for me is
+        the heart of In Absentia, it’s the one that matches the album cover and
+        conveys that feeling of absence the most, where the protagonist reaches
+        the point of no return. The song is slowly building up, starting off
+        with mellotron choirs and a trip-hopish drumbeat, giving it an
+        underground and ominous vibe. The song becomes eerier by the minute,
+        with completely stoned vocals and mystical sounding keys. Then, about
+        halfway through the track, there's a teasing towards heaviness, followed
+        by a drop of distorted guitars and a wild synth lead. It’s a strike of
+        violence, probably illustrating the protagonist’s act of defiance,
+        finally releasing his contained madness.
+    right:
+      type: texte
   - left:
       type: audio
       tracks:
@@ -499,20 +494,13 @@ revue_rows:
           title_en: Porcupine Tree - Wedding Nails
     right:
       type: texte
-      text: The song is slowly building up, starting off with mellotron choirs and a
-        trip-hopish drumbeat, giving it an underground and ominous vibe. The
-        song becomes eerier by the minute, with completely stoned vocals and
-        mystical sounding keys. Then, about halfway through the track, there's a
-        teasing towards heaviness, followed by a drop of distorted guitars and a
-        wild synth lead. It’s a strike of violence, probably illustrating the
-        protagonist’s act of defiance, finally releasing his contained madness.
-        Serving as a bridge of escalating tension, the instrumental Wedding
-        Nails remains my least favored piece on the record. Grounded in an
-        opening riff that feels overly familiar, less an original statement and
-        more a recycled echo of classic motifs like Deep Purple’s Rat Bat Blue
-        or Led Zeppelin’s Moby Dick which were already sampled from Bobby
-        Parker’s Watch Your Step. Still it’s a very fine jam showcasing the
-        great musicianship of the band.
+      text: Serving as a bridge of escalating tension, the instrumental Wedding Nails
+        remains my least favored piece on the record. Grounded in an opening
+        riff that feels overly familiar, less an original statement and more a
+        recycled echo of classic motifs like Deep Purple’s Rat Bat Blue or Led
+        Zeppelin’s Moby Dick which were already sampled from Bobby Parker’s
+        Watch Your Step. Still it’s a very fine jam showcasing the great
+        musicianship of the band.
       text_en: The song is slowly building up, starting off with mellotron choirs and
         a trip-hopish drumbeat, giving it an underground and ominous vibe. The
         song becomes eerier by the minute, with completely stoned vocals and
@@ -538,10 +526,9 @@ revue_rows:
         The subsequent track, .3, unfolds as an otherworldly instrumental space
         where psychedelic textures and a lush string orchestra intertwine. The
         piece offers a suspended interlude on the record, an auditory ascent.
-        Yet within this ethereal atmosphere lies a sensation of numbness,
-        perfectly mirroring the cold, mechanical mantra of war industrialization
-        echoed throughout the bridge, which follows a momentary industrial drum
-        beat further reinforcing this idea."
+        Within this ethereal atmosphere lies a sensation of numbness, perfectly
+        mirroring the cold, mechanical mantra of war industrialization echoed
+        throughout the bridge."
       text_en: "Opening the album’s second half, Prodigal, reintroduces the wistful,
         nostalgic warmth first felt on Trains. Softened by the weeping tones of
         a slide guitar, the track slows the record's pace, offering a gentler
@@ -551,10 +538,9 @@ revue_rows:
         The subsequent track, .3, unfolds as an otherworldly instrumental space
         where psychedelic textures and a lush string orchestra intertwine. The
         piece offers a suspended interlude on the record, an auditory ascent.
-        Yet within this ethereal atmosphere lies a sensation of numbness,
-        perfectly mirroring the cold, mechanical mantra of war industrialization
-        echoed throughout the bridge, which follows a momentary industrial drum
-        beat further reinforcing this idea."
+        Within this ethereal atmosphere lies a sensation of numbness, perfectly
+        mirroring the cold, mechanical mantra of war industrialization echoed
+        throughout the bridge."
     right:
       type: texte
       text: ""
