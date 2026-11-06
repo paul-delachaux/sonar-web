@@ -558,9 +558,9 @@ revue_rows:
         brutality with a climax. Here the protagonist thrives on the different
         abuses he is inflicting to others, always delving deeper into violence,
         ultimately becoming a killing machine. Like a black hole getting bigger
-        as it absorbs matter, his hole needs ever more killing to be filled. The
-        outro of the song is absolutely crushing, reflecting the insatiable
-        appetite for destruction of the protagonist.
+        as it absorbs matter, his empty mind needs ever more killing to be
+        filled. The outro of the song is absolutely crushing, reflecting the
+        insatiable appetite for destruction of the protagonist.
       text_en: The Creator Has a Mastertape is a breathless, chaotic descent into
         mania. The track captures a deeply unhinged protagonist who has
         surrendered all psychological restraint, abandoning himself entirely to
@@ -571,10 +571,10 @@ revue_rows:
         closes this trend of brutality with a climax. Here the protagonist
         thrives on the different abuses he is inflicting to others, always
         delving deeper into violence, ultimately becoming a killing machine.
-        Like a black hole getting bigger as it absorbs matter, his hole needs
-        ever more killing to be filled. The outro of the song is absolutely
-        crushing, reflecting the insatiable appetite for destruction of the
-        protagonist.
+        Like a black hole getting bigger as it absorbs matter, his empty mind
+        needs ever more killing to be filled. The outro of the song is
+        absolutely crushing, reflecting the insatiable appetite for destruction
+        of the protagonist.
     right:
       type: image
       text: The Creator Has a Mastertape is a breathless, chaotic descent into mania.
