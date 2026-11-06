@@ -489,12 +489,14 @@ revue_rows:
   - left:
       type: audio
       tracks:
-        - file: https://www.youtube.com/watch?v=6mQTDlQQ5RE
-          title_en: Led Zeppelin’s Moby Dick
-        - file: https://www.youtube.com/watch?v=2N_xP67utPk
-          title_en: Deep Purple’s Rat Bat Blue
-        - file: https://www.youtube.com/watch?v=mQ86jyGy5Ks
-          title_en: Bobby Parker’s Watch Your Step
+        - file: /assets/uploads/watch-your-step.mp3
+          title_en: Bobby Parker - Watch Your Step
+        - file: /assets/uploads/rat-bat-blue.mp3
+          title_en: Deep Purple - Rat Bat Blue
+        - file: /assets/uploads/moby-dick.mp3
+          title_en: Led Zeppelin - Moby Dick
+        - file: /assets/uploads/wedding-nails.mp3
+          title_en: Porcupine Tree - Wedding Nails
     right:
       type: texte
       text: The song is slowly building up, starting off with mellotron choirs and a
