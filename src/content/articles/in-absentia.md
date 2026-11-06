@@ -94,7 +94,7 @@ revue_rows:
         influences are blended in the record without any friction.
     full_width: true
   - left:
-      type: texte
+      type: image
       text: One of the record's strengths is the impeccable pacing of compositions and
         the seamless transitions. Every single track justifies its runtime, it
         never feels like the tracks are dragging on too long or that they’ve
@@ -115,9 +115,30 @@ revue_rows:
         seamless transitions bridge the different sections naturally, allowing
         the tracks to play with the listener’s expectations and resolve in a
         compelling way.
+      image: /assets/uploads/live.jpg
     right:
       type: texte
-    full_width: true
+      text_en: One of the record's strengths is the impeccable pacing of compositions
+        and the seamless transitions. Every single track justifies its runtime,
+        it never feels like the tracks are dragging on too long or that they’ve
+        been rushed. They are all given enough time to build a beautifully
+        intense atmosphere, but are not overstaying their welcome. Moving beyond
+        the simple type of verse/chorus layouts, these tracks feature elaborated
+        song structures that serve the emotional purpose of the music. The
+        seamless transitions bridge the different sections naturally, allowing
+        the tracks to play with the listener’s expectations and resolve in a
+        compelling way.
+      text: One of the record's strengths is the impeccable pacing of compositions and
+        the seamless transitions. Every single track justifies its runtime, it
+        never feels like the tracks are dragging on too long or that they’ve
+        been rushed. They are all given enough time to build a beautifully
+        intense atmosphere, but are not overstaying their welcome. Moving beyond
+        the simple type of verse/chorus layouts, these tracks feature elaborated
+        song structures that serve the emotional purpose of the music. The
+        seamless transitions bridge the different sections naturally, allowing
+        the tracks to play with the listener’s expectations and resolve in a
+        compelling way.
+    full_width: false
   - left:
       type: texte
       text: The record achieves a great balance between all of its aspects. It remains
@@ -242,9 +263,11 @@ revue_rows:
     full_width: true
   - left:
       type: image
-      image: /assets/uploads/live.jpg
-      image_caption: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
-      image_caption_en: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
+      image: /assets/uploads/trains.jpg
+      image_caption: An image created by Lasse Hoile for In Absentia (used as the
+        inner gatefold artwork for the vinyl release)
+      image_caption_en: An image created by Lasse Hoile for In Absentia (used as the
+        inner gatefold artwork for the vinyl release)
     right:
       type: texte
       text: "In Absentia’s emotional landscape shifts inside the spectrum of a
@@ -565,7 +588,7 @@ revue_rows:
         crushing, reflecting the insatiable appetite for destruction of the
         protagonist.
     right:
-      type: texte
+      type: image
       text: The Creator Has a Mastertape is a breathless, chaotic descent into mania.
         The track captures a deeply unhinged protagonist who has surrendered all
         psychological restraint, abandoning himself entirely to his most violent
@@ -593,7 +616,10 @@ revue_rows:
         ever more killing to be filled. The outro of the song is absolutely
         crushing, reflecting the insatiable appetite for destruction of the
         protagonist.
-    full_width: true
+      image: /assets/uploads/crazy.jpg
+      image_caption_en: An image created by Lasse Hoile for In Absentia
+      image_caption: An image created by Lasse Hoile for In Absentia
+    full_width: false
   - left:
       type: texte
       text: Ultimately, In Absentia stands as a milestone in Porcupine Tree’s
