@@ -36,14 +36,26 @@ revue_rows:
         created by Steven Wilson behind which he could release his own music.
         After meeting some initial success, he recruited other musicians to form
         a proper band. Porcupine Tree's musical journey could be broken down
-        into three eras : starting with the psychedelic era, evolving into more
-        pop-rock oriented songwriting, and finally embracing a heavier metal
-        sound. In Absentia is often considered a turning point in the band’s
-        career. During that time, Steven Wilson was getting more into heavy
-        music and started producing for the metal band Opeth. This motivated him
-        to incorporate more of these elements into his sound. In Absentia marks
-        as well, and above all, the arrival of Gavin Harrison who is replacing
-        the band's former drummer Chris Maitland."
+        into three eras : starting off with the psychedelic era, evolving into
+        more pop-rock oriented songwriting, and finally embracing a heavier
+        metal sound. In Absentia is often considered a turning point in the
+        band’s career. During that time, Steven Wilson was getting more into
+        heavy music and started producing for the metal band Opeth. This
+        motivated him to incorporate more of these elements into his sound. In
+        Absentia marks as well, and above all, the arrival of Gavin Harrison who
+        is replacing the band's former drummer Chris Maitland."
+      text_en: "Porcupine Tree merely started off as a joke, it was an imaginary band
+        created by Steven Wilson behind which he could release his own music.
+        After meeting some initial success, he recruited other musicians to form
+        a proper band. Porcupine Tree's musical journey could be broken down
+        into three eras : starting off with the psychedelic era, evolving into
+        more pop-rock oriented songwriting, and finally embracing a heavier
+        metal sound. In Absentia is often considered a turning point in the
+        band’s career. During that time, Steven Wilson was getting more into
+        heavy music and started producing for the metal band Opeth. This
+        motivated him to incorporate more of these elements into his sound. In
+        Absentia marks as well, and above all, the arrival of Gavin Harrison who
+        is replacing the band's former drummer Chris Maitland."
   - left:
       type: texte
       text: "What really sets this record apart is the combination of the metal
@@ -67,14 +79,14 @@ revue_rows:
         layered guitars, as well as powerful and technical drumming, featuring
         occasional double-kick fills. Finally, the psychedelic side weaves in
         trippy instrumental sections, atmospheric soundscapes, a variety of
-        audio effects, and hypnotic, repetitive basslines. All of these
+        audio effects, as well as hypnotic, repetitive basslines. All of these
         influences are blended in the record without any friction.
       text_en: On the pop side, the album delivers catchy hooks, sweet melodies, and
         Wilson's soft vocals. On the metal side, it unleashes distorted and
         layered guitars, as well as powerful and technical drumming, featuring
         occasional double-kick fills. Finally, the psychedelic side weaves in
         trippy instrumental sections, atmospheric soundscapes, a variety of
-        audio effects, and hypnotic, repetitive basslines. All of these
+        audio effects, as well as hypnotic, repetitive basslines. All of these
         influences are blended in the record without any friction.
     right:
       type: texte
@@ -118,26 +130,24 @@ revue_rows:
       image: /assets/uploads/live.jpg
     right:
       type: texte
-      text_en: One of the record's strengths is the impeccable pacing of compositions
-        and the seamless transitions. Every single track justifies its runtime,
-        it never feels like the tracks are dragging on too long or that they’ve
-        been rushed. They are all given enough time to build a beautifully
-        intense atmosphere, but are not overstaying their welcome. Moving beyond
-        the simple type of verse/chorus layouts, these tracks feature elaborated
-        song structures that serve the emotional purpose of the music. The
-        seamless transitions bridge the different sections naturally, allowing
-        the tracks to play with the listener’s expectations and resolve in a
-        compelling way.
-      text: One of the record's strengths is the impeccable pacing of compositions and
-        the seamless transitions. Every single track justifies its runtime, it
-        never feels like the tracks are dragging on too long or that they’ve
-        been rushed. They are all given enough time to build a beautifully
-        intense atmosphere, but are not overstaying their welcome. Moving beyond
-        the simple type of verse/chorus layouts, these tracks feature elaborated
-        song structures that serve the emotional purpose of the music. The
-        seamless transitions bridge the different sections naturally, allowing
-        the tracks to play with the listener’s expectations and resolve in a
-        compelling way.
+      text_en: One of the record's strengths is the impeccable pacing of composition.
+        Every single track justifies its runtime, it never feels like the tracks
+        are dragging on too long or that they’ve been rushed. They are all given
+        enough time to build a beautifully intense atmosphere, but are not
+        overstaying their welcome. Moving beyond the simple type of verse/chorus
+        layouts, these tracks feature elaborated song structures that serve the
+        emotional purpose of the music. Seamless transitions bridge the
+        different sections naturally, allowing the tracks to play with the
+        listener’s expectations and resolve in a compelling way.
+      text: One of the record's strengths is the impeccable pacing of composition.
+        Every single track justifies its runtime, it never feels like the tracks
+        are dragging on too long or that they’ve been rushed. They are all given
+        enough time to build a beautifully intense atmosphere, but are not
+        overstaying their welcome. Moving beyond the simple type of verse/chorus
+        layouts, these tracks feature elaborated song structures that serve the
+        emotional purpose of the music. Seamless transitions bridge the
+        different sections naturally, allowing the tracks to play with the
+        listener’s expectations and resolve in a compelling way.
     full_width: false
   - left:
       type: texte
@@ -207,22 +217,7 @@ revue_rows:
     right:
       type: texte
       text: Richard Barbieri’s synth work on this record is really masterful, it adds
-        so much depth, helps to build a strong atmosphere and is always blending
-        in with the other instruments. The symbiosis between
-        electronics/ambients and traditional instrumentation is flawless,
-        Gravity Eyelids is a great example of that. I also love how the
-        soundscape sometimes opens up with the addition of vocal harmonies and
-        panned acoustic guitar strumming, like in the chorus of Sound of Muzak
-        or Prodigal. As for the percussions, the drumming in the album is always
-        on point, very musical, almost melodic with a lot of cymbals playing.
-        Gavin Harrison is dressing up all his parts with little details that
-        gives the music so much life and groove. The intricacy and flexibility
-        of his playing style is impressive. Let’s not forget about Colin Edwin’s
-        very tasteful bass playing, a performance full of restraint like in
-        Sound of Muzak where he only plays during the chorus. Moreover, he has
-        some killer lines, such as the one in Strip The Soul.
-      text_en: Richard Barbieri’s synth work on this record is really masterful, it
-        adds so much depth, helps to build a strong atmosphere and is always
+        a lot of depth, helps to build a strong atmosphere and is always
         blending in with the other instruments. The symbiosis between
         electronics/ambients and traditional instrumentation is flawless,
         Gravity Eyelids is a great example of that. I also love how the
@@ -233,9 +228,24 @@ revue_rows:
         Gavin Harrison is dressing up all his parts with little details that
         gives the music so much life and groove. The intricacy and flexibility
         of his playing style is impressive. Let’s not forget about Colin Edwin’s
-        very tasteful bass playing, a performance full of restraint like in
-        Sound of Muzak where he only plays during the chorus. Moreover, he has
-        some killer lines, such as the one in Strip The Soul.
+        very tasteful fretless bass playing, a performance full of restraint
+        like in Sound of Muzak where he only plays during the chorus. Moreover,
+        he has some killer lines, such as the one in Strip The Soul.
+      text_en: Richard Barbieri’s synth work on this record is really masterful, it
+        adds a lot of depth, helps to build a strong atmosphere and is always
+        blending in with the other instruments. The symbiosis between
+        electronics/ambients and traditional instrumentation is flawless,
+        Gravity Eyelids is a great example of that. I also love how the
+        soundscape sometimes opens up with the addition of vocal harmonies and
+        panned acoustic guitar strumming, like in the chorus of Sound of Muzak
+        or Prodigal. As for the percussions, the drumming in the album is always
+        on point, very musical, almost melodic with a lot of cymbals playing.
+        Gavin Harrison is dressing up all his parts with little details that
+        gives the music so much life and groove. The intricacy and flexibility
+        of his playing style is impressive. We must not forget about Colin
+        Edwin’s very tasteful fretless bass playing, a performance full of
+        restraint, like in Sound of Muzak where he only plays during the chorus.
+        Moreover, he has some killer lines, such as the one in Strip The Soul.
   - left:
       type: texte
       text: The music boasts an incredible level of detail, characterized by
@@ -244,20 +254,20 @@ revue_rows:
         feed upon at all times without ever feeling overloaded. This gives the
         album a great relisten value, as there is always something new to
         discover. The production and sound engineering of the record are
-        absolutely pristine, everything sounds wonderful. Each musical element
-        occupies its own untroubled expanse, breathing in perfect harmony
-        without ever interfering with the others. Nothing takes you out of the
-        music, the experience is very immersive.
+        absolutely pristine. Each musical element occupies its own untroubled
+        expanse, breathing in perfect harmony without ever interfering with the
+        others. Nothing takes you out of the music, the experience is very
+        immersive.
       text_en: The music boasts an incredible level of detail, characterized by
         meticulously crafted, subtle textures that continuously surface
         throughout each track. This rich soundscape gives your ears something to
         feed upon at all times without ever feeling overloaded. This gives the
         album a great relisten value, as there is always something new to
         discover. The production and sound engineering of the record are
-        absolutely pristine, everything sounds wonderful. Each musical element
-        occupies its own untroubled expanse, breathing in perfect harmony
-        without ever interfering with the others. Nothing takes you out of the
-        music, the experience is very immersive.
+        absolutely pristine. Each musical element occupies its own untroubled
+        expanse, breathing in perfect harmony without ever interfering with the
+        others. Nothing takes you out of the music, the experience is very
+        immersive.
     right:
       type: texte
     full_width: true
