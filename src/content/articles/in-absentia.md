@@ -196,7 +196,7 @@ revue_rows:
       type: image
       text: ""
       image: /assets/uploads/capture-d’écran-2026-10-09-à-21.22.04.png
-      image_caption_en: "Dulcimer "
+      image_caption_en: "A hammered Dulcimer "
   - left:
       type: image
       text: ""
