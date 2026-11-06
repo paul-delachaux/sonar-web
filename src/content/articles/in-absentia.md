@@ -29,6 +29,7 @@ revue_rows:
   - left:
       type: image
       image: /assets/uploads/2d5e5e08abf3a16dbfe9837538c47866.jpg
+      image_caption_en: Porcupine Tree in 1995
     right:
       type: texte
       text: "Porcupine Tree merely started off as a joke, it was an imaginary band
@@ -174,12 +175,14 @@ revue_rows:
       type: image
       text: ""
       image: /assets/uploads/capture-d’écran-2026-10-09-à-21.22.04.png
+      image_caption_en: "Dulcimer "
   - left:
       type: image
       text: ""
       text_en: ""
       image: /assets/uploads/images.jpeg
-      image_caption: couvertureI d'n Absentia sur Instagram @stereogrammaudio
+      image_caption: ""
+      image_caption_en: Instagram post by @stereogrammaudio
     right:
       type: texte
       text: Richard Barbieri’s synth work on this record is really masterful, it adds
@@ -239,7 +242,7 @@ revue_rows:
     full_width: true
   - left:
       type: image
-      image: /assets/uploads/capture-d’écran-2026-10-09-à-21.51.26.png
+      image: /assets/uploads/live.jpg
       image_caption: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
       image_caption_en: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
     right:
@@ -299,6 +302,8 @@ revue_rows:
   - left:
       type: image
       image: /assets/uploads/d461d3ff9519387f2730ff39168b8996.jpg
+      image_caption_en: Holyoke Mall at Ingleside
+      image_caption: ""
     right:
       type: texte
       text: Sound of Muzak elegises the quiet devaluation of music. Steven is drawing
@@ -456,8 +461,8 @@ revue_rows:
     right:
       type: image
       image: /assets/uploads/capture-d’écran-2026-10-09-à-21.56.17.png
-      image_caption: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
-      image_caption_en: Porcupine Tree - Blackest Eyes (from Arriving Somewhere Live in Chicago)
+      image_caption: ""
+      image_caption_en: Porcupine Tree - Blackest Eyes (Visualiser) on Youtube
   - left:
       type: audio
       tracks:
