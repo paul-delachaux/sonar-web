@@ -16,7 +16,7 @@ revue_rows:
         beauty meets the violence and darkness of the depths. For this very
         first edition of Sound of the Sonar, we’re turning on the radars and
         diving deep into a masterpiece of modern progressive rock : Porcupine
-        Tree’s hypnotic and chilling album In Absentia."
+        Tree’s hypnotic and chilling album *In Absentia*."
       text_en: "Today we delve into the abysses of the human mind, where the purest
         beauty meets the violence and darkness of the depths. For this very
         first edition of Sound of the Sonar, we’re turning on the radars and
