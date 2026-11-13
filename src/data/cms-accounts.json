@@ -24,6 +24,11 @@
       "login": "1-3-4-1",
       "role": "admin",
       "label": "Cerise"
+    },
+    {
+      "login": "oscarobindo",
+      "role": "admin",
+      "label": "Oscar"
     }
   ],
   "siteAccess": [
