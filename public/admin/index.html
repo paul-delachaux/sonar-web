@@ -208,6 +208,7 @@
       background: transparent;
       border: none;
       color: #3e4857;
+      font-family: 'Helvetica', serif;
       font-size: 14px;
       font-weight: 500;
       text-align: left;
@@ -862,6 +863,7 @@
   <script src="/admin/author-profiles-admin.js?v=20261030d"></script>
   <script src="/admin/cms-logs.js?v=20261014m"></script>
   <script src="/admin/admin-announcements.js?v=20261030a"></script>
+  <script src="/admin/admin-feedback.js?v=20261124e"></script>
   <script src="/admin/cms-media.js?v=20261124e"></script>
   <script src="/admin/cms-deploy.js?v=20261014f"></script>
   <script src="/admin/body-composer.js?v=20261124g"></script>
@@ -4414,6 +4416,9 @@
         }
         if (window.SonarAdminAnnouncements && window.SonarAdminAnnouncements.addNav) {
           window.SonarAdminAnnouncements.addNav(sidebarContainer);
+        }
+        if (window.SonarAdminFeedback && window.SonarAdminFeedback.addNav) {
+          window.SonarAdminFeedback.addNav(sidebarContainer);
         }
         if (window.SonarAuthorProfiles && window.SonarAuthorProfiles.addNav) {
           window.SonarAuthorProfiles.addNav(sidebarContainer);
