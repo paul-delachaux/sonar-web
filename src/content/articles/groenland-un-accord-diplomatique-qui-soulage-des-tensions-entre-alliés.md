@@ -1,5 +1,7 @@
 ---
 description_image_alt: feqzgqe
+layout_type: breve
+title: "Groenland : un accord diplomatique qui soulage des tensions entre alliés"
 description:
   mode: text
   text: Sous la pression des tensions mondiales et de la quête de ressources
@@ -20,24 +22,22 @@ author_info:
   - author_about: Incroyable personne
     author_about_en: No information provided at this time.
     author_interests: Non
-category: politique
 consulted_sources:
   - source_title: https://www.sudouest.fr/international/groenland/groenland-un-accord-tripartite-sera-signe-mardi-par-washington-copenhague-et-nuuk-30727622.php
 description_mode: image
 body_en: ""
+date: 2026-09-23T09:19:00.000+02:00
 author: Victor Zhâ
 author2: null
 isVisible: true
 image_position: 0
-layout_type: breve
-date: 2026-09-23T09:19:00.000+02:00
 image_info:
   - image_caption: "© Crédit photo : MADS CLAUS RASMUSSEN / AFP"
     image_caption_en: ""
-title: "Groenland : un accord diplomatique qui soulage des tensions entre alliés"
+category: politique
+image: /assets/uploads/20260919144907-4512.avif
 use_thumbnail: false
 description_image: /assets/uploads/avatar-victor.jpg
-image: /assets/uploads/20260919144907-4512.avif
 description_image_caption: vgvrg
 ---
 Le 18 septembre, par un court message publié sur Truth Social, le président américain scellait un dénouement longtemps espéré : la conclusion d’un accord avec le Royaume du Danemark sur le sort du Groenland. Une poignée de mains officielle, prévue le 21 septembre sous les dorures des Nations unies à New York, devait venir concrétiser cette trêve géopolitique. Pour l’administration Trump, enlourdie par un conflit iranien dans lequel elle s’enlise depuis le 28 février 2026, cette percée arctique offrait la parenthèse d'un triomphe diplomatique, une lueur d’accalmie au milieu des ombres de la guerre ?
@@ -49,5 +49,4 @@ Le 18 septembre, par un court message publié sur Truth Social, le président am
 D’après Patricia Allémonière, Grand reporter et spécialiste des questions internationales, cet accord ressemblerait plus à une extension d’un traité prexistant, signé en 1951 avec le Danemark au cours de la guerre froide. Cet accord offrait l’emplacement d'une dizaine de base militaires américaines sur le sol groenlandais, offrant l’exclusivité militaire aux Etats Unis. Autrement dit, cet accord permet d’abord et avant tout de confisquer le Groenland à la chine et à la Russie, dans un contexte de conflits militaires et de tensions entre ces puissances.
 
 L'intérêt géopolitique du Groenland repose sur des enjeux à la fois miniers et stratégiques. Sur le plan des ressources, son sous-sol regorgerait de près de 30 milliards de barils de pétrole dont le potentiel reste à confirmer, mais aussi de cuivre, de lithium essentiel à nos batteries, et d'uranium que Washington souhaiterait enrichir. D'un point de vue stratégique, le contrôle de ce territoire permet d'empêcher la Chine et la Russie de s’implanter militarement au nord de l’océan nord atlantique, un espace clé où la fonte des glaces rend la navigation maritime de plus en plus fluide et où Pékin a déjà initié sa « route de la soie » polaire.
-
 * À cela s’ajoutent les terres rares, dont la Chine détient le quasi-monopole des exportations. Il n’est guère surprenant dès lors que les États-Unis s’efforcent de trouver d’autres voies d’approvisionnement. On se souviendra d’ailleurs que Pékin a su déjouer les barrières douanières imposées sans ménagement par Donald Trump à ses partenaires internationaux, en faisant planer sur Washington la menace de restrictions sur ses livraisons de minerais stratégiques.
