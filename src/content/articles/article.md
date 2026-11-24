@@ -1,4 +1,22 @@
 ---
+media_blocks:
+  - id: legacy-tweet
+    type: tweet
+    url: https://x.com/Alpha_Futures_/status/2067947420130980206
+    after: 2
+    width: 100
+    height: 100
+    align: center
+  - id: legacy-image
+    type: image
+    src: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfXoM1gWahmCj3Ya_plCRggs9pmQVip50WNKtARGX07Q&s=10
+    caption: Légende de fou
+    caption_en: Incredible legend
+    after: 1
+    width: 100
+    height: 100
+    align: center
+author: null
 reading_time: 10
 tweet_url: https://x.com/Alpha_Futures_/status/2067947420130980206
 author_info:
@@ -7,8 +25,7 @@ author_info:
     author_interests: Pas trop envie
     author_interests_en: Not really in the mood
 image_caption: ""
-isVisible: false
-author: null
+isVisible: true
 author2: Victor Zhâ
 consulted_sources:
   - source_title: Source
@@ -29,7 +46,9 @@ category: politique
 image: https://images.unsplash.com/photo-1504711434969-e33886168f5c
 ---
 Ceci est le corps de mon article. Je peux écrire en **gras**, mettre des listes :
-- Point 1
-- Point 2
+vdsv
+vd
+* Point 1
+* Point 2
 
 Et raconter mon histoire ici.

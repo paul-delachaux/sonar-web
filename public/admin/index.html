@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Le Sonar — Content Manager</title>
+  <title>Le Sonar — Administration panel</title>
   <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url" />
   <script>window.CMS_MANUAL_INIT = true;</script>
 
@@ -862,9 +862,10 @@
   <script src="/admin/author-profiles-admin.js?v=20261030d"></script>
   <script src="/admin/cms-logs.js?v=20261014m"></script>
   <script src="/admin/admin-announcements.js?v=20261030a"></script>
-  <script src="/admin/cms-media.js?v=20261030a"></script>
+  <script src="/admin/cms-media.js?v=20261124e"></script>
   <script src="/admin/cms-deploy.js?v=20261014f"></script>
-  <script src="/admin/body-composer.js?v=20261014s"></script>
+  <script src="/admin/body-composer.js?v=20261124g"></script>
+  <script src="/admin/article-body-composer.js?v=20261124d"></script>
 
   <script type="text/javascript">
     (function installCmsBrand() {
@@ -2358,6 +2359,28 @@
         || "";
     }
 
+    function renderIntro(entry, descriptionClass) {
+      const raw = entry.getIn(['data', 'description']);
+      const value = raw && raw.toJS ? raw.toJS() : raw;
+      const mode = value && typeof value === 'object'
+        ? value.mode
+        : (entry.getIn(['data', 'description_mode']) || 'text');
+      const image = value && typeof value === 'object'
+        ? value.image
+        : entry.getIn(['data', 'description_image']);
+      if (mode === 'image' && image) {
+        const caption = value && typeof value === 'object'
+          ? value.caption || ''
+          : entry.getIn(['data', 'description_image_caption']) || '';
+        return h('figure', { className: descriptionClass + ' article-intro-image' },
+          h('img', { src: sonarMediaUrl(image), alt: caption }),
+          caption && h('figcaption', {}, caption)
+        );
+      }
+      const description = value && typeof value === 'object' ? value.text : value;
+      return description ? h('p', { className: descriptionClass }, description) : null;
+    }
+
     function getPreviewAuthors(entry) {
       const selected = [
         { name: entry.getIn(['data', 'author']), index: 0 },
@@ -2487,15 +2510,14 @@
       return 'linear-gradient(to bottom, rgba(0, 0, 0, ' + top + '), rgba(0, 0, 0, ' + bottom + '))';
     }
 
-    // Decap CMS enveloppe le markdown dans des divs internes : `:scope > p` sur .prose-content
-    // ne trouve alors aucun paragraphe et l'image tombait toujours en bas. On prend tous les
-    // <p> "de contenu" (hors légendes, citations, listes) dans l'ordre du document.
+    // Textes et listes restent groupés pour que les médias suivent l'unité éditoriale.
     function getContentParagraphs(container) {
       if (!container) return [];
-      return Array.from(container.querySelectorAll('p')).filter(function(p) {
-        if (!p.textContent || p.textContent.trim().length === 0) return false;
-        if (p.closest('figure, figcaption, blockquote, li')) return false;
-        if (p.closest('.injected-hero-figure, .injected-tweet-block, .injected-media-block')) return false;
+      return Array.from(container.querySelectorAll('.article-body-text-block, p, h2, h3')).filter(function(block) {
+        if (!block.textContent || block.textContent.trim().length === 0) return false;
+        if (block.matches('p') && block.closest('.article-body-text-block')) return false;
+        if (block.closest('figure, figcaption, blockquote, li')) return false;
+        if (block.closest('.injected-hero-figure, .injected-tweet-block, .injected-media-block')) return false;
         return true;
       });
     }
@@ -2827,6 +2849,9 @@
       .article-header { border-bottom: 1px solid #1f2937; padding-bottom: 30px; margin-bottom: 30px; }
       .main-title { font-size: 1.8rem; font-weight: 800; color: #ffffff; margin: 0 0 15px 0; line-height: 1.3; }
       .main-description { font-size: 1.2rem; font-weight: 500; color: #ffffff; margin: 0 0 30px 0; line-height: 1.5; }
+      .article-intro-image { max-width: 760px; margin: 0 0 30px; }
+      .article-intro-image img { display: block; width: 100%; max-height: 420px; border-radius: 6px; object-fit: cover; }
+      .article-intro-image figcaption { margin-top: 6px; color: #9ca3af; font-size: .78rem; font-style: italic; }
       .author-meta-block { display: flex; align-items: center; gap: 20px; }
       .author-avatar-group, .breve-avatar-group { display: flex; flex-shrink: 0; }
       .author-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #374151; flex-shrink: 0; }
@@ -2841,6 +2866,8 @@
       .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; margin: 0; box-sizing: border-box; width: 100%; }
       .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; }
       .prose-content p { margin-bottom: 24px; }
+      .prose-content ul { margin: .9em 0; padding-inline-start: 1.6em; list-style: disc; }
+      .prose-content li { margin-bottom: .35em; padding-inline-start: .2em; }
       .article-sidebar { height: 100%; }
       .sidebar-sticky-box { position: sticky; top: 20px; }
       .sidebar-similaires { display: flex; flex-direction: column; gap: 16px; }
@@ -2861,6 +2888,7 @@
       .breve-header-main { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; width: 100%; flex-wrap: wrap; }
       .breve-title { font-size: 2.2rem; font-weight: 800; line-height: 1.15; color: #ffffff; margin: 0; letter-spacing: -0.02em; flex: 1; margin-left: 25px; }
       .breve-description { font-size: 0.9rem; line-height: 1.5; color: #e5e7eb; font-weight: 400; margin: 0; width: 500px; max-width: 100%; flex-shrink: 0; }
+      .breve-header-main > .article-intro-image { width: min(500px, 100%); flex: 0 1 500px; }
       .breve-divider { border: none; border-top: 1px solid #1f2937; height: 0; margin: 25px 0 35px 0; }
       .breve-body-grid { display: grid; grid-template-columns: 7fr 3fr; gap: 50px; align-items: stretch; }
       .breve-main-content { display: flex; flex-direction: column; gap: 20px; }
@@ -3011,7 +3039,6 @@
         const entry = this.props.entry;
 
         const title = entry.getIn(['data', 'title']) || "Titre de l'article";
-        const description = entry.getIn(['data', 'description']) || "";
         const authors = getPreviewAuthors(entry);
         const authorNames = authors.map(function(item) { return item.name; }).join(' et ');
         const readingTime = entry.getIn(['data', 'reading_time']) || 5;
@@ -3041,7 +3068,7 @@
 
               h('header', { className: 'article-header' },
                 h('h1', { className: 'main-title' }, title),
-                description && h('p', { className: 'main-description' }, description),
+                renderIntro(entry, 'main-description'),
                 h('div', { className: 'author-meta-block' },
                   h('div', { className: 'author-avatar-group' },
                     ...authors.map(function(item, i) {
@@ -3137,7 +3164,6 @@
         const self = this;
 
         const title = entry.getIn(['data', 'title']) || "Titre de la brève";
-        const description = entry.getIn(['data', 'description']) || "";
         const category = entry.getIn(['data', 'category']) || "";
         const authors = getPreviewAuthors(entry);
         const authorNames = authors.map(function(item) { return item.name; }).join(' et ');
@@ -3157,7 +3183,7 @@
                 h('div', { className: 'breve-theme' }, categoryLabel),
                 h('div', { className: 'breve-header-main' },
                   h('h1', { className: 'breve-title' }, title),
-                  description && h('div', { className: 'breve-description' }, description)
+                  renderIntro(entry, 'breve-description')
                 )
               ),
 
@@ -3224,6 +3250,8 @@
       .revue-kicker { margin: 0 0 8px; font-size: 1rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; text-align: left; }
       .revue-title { margin: 0; font-size: 1.8rem; font-weight: 800; line-height: 1.15; text-align: left; }
       .revue-description { width: 38%; flex-shrink: 0; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; text-align: left; }
+      .revue-description-image img { display: block; width: 100%; max-height: 240px; border-radius: 6px; object-fit: cover; }
+      .revue-description-image figcaption { margin-top: 6px; color: #b7b6c4; font-size: .78rem; font-style: italic; }
       .revue-header .author-meta-block { margin: 0; text-align: left; }
       .revue-rows { display: flex; flex-direction: column; gap: 22px; }
       .revue-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
@@ -3234,6 +3262,8 @@
       .revue-image { width: 100%; max-height: 280px; display: block; object-fit: contain; object-position: center; }
       .revue-caption { margin: 8px 0 0; font-size: 0.8rem; color: #9ca3af; font-style: italic; line-height: 1.3; }
       .revue-text { font-size: 0.95rem; line-height: 1.65; white-space: pre-wrap; }
+      .revue-text ul { margin: .8em 0; padding-inline-start: 1.6em; list-style: disc; }
+      .revue-text li { margin-bottom: .35em; padding-inline-start: .2em; }
       .revue-audio { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #ff7900; color: #fff; margin: 0 0 8px; height: 56px; max-height: 56px; box-sizing: border-box; }
       .revue-audio-play { width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 12px; border-color: transparent transparent transparent #fff; flex-shrink: 0; }
       .revue-wave { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 24px; }
@@ -3246,7 +3276,6 @@
       render: function() {
         const entry = this.props.entry;
         const title = entry.getIn(['data', 'title']) || 'Titre de la revue';
-        const description = entry.getIn(['data', 'description']) || '';
         const authors = getPreviewAuthors(entry);
         const authorNames = authors.map(function(item) { return item.name; }).join(' et ');
         const readingTime = entry.getIn(['data', 'reading_time']) || 5;
@@ -3317,7 +3346,7 @@
                       )
                     )
                   ),
-                  description && h('div', { className: 'revue-description' }, description)
+                  renderIntro(entry, 'revue-description')
                 )
               ),
               h('div', { className: 'revue-rows' },

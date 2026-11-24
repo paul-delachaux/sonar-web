@@ -1,5 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
+import { articleDescriptionText } from '../utils/i18n.js';
 
 interface Props {
   kind: 'favorites' | 'read-later';
@@ -66,8 +67,10 @@ const sortStorageKey = isReadLater ? 'sonar_read_later_sort' : 'sonar_favorites_
       const bg = art.data.image || art.data.article_image || '';
       const title = art.data.title;
       const titleEN = hasEn ? String(art.data.title_en) : title;
-      const descFR = art.data.description || '';
-      const descEN = hasEn && art.data.description_en ? String(art.data.description_en) : descFR;
+      const descFR = articleDescriptionText(art.data.description);
+      const descEN = hasEn
+        ? articleDescriptionText(art.data.description_en) || descFR
+        : descFR;
       const bgStyle = bg ? `background-image: url(${JSON.stringify(bg)});` : '';
 
       return (

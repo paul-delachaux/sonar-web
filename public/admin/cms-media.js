@@ -659,6 +659,75 @@
     if (nav) nav.remove();
   }
 
+  function stateValue(value, key) {
+    if (!value) return undefined;
+    return typeof value.get === 'function' ? value.get(key) : value[key];
+  }
+
+  function controlMediaPath(store, controlID) {
+    var state = store && store.getState && store.getState();
+    var library = stateValue(state, 'mediaLibrary');
+    var controls = stateValue(library, 'controlMedia');
+    return stateValue(controls, controlID);
+  }
+
+  function observeMediaStore(store) {
+    if (!store || store.__sonarMediaStoreObserved) return;
+    var dispatch = store.dispatch;
+    store.dispatch = function (action) {
+      var result = dispatch.apply(store, arguments);
+      if (action && action.type === 'MEDIA_INSERT' && action.payload) {
+        var notify = global.SonarBodyComposerMediaPicked;
+        var getControlID = global.SonarBodyComposerMediaControlID;
+        if (typeof notify === 'function') {
+          notify(action.payload.mediaPath, typeof getControlID === 'function' ? getControlID() : null);
+        }
+      }
+      return result;
+    };
+    var lastPaths = {};
+    var lastCanInsert = {};
+    if (typeof store.subscribe === 'function') {
+      store.subscribe(function () {
+        var getControlID = global.SonarBodyComposerMediaControlID;
+        var controlID = typeof getControlID === 'function' ? getControlID() : null;
+        if (!controlID) return;
+        var state = store.getState();
+        var library = stateValue(state, 'mediaLibrary');
+        var canInsert = stateValue(library, 'canInsert') === true;
+        var becameSelectable = lastCanInsert[controlID] !== true && canInsert;
+        lastCanInsert[controlID] = canInsert;
+        var path = controlMediaPath(store, controlID);
+        if (path == null || path === '') return;
+        var token = String(path);
+        if (!becameSelectable && lastPaths[controlID] === token) return;
+        lastPaths[controlID] = token;
+        var notify = global.SonarBodyComposerMediaPicked;
+        if (typeof notify === 'function') notify(path, controlID, becameSelectable);
+      });
+    }
+    store.__sonarMediaStoreObserved = true;
+  }
+
+  function bindMediaChoose() {
+    document.addEventListener('click', function (event) {
+      var target = event.target;
+      var button = target && target.closest ? target.closest('button') : null;
+      if (!button) return;
+      if (String(button.className).indexOf('InsertButton') === -1 && controlLabel(button) !== 'Choose selected') return;
+      var getControlID = global.SonarBodyComposerMediaControlID;
+      var controlID = typeof getControlID === 'function' ? getControlID() : null;
+      if (!controlID) return;
+      global.setTimeout(function () {
+        var path = controlMediaPath(findCmsStore(), controlID);
+        var notify = global.SonarBodyComposerMediaPicked;
+        if (path != null && path !== '' && typeof notify === 'function') {
+          notify(path, controlID, true);
+        }
+      }, 30);
+    }, true);
+  }
+
   function findCmsStore() {
     var root = document.getElementById('nc-root');
     if (!root) return null;
@@ -681,7 +750,9 @@
     }
     var fiber = root[fiberKey];
     var start = fiber && fiber.stateNode && fiber.stateNode.current ? fiber.stateNode.current : fiber;
-    return walk(start);
+    var store = walk(start);
+    observeMediaStore(store);
+    return store;
   }
 
   function insertMediaPaths(paths) {
@@ -759,7 +830,7 @@
     style.id = 'sonar-media-check-css';
     style.textContent = [
       '.sonar-media-check{',
-      'position:absolute!important;top:8px!important;left:8px!important;z-index:20!important;',
+      'position:absolute!important;top:8px!important;right:8px!important;left:auto!important;z-index:20!important;',
       'width:22px!important;height:22px!important;margin:0!important;padding:0!important;',
       'cursor:pointer!important;accent-color:#ff7900;background:#fff!important;border:1px solid #111!important;',
       'opacity:1!important;visibility:visible!important;display:block!important;pointer-events:auto!important;',
@@ -1032,6 +1103,9 @@
   global.SonarCmsMedia = {
     url: syncUrl,
     resolve: resolve,
+    controlMedia: function (controlID) {
+      return controlMediaPath(findCmsStore(), controlID);
+    },
     uploadBatch: uploadBatch,
     markLive: markLive
   };
@@ -1048,6 +1122,8 @@
     loadPersisted();
     removeGlobalChrome();
     ensureMediaLibraryButton();
+    bindMediaChoose();
+    hookCmsMediaStore();
     hookCmsEvents();
     bindRoot(document);
     rewritePreview();
@@ -1056,6 +1132,11 @@
       flushWaitingForDraft();
       scheduleRewrite();
     });
+  }
+
+  function hookCmsMediaStore() {
+    if (findCmsStore()) return;
+    setTimeout(hookCmsMediaStore, 400);
   }
 
   if (document.readyState === 'loading') {

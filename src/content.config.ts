@@ -6,7 +6,15 @@ const articles = defineCollection({
 
   schema: z.object({
     title: z.string(),
-    description: z.string().nullish().optional(), // Rend-le optionnel au cas où une brève n'a pas de description
+    description: z.union([
+      z.string(),
+      z.object({
+        mode: z.enum(['text', 'image']).optional(),
+        text: z.string().optional(),
+        image: z.string().optional(),
+        caption: z.string().optional(),
+      }),
+    ]).nullish().optional(),
 
     // --- NOUVEAU : TYPE DE LAYOUT ---
     layout_type: z.enum(['classique', 'breve', 'revue_musicale']).default('classique'),
@@ -15,7 +23,23 @@ const articles = defineCollection({
 
     // --- CHAMPS ANGLAIS ---
     title_en: z.string().nullish().optional(),
-    description_en: z.string().nullish().optional(),
+    description_en: z.union([
+      z.string(),
+      z.object({
+        mode: z.enum(['text', 'image']).optional(),
+        text: z.string().optional(),
+        image: z.string().optional(),
+        caption: z.string().optional(),
+      }),
+    ]).nullish().optional(),
+    description_mode: z.enum(['text', 'image']).nullish().optional(),
+    description_mode_en: z.enum(['text', 'image']).nullish().optional(),
+    description_image: z.string().nullish().optional(),
+    description_image_en: z.string().nullish().optional(),
+    description_image_alt: z.string().nullish().optional(),
+    description_image_alt_en: z.string().nullish().optional(),
+    description_image_caption: z.string().nullish().optional(),
+    description_image_caption_en: z.string().nullish().optional(),
     body_en: z.string().nullish().optional(),
     category_en: z.string().nullish().optional(),
     author_about_en: z.string().nullish().optional(),

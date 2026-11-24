@@ -1,6 +1,6 @@
 ---
 import MainLayout from './Layout.astro';
-import { categoryLabel, t } from '../utils/i18n.js';
+import { articleDescriptionText, categoryLabel, t } from '../utils/i18n.js';
 import { authorAvatarUrl, getAuthorProfile } from '../utils/authors';
 import { loadAuthorProfilesOrBundled } from '../utils/author-profiles-store';
 import CategoryBadge from '../components/CategoryBadge.astro';
@@ -85,10 +85,14 @@ const partnersEN = authorProfile.partners_en?.trim() || partnersFR;
       <div class="author-date-list" id="author-date-list">
         {articles.map((article) => {
           const date = new Date(article.data.date);
+          const hasEnglish = Boolean(article.data.title_en && String(article.data.title_en).trim());
+          const descriptionFR = articleDescriptionText(article.data.description);
+          const descriptionEN = hasEnglish
+            ? articleDescriptionText(article.data.description_en) || descriptionFR
+            : '';
           const dateIso = Number.isNaN(date.getTime()) ? '' : date.toISOString();
           const category = String(article.data.category || '').trim() || 'autres';
           const image = article.data.image || article.data.article_image || '';
-          const hasEnglish = Boolean(article.data.title_en && String(article.data.title_en).trim());
           return (
             <a
               class="author-article-card"
@@ -104,9 +108,9 @@ const partnersEN = authorProfile.partners_en?.trim() || partnersFR;
               <div class="author-article-copy">
                 <p class="author-article-category"><CategoryBadge slug={category} /></p>
                 <h2 data-fr={article.data.title} data-en={hasEnglish ? article.data.title_en : ''}>{article.data.title}</h2>
-                {article.data.description && (
-                  <p class="author-article-description" data-fr={article.data.description} data-en={hasEnglish ? article.data.description_en || article.data.description : ''}>
-                    {article.data.description}
+                {descriptionFR && (
+                  <p class="author-article-description" data-fr={descriptionFR} data-en={descriptionEN}>
+                    {descriptionFR}
                   </p>
                 )}
                 <time datetime={dateIso} data-date={dateIso}>

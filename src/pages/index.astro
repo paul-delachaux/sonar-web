@@ -7,6 +7,7 @@ import homeSettings from '../data/settings.json';
 import Analytics from '@vercel/analytics/astro';
 
 import { supabase } from '../utils/supabase';
+import { articleDescriptionText } from '../utils/i18n.js';
 
 // On récupère les données de Supabase
 const { data: testComments, error } = await supabase
@@ -256,10 +257,16 @@ const hasEnAsymDroite = asymDroiteEN.hasEn;
 const enText = (artEN: any, hasEn: boolean, field: string, fallbackField?: string) => {
     if (!hasEn || !artEN) return "";
     const primary = artEN.data?.[field];
-    if (primary != null && String(primary).trim() !== "") return String(primary);
+    const primaryText = field.startsWith('description')
+      ? articleDescriptionText(primary)
+      : String(primary || '');
+    if (primaryText.trim() !== "") return primaryText;
     if (fallbackField) {
         const secondary = artEN.data?.[fallbackField];
-        if (secondary != null && String(secondary).trim() !== "") return String(secondary);
+        const secondaryText = fallbackField.startsWith('description')
+          ? articleDescriptionText(secondary)
+          : String(secondary || '');
+        if (secondaryText.trim() !== "") return secondaryText;
     }
     return "";
 };
@@ -313,10 +320,10 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                             </h2>
                             <p 
                               class="article-desc"
-                              data-fr={articleUneFR.data.description}
+                              data-fr={articleDescriptionText(articleUneFR.data.description)}
                               data-en={enText(articleUneEN, hasEnUne, "description_en")}
                             >
-                                {articleUneFR.data.description}
+                                {articleDescriptionText(articleUneFR.data.description)}
                             </p>
                         </div>
                         {articleUneFR.data.image && (
@@ -367,10 +374,10 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                             </h3>
                             <p 
                               class="sidebar-desc"
-                              data-fr={premierSecondaireLongFR.data.description}
+                              data-fr={articleDescriptionText(premierSecondaireLongFR.data.description)}
                               data-en={enText(premierSecondaireLongEN, hasEnLong, "description_en")}
                             >
-                                {premierSecondaireLongFR.data.description}
+                                {articleDescriptionText(premierSecondaireLongFR.data.description)}
                             </p>
                         </div>
                         <div class="card-dynamic-spacer">
@@ -424,10 +431,10 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                         </h3>
                                         <p 
                                           class="sidebar-desc"
-                                          data-fr={artFR.data.description}
+                                          data-fr={articleDescriptionText(artFR.data.description)}
                                           data-en={enText(artEN, hasEn, "description_en")}
                                         >
-                                            {artFR.data.description}
+                                            {articleDescriptionText(artFR.data.description)}
                                         </p>
                                     </div>
                                     <div class="card-dynamic-spacer">
@@ -492,10 +499,10 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                 </h3>
                                 <p 
                                   class="card-desc"
-                                  data-fr={artFR.data.description}
+                                  data-fr={articleDescriptionText(artFR.data.description)}
                                   data-en={enText(artEN, hasEn, "description_en")}
                                 >
-                                    {artFR.data.description}
+                                    {articleDescriptionText(artFR.data.description)}
                                 </p>
                             </div>
                         </a>
@@ -592,10 +599,10 @@ const enBg = (artEN: any, hasEn: boolean, field = "image") => {
                                 </h3>
                                 <p 
                                   class="card-desc"
-                                  data-fr={articleAsymDroiteFR.data.description}
+                                  data-fr={articleDescriptionText(articleAsymDroiteFR.data.description)}
                                   data-en={enText(articleAsymDroiteEN, hasEnAsymDroite, "description_en")}
                                 >
-                                    {articleAsymDroiteFR.data.description}
+                                    {articleDescriptionText(articleAsymDroiteFR.data.description)}
                                 </p>
                             </div>
                         </a>

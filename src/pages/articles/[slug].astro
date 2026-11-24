@@ -1,5 +1,5 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 import MainLayout from '../../layouts/Layout.astro';
 import { Tweet } from 'astro-embed';
 import { categoryLabel, t } from '../../utils/i18n.js';
@@ -40,23 +40,94 @@ if (!article || article.data.isVisible === false) {
 }
 
 const markdownToHtml = (md: string) => {
-  const escaped = String(md || '')
+  const escapeHtml = (value: string) => value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  return escaped
-    .split(/\n\n+/)
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  const decodeHtml = (value: string) => value
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+  const inline = (value: string) => escapeHtml(value)
+    .replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<u>$1</u>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/&lt;u&gt;([\s\S]*?)&lt;\/u&gt;/gi, '<u>$1</u>')
+    .replace(/\+\+(.+?)\+\+/g, '<u>$1</u>')
+    .replace(/\u0000/g, '<br/>')
+    .replace(/\n/g, '<br/>');
+  const renderTextBlock = (value: string) => {
+    const output: string[] = [];
+    let paragraphLines: string[] = [];
+    let listItems: string[] = [];
+    const flushParagraph = () => {
+      if (!paragraphLines.length) return;
+      output.push(`<p>${paragraphLines.map(inline).join('<br/>')}</p>`);
+      paragraphLines = [];
+    };
+    const flushList = () => {
+      if (!listItems.length) return;
+      output.push(`<ul>${listItems.map((item) => `<li>${inline(item)}</li>`).join('')}</ul>`);
+      listItems = [];
+    };
+    value.split('\n').forEach((line) => {
+      const item = line.match(/^\s*[*+-]\s+([\s\S]*)$/);
+      if (item) {
+        flushParagraph();
+        listItems.push(item[1]);
+      } else if (listItems.length && /^\s{2,}/.test(line)) {
+        const continuation = line.replace(/^\s{2}/, '');
+        listItems[listItems.length - 1] += continuation.trim() === '\\\\' ? '\n' : '\n' + continuation;
+      } else if (line.trim() === '\\\\') {
+        flushList();
+        paragraphLines.push('\u0000');
+      } else {
+        flushList();
+        paragraphLines.push(line);
+      }
+    });
+    flushParagraph();
+    flushList();
+    return output.join('');
+  };
+
+  return String(md || '')
+    .split(/\n\s*\n/)
     .map((block) => {
-      const withInline = block
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br/>');
-      return `<p>${withInline}</p>`;
+      const trimmed = block.trim();
+      if (!trimmed) return '';
+
+      const heading = trimmed.match(/^(#{2,3})\s+([\s\S]*)$/);
+      if (heading) {
+        const level = heading[1].length;
+        return `<h${level}>${inline(heading[2])}</h${level}>`;
+      }
+
+      const figure = trimmed.match(/^<figure class="article-body-image">\s*<img src="([^"]*)" alt="([^"]*)"\s*\/?>(?:\s*<figcaption>([\s\S]*?)<\/figcaption>)?\s*<\/figure>$/i);
+      if (figure) {
+        const src = decodeHtml(figure[1]);
+        if (!/^(https?:\/\/|\/|[^:]+$)/i.test(src)) return '';
+        const alt = decodeHtml(figure[2]);
+        const caption = decodeHtml(figure[3] || '');
+        return `<figure class="article-body-image"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}">${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ''}</figure>`;
+      }
+
+      const image = trimmed.match(/^!\[([^\]]*)\]\((<?)([^)\s>]+)>?\)$/);
+      if (image) {
+        const src = image[3];
+        if (!/^(https?:\/\/|\/|[^:]+$)/i.test(src)) return '';
+        return `<figure class="article-body-image"><img src="${escapeHtml(src)}" alt="${escapeHtml(image[1])}"></figure>`;
+      }
+
+      return `<div class="article-body-text-block">${renderTextBlock(trimmed)}</div>`;
     })
     .join('');
 };
 
-const { Content } = await render(article);
+const bodyFrHtml = markdownToHtml(String(article.body || ''));
 
 const isBreve = article.data.layout_type === 'breve';
 const isRevue = article.data.layout_type === 'revue_musicale';
@@ -241,10 +312,43 @@ const heureAfficheeEN = dateObj.toLocaleTimeString('en-US', timeOptions);
 const readingTime = article.data.reading_time || (isBreve ? 2 : 5);
 const titleFR = article.data.title;
 const titleEN = hasEn ? String(article.data.title_en) : titleFR;
-const descFR = article.data.description || "";
-const descEN = hasEn && article.data.description_en
-  ? String(article.data.description_en)
+const normalizeIntro = (
+  value: unknown,
+  legacy: { mode?: string | null; image?: string | null; caption?: string | null },
+) => {
+  if (typeof value === 'string') {
+    return legacy.mode === 'image' && legacy.image
+      ? { mode: 'image', text: value, image: legacy.image || '', caption: legacy.caption || '' }
+      : { mode: 'text', text: value, image: '', caption: '' };
+  }
+  const intro = value && typeof value === 'object'
+    ? value as { mode?: string; text?: string; image?: string; caption?: string }
+    : {};
+  return {
+    mode: intro.mode === 'image' && intro.image ? 'image' : 'text',
+    text: intro.text || '',
+    image: intro.image || '',
+    caption: intro.caption || '',
+  };
+};
+const introFR = normalizeIntro(article.data.description, {
+  mode: article.data.description_mode,
+  image: article.data.description_image,
+  caption: article.data.description_image_caption,
+});
+const introEN = normalizeIntro(article.data.description_en, {
+  mode: article.data.description_mode_en,
+  image: article.data.description_image_en,
+  caption: article.data.description_image_caption_en,
+});
+const descFR = introFR.mode === 'text' ? introFR.text : '';
+const descEN = hasEn
+  ? (introEN.mode === 'text' ? (introEN.text || descFR) : '')
   : descFR;
+const introImageFR = introFR.mode === 'image' ? introFR.image : '';
+const introImageEN = hasEn && introEN.mode === 'image' ? introEN.image : '';
+const introCaptionFR = introFR.caption;
+const introCaptionEN = introEN.caption;
 ---
 
 <MainLayout title={article.data.title}>
@@ -255,6 +359,12 @@ const descEN = hasEn && article.data.description_en
       titleEN={titleEN}
       descFR={descFR}
       descEN={descEN}
+      descImageFR={introImageFR}
+      descImageEN={introImageEN}
+      descImageAltFR={introCaptionFR}
+      descImageAltEN={introCaptionEN}
+      descImageCaptionFR={introCaptionFR}
+      descImageCaptionEN={introCaptionEN}
       authors={authorProfiles}
       readingTime={readingTime}
       dateAfficheeFR={dateAfficheeFR}
@@ -279,10 +389,21 @@ const descEN = hasEn && article.data.description_en
               {titleFR}
             </h1>
 
-            {descFR && (
-              <div class="breve-description" data-fr={descFR} data-en={descEN}>
-                {descFR}
-              </div>
+            {introImageFR ? (
+              <figure class="brief-intro-image" data-lang-content="FR">
+                <img src={introImageFR} alt={introCaptionFR} />
+                {introCaptionFR && <figcaption>{introCaptionFR}</figcaption>}
+              </figure>
+            ) : descFR && (
+              <div class="breve-description" data-lang-content="FR">{descFR}</div>
+            )}
+            {introImageEN ? (
+              <figure class="brief-intro-image" data-lang-content="EN" hidden>
+                <img src={introImageEN} alt={introCaptionEN} />
+                {introCaptionEN && <figcaption>{introCaptionEN}</figcaption>}
+              </figure>
+            ) : descEN && (
+              <div class="breve-description" data-lang-content="EN" hidden>{descEN}</div>
             )}
           </div>
         </header>
@@ -291,9 +412,7 @@ const descEN = hasEn && article.data.description_en
 
         <div class="breve-body-grid">
           <main class="breve-main-content">
-            <div class="prose-content breve-prose" data-lang-content="FR">
-              <Content />
-            </div>
+            <div class="prose-content breve-prose" data-lang-content="FR" set:html={bodyFrHtml} />
 
             {bodyEnHtml ? (
               <div class="prose-content breve-prose" data-lang-content="EN" hidden set:html={bodyEnHtml} />
@@ -441,7 +560,18 @@ const descEN = hasEn && article.data.description_en
 
         <header class="article-header">
           <h1 class="main-title" data-fr={titleFR} data-en={titleEN}>{titleFR}</h1>
-          {descFR && <p class="main-description" data-fr={descFR} data-en={descEN}>{descFR}</p>}
+          {introImageFR ? (
+            <figure class="article-intro-image" data-lang-content="FR">
+              <img src={introImageFR} alt={introCaptionFR} />
+              {introCaptionFR && <figcaption>{introCaptionFR}</figcaption>}
+            </figure>
+          ) : descFR && <p class="main-description" data-lang-content="FR">{descFR}</p>}
+          {introImageEN ? (
+            <figure class="article-intro-image" data-lang-content="EN" hidden>
+              <img src={introImageEN} alt={introCaptionEN} />
+              {introCaptionEN && <figcaption>{introCaptionEN}</figcaption>}
+            </figure>
+          ) : descEN && <p class="main-description" data-lang-content="EN" hidden>{descEN}</p>}
 
           <div class="author-meta-block">
             <div class="author-avatar-group">
@@ -475,9 +605,7 @@ const descEN = hasEn && article.data.description_en
         <div class="article-grid">
 
           <main class="article-main-content">
-            <div class="prose-content" data-lang-content="FR">
-              <Content />
-            </div>
+            <div class="prose-content" data-lang-content="FR" set:html={bodyFrHtml} />
 
             {bodyEnHtml ? (
               <div class="prose-content" data-lang-content="EN" hidden set:html={bodyEnHtml} />
@@ -613,8 +741,10 @@ const descEN = hasEn && article.data.description_en
     }
 
     function insertAtParagraphPosition(container, element, targetPos) {
-      const paragraphs = Array.from(container.querySelectorAll(':scope > p')).filter(
-        p => p.textContent.trim().length > 0
+      const paragraphs = Array.from(container.querySelectorAll(
+        ':scope > .article-body-text-block, :scope > p, :scope > h2, :scope > h3'
+      )).filter(
+        block => block.textContent.trim().length > 0
       );
 
       if (paragraphs.length === 0) {
@@ -968,6 +1098,11 @@ const descEN = hasEn && article.data.description_en
   .breve-header-main { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; width: 100%; }
   .breve-title { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 2.2rem; font-weight: 800; line-height: 1.15; color: #ffffff; margin: 0; letter-spacing: -0.02em; text-align: left; flex: 1; margin-left: 25px; }
   .breve-description { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 0.9rem; line-height: 1.5; color: #e5e7eb; font-weight: 400; text-align: left; margin: 0; width: 500px; flex-shrink: 0; }
+  .brief-intro-image { width: min(500px, 100%); flex: 0 1 500px; margin: 0; }
+  .brief-intro-image img { display: block; width: 100%; max-height: 280px; border-radius: 6px; object-fit: cover; }
+  .article-intro-image { max-width: 760px; margin: 0 0 30px; }
+  .article-intro-image img { display: block; width: 100%; max-height: 420px; border-radius: 6px; object-fit: cover; }
+  .brief-intro-image figcaption, .article-intro-image figcaption { margin-top: 6px; color: #a9a9b5; font-size: .78rem; font-style: italic; line-height: 1.4; }
   .breve-divider { border: none; border-top: 1px solid #1f2937; height: 0; margin: 25px 0 35px 0; }
   .breve-body-grid { display: grid; grid-template-columns: 7fr 3fr; gap: 50px; align-items: stretch; }
   .breve-main-content { display: flex; flex-direction: column; gap: 20px; }
@@ -1055,8 +1190,13 @@ const descEN = hasEn && article.data.description_en
   .breve-caption { box-sizing: border-box; width: 100%; }
   .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word; overflow: visible; }
   .prose-content p { margin-bottom: 28px; margin-top: 28px;}
-  .prose-content li { margin-bottom: 28px; }
+  .prose-content ul { margin: 1em 0; padding-inline-start: 1.6em; list-style: disc; }
+  .prose-content li { margin-bottom: .35em; padding-inline-start: .2em; }
   .prose-content h2 { font-size: 1.7rem; color: #ffffff; margin-top: 40px; margin-bottom: 20px; font-weight: 700; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .prose-content h3 { margin: 32px 0 16px; color: #fff; font-size: 1.35rem; line-height: 1.35; }
+  .article-body-image { margin: 28px 0; }
+  .article-body-image img { display: block; max-width: 100%; max-height: 550px; border-radius: 5px; object-fit: contain; }
+  .article-body-image figcaption { margin-top: 7px; color: #a9a9b5; font-size: .82rem; font-style: italic; line-height: 1.45; }
   .article-sidebar { height: 100%; background-color: #02001d !important; }
   .sidebar-sticky-box { position: sticky; top: 20px; background-color: #02001d; }
   .sidebar-similaires { display: flex; flex-direction: column; gap: 16px; }
@@ -1085,6 +1225,7 @@ const descEN = hasEn && article.data.description_en
     .prose-content h2 { font-size: 1.4rem; }
     .breve-header-main { flex-direction: column; gap: 15px; }
     .breve-description { width: 100%; }
+    .brief-intro-image { width: 100%; flex-basis: auto; }
     .breve-wrapper, .article-wrapper { margin: 0; border-radius: 0; }
     .breve-layout-container, .article-container { padding: 30px 20px; box-sizing: border-box; }
     .article-grid { grid-template-columns: 1fr; }

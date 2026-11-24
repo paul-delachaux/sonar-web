@@ -12,6 +12,13 @@ export function categoryLabel(slug, lang = 'FR') {
   return domainHeading(slug, lang);
 }
 
+export function articleDescriptionText(value) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+  if (value.mode === 'image' && value.image) return '';
+  return String(value.text || '');
+}
+
 // Filtrer les articles selon la langue
 export function getVisibleArticles(articlesList, currentLang) {
   return articlesList.filter(article => {
@@ -30,14 +37,15 @@ export function getArticleData(article, currentLang) {
   if (currentLang === 'EN' && article.data.title_en) {
     return {
       title: article.data.title_en,
-      description: article.data.description_en || article.data.description,
+      description: articleDescriptionText(article.data.description_en)
+        || articleDescriptionText(article.data.description),
       body: article.data.body_en || article.data.body
     };
   }
 
   return {
     title: article.data.title,
-    description: article.data.description,
+    description: articleDescriptionText(article.data.description),
     body: article.data.body
   };
 }

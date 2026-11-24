@@ -23,14 +23,14 @@ collections:
       # --- VERSION FRANÇAISE ---
       - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
       - { name: "title", label: "Titre (FR)", widget: "string" }
-      - { name: "description", label: "Description (FR)", widget: "string" }
-      - { name: "body", label: "Contenu de l'article (FR)", widget: "markdown" }
+      - { name: "description", label: "Introduction (FR)", widget: "article-intro" }
+      - { name: "body", label: "Contenu de l'article (FR)", widget: "article-short-body" }
 
       # --- VERSION ANGLAISE (FACULTATIVE) ---
       - { name: "version_en_sep", widget: "separator", label: "🇬🇧 Version Anglaise (Optionnelle)", collapsed: false, required: false }
       - { name: "title_en", label: "Titre (EN)", widget: "string", required: false }
-      - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
-      - { name: "body_en", label: "Contenu de l'article (EN)", widget: "markdown", required: false }
+      - { name: "description_en", label: "Introduction (EN)", widget: "article-intro", required: false }
+      - { name: "body_en", label: "Contenu de l'article (EN)", widget: "article-short-body", required: false }
 
       - { label: "IMAGES ET TWEETS DANS LE TEXTE", name: "sep_media_blocks", widget: "separator", required: false }
       - label: "Ordre dans l'article"
@@ -141,14 +141,14 @@ collections:
       # --- VERSION FRANCAISE ---
       - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
       - { name: "title", label: "Titre de la brève (FR)", widget: "string" }
-      - { name: "description", label: "Description (FR)", widget: "string" }
-      - { name: "body", label: "Texte court", widget: "markdown" }
+      - { name: "description", label: "Introduction (FR)", widget: "article-intro" }
+      - { name: "body", label: "Texte court", widget: "article-short-body" }
 
       # --- VERSION ANGLAISE (FACULTATIVE) ---
       - { name: "version_en_sep", widget: "separator", label: "🇬🇧 Version Anglaise (Optionnelle)", collapsed: false, required: false }
       - { name: "title_en", label: "Titre de la brève (EN)", widget: "string", required: false }
-      - { name: "description_en", label: "Description (EN)", widget: "string", required: false }
-      - { name: "body_en", label: "Texte court", widget: "markdown", required: false }
+      - { name: "description_en", label: "Introduction (EN)", widget: "article-intro", required: false }
+      - { name: "body_en", label: "Texte court", widget: "article-short-body", required: false }
 
       - { label: "IMAGES ET TWEETS DANS LE TEXTE", name: "sep_media_blocks", widget: "separator", required: false }
       - label: "Ordre dans la brève"
@@ -254,11 +254,11 @@ collections:
 
       - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
       - { name: "title", label: "Titre (FR)", widget: "string" }
-      - { name: "description", label: "Description (FR)", widget: "text" }
+      - { name: "description", label: "Introduction (FR)", widget: "article-intro" }
 
       - { name: "version_en_sep", widget: "separator", label: "🇬🇧 Version Anglaise (Optionnelle)", collapsed: false, required: false }
       - { name: "title_en", label: "Titre (EN)", widget: "string", required: false }
-      - { name: "description_en", label: "Description (EN)", widget: "text", required: false }
+      - { name: "description_en", label: "Introduction (EN)", widget: "article-intro", required: false }
 
       - { label: "LIGNES DU LAYOUT", name: "sep_rows", widget: "separator", required: false }
       - label: "Lignes"
@@ -283,8 +283,8 @@ collections:
                   - { label: "Texte", value: "texte" }
                   - { label: "Image", value: "image" }
                   - { label: "Audio", value: "audio" }
-              - { label: "Texte (FR)", name: "text", widget: "markdown", required: false }
-              - { label: "Texte (EN)", name: "text_en", widget: "markdown", required: false }
+              - { label: "Texte (FR)", name: "text", widget: "article-short-body", required: false }
+              - { label: "Texte (EN)", name: "text_en", widget: "article-short-body", required: false }
               - { label: "Image", name: "image", widget: "image", required: false }
               - { label: "Légende de l'image (FR)", name: "image_caption", widget: "string", required: false }
               - { label: "Légende de l'image (EN)", name: "image_caption_en", widget: "string", required: false }
@@ -312,8 +312,8 @@ collections:
                   - { label: "Texte", value: "texte" }
                   - { label: "Image", value: "image" }
                   - { label: "Audio", value: "audio" }
-              - { label: "Texte (FR)", name: "text", widget: "markdown", required: false }
-              - { label: "Texte (EN)", name: "text_en", widget: "markdown", required: false }
+              - { label: "Texte (FR)", name: "text", widget: "article-short-body", required: false }
+              - { label: "Texte (EN)", name: "text_en", widget: "article-short-body", required: false }
               - { label: "Image", name: "image", widget: "image", required: false }
               - { label: "Légende de l'image (FR)", name: "image_caption", widget: "string", required: false }
               - { label: "Légende de l'image (EN)", name: "image_caption_en", widget: "string", required: false }

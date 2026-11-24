@@ -1,7 +1,7 @@
 ---
 import MainLayout from './Layout.astro';
 import categorySettings from '../data/categories.json';
-import { t, categoryLabel } from '../utils/i18n.js';
+import { t, categoryLabel, articleDescriptionText } from '../utils/i18n.js';
 
 interface Props {
   categoryTitle: string;
@@ -146,6 +146,7 @@ const remainingEN = remainingFR.map((artFR) => {
 const enText = (artEN: any, hasEn: boolean, field: string) => {
   if (!hasEn || !artEN) return "";
   const val = artEN.data?.[field];
+  if (field.startsWith('description')) return articleDescriptionText(val);
   return val != null && String(val).trim() !== "" ? String(val) : "";
 };
 const enImage = (artEN: any, hasEn: boolean) => {
@@ -219,10 +220,10 @@ const overlayGradient = (raw: unknown) => {
                   <p 
                     class="card-desc"
                     style={`font-size: ${artFR.customStyles.descSize} !important;`}
-                    data-fr={artFR.data.description}
+                    data-fr={articleDescriptionText(artFR.data.description)}
                     data-en={enText(artEN, hasEn, "description_en")}
                   >
-                    {artFR.data.description}
+                    {articleDescriptionText(artFR.data.description)}
                   </p>
                 </div>
               </a>

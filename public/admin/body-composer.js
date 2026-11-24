@@ -3,6 +3,9 @@
  * Le markdown reste le champ body ; ce widget ne stocke que media_blocks.
  */
 (function (global) {
+  var pendingMediaPicks = Object.create(null);
+  var activeMediaControlID = null;
+
   function toJS(value) {
     if (value == null) return [];
     if (typeof value.toJS === 'function') value = value.toJS();
@@ -33,7 +36,11 @@
     return String(md || '')
       .split(/\n\s*\n/)
       .map(function (block) { return block.trim(); })
-      .filter(Boolean);
+      .filter(function (block) {
+        return Boolean(block)
+          && !/^<figure class="article-body-image">/i.test(block)
+          && !/^!\[[^\]]*\]\((<?)[^)\s>]+>?\)$/.test(block);
+      });
   }
 
   function snippet(md, max) {
@@ -59,6 +66,38 @@
     }
     return src;
   }
+
+  function mediaPathToken(value) {
+    var plain = value && typeof value.toJS === 'function' ? value.toJS() : value;
+    try { return JSON.stringify(plain); } catch (e) { return String(plain); }
+  }
+
+  function mediaPathSources(value) {
+    var plain = value && typeof value.toJS === 'function' ? value.toJS() : value;
+    var items = Array.isArray(plain) ? plain : [plain];
+    return items.map(function (item) {
+      if (typeof item === 'string') return item.trim();
+      if (!item || typeof item !== 'object') return '';
+      return String(item.path || item.src || item.url || item.id || '').trim();
+    }).filter(Boolean);
+  }
+
+  global.SonarBodyComposerMediaControlID = function () {
+    return activeMediaControlID;
+  };
+
+  global.SonarBodyComposerMediaPicked = function (value, selectedControlID, force) {
+    var controlID = selectedControlID || activeMediaControlID;
+    var pending = controlID && pendingMediaPicks[controlID];
+    if (!pending) return;
+    var token = mediaPathToken(value);
+    if (!force && token === pending.lastToken) return;
+    pending.lastToken = token;
+    var sources = mediaPathSources(value);
+    if (!sources.length) return;
+    pending.sources = sources;
+    if (pending.instance) pending.instance.consumePendingMediaPick();
+  };
 
   function normalizeBlock(item) {
     if (!item || typeof item !== 'object') return null;
@@ -207,7 +246,9 @@
       applyPickedSources: function (sources) {
         var srcs = (sources || []).map(function (src) { return String(src || '').trim(); }).filter(Boolean);
         if (!srcs.length) return;
-        var pending = this._pendingImageId;
+        var controlID = String(this.props.forID || '');
+        var sharedPending = pendingMediaPicks[controlID];
+        var pending = this._pendingImageId || (sharedPending && sharedPending.id);
         var list = this.blocks().slice();
         srcs.forEach(function (src, i) {
           if (i === 0 && pending) {
@@ -233,6 +274,9 @@
         });
         this._pendingImageId = null;
         this._picking = false;
+        delete pendingMediaPicks[controlID];
+        if (activeMediaControlID === controlID) activeMediaControlID = null;
+        this.stopMediaPickPolling();
         this.emit(list);
       },
 
@@ -320,26 +364,96 @@
       },
 
       openMediaLibrary: function (id) {
+        var controlID = String(this.props.forID || '');
+        var paths = this.props.mediaPaths;
+        var existing = paths && paths.get ? paths.get(this.props.forID) : null;
+        var selected = global.SonarCmsMedia && typeof global.SonarCmsMedia.controlMedia === 'function'
+          ? global.SonarCmsMedia.controlMedia(controlID)
+          : null;
+        pendingMediaPicks[controlID] = {
+          id: id,
+          lastToken: mediaPathToken(selected == null ? existing : selected),
+          instance: this,
+          sources: null
+        };
+        activeMediaControlID = controlID;
         this._pendingImageId = id;
         this._picking = true;
-        var paths = this.props.mediaPaths;
-        if (paths && paths.get) {
-          var existing = paths.get(this.props.forID);
-          if (existing != null && existing !== '') this._lastPick = String(existing);
-        }
+        this.startMediaPickPolling();
         if (typeof this.props.onOpenMediaLibrary === 'function') {
           this.props.onOpenMediaLibrary({
             controlID: this.props.forID,
             forImage: true,
             value: '',
-            allowMultiple: true,
+            allowMultiple: false,
             field: this.props.field
           });
+          this.checkPickedMedia();
+          this.consumePendingMediaPick();
           return true;
         }
         var src = global.prompt('Chemin ou URL de l’image', '/assets/uploads/');
         if (src) this.applyPickedSources([src]);
+        else {
+          delete pendingMediaPicks[controlID];
+          if (activeMediaControlID === controlID) activeMediaControlID = null;
+          this._pendingImageId = null;
+          this._picking = false;
+          this.stopMediaPickPolling();
+        }
         return false;
+      },
+
+      startMediaPickPolling: function () {
+        if (this._mediaPickTimer) return;
+        this._mediaPickTimer = global.setInterval(this.checkPickedMedia.bind(this), 150);
+        this._mediaPickTimeout = global.setTimeout(function () {
+          this.stopMediaPickPolling();
+          var controlID = String(this.props.forID || '');
+          delete pendingMediaPicks[controlID];
+          if (activeMediaControlID === controlID) activeMediaControlID = null;
+          this._picking = false;
+          this._pendingImageId = null;
+        }.bind(this), 300000);
+      },
+
+      stopMediaPickPolling: function () {
+        if (this._mediaPickTimer) {
+          global.clearInterval(this._mediaPickTimer);
+          this._mediaPickTimer = null;
+        }
+        if (this._mediaPickTimeout) {
+          global.clearTimeout(this._mediaPickTimeout);
+          this._mediaPickTimeout = null;
+        }
+      },
+
+      checkPickedMedia: function () {
+        var controlID = String(this.props.forID || '');
+        var pending = pendingMediaPicks[controlID];
+        if (!pending) return;
+        var paths = this.props.mediaPaths;
+        var raw = paths && paths.get
+          ? paths.get(this.props.forID)
+          : (paths ? paths[this.props.forID] : null);
+        if (raw == null || raw === '') return;
+        var token = mediaPathToken(raw);
+        if (token === pending.lastToken) return;
+        var sources = mediaPathSources(raw);
+        if (!sources.length) return;
+        pending.lastToken = token;
+        this._pendingImageId = pending.id;
+        this._picking = true;
+        this.applyPickedSources(sources);
+      },
+
+      consumePendingMediaPick: function () {
+        var controlID = String(this.props.forID || '');
+        var pending = pendingMediaPicks[controlID];
+        if (!pending || !pending.sources || !pending.sources.length) return;
+        this._pendingImageId = pending.id;
+        this._picking = true;
+        this.applyPickedSources(pending.sources);
       },
 
       pickImage: function () {
@@ -358,15 +472,23 @@
           this.applyPickedSources([plain]);
           return;
         }
-        var paths = this.props.mediaPaths;
-        if (!this._picking || !paths || !paths.get) return;
-        var raw = paths.get(this.props.forID);
-        if (raw == null || raw === '') return;
-        var token = String(raw);
-        if (this._lastPick === token) return;
-        this._lastPick = token;
-        var val = typeof raw.toJS === 'function' ? raw.toJS() : raw;
-        this.applyPickedSources(Array.isArray(val) ? val : [val]);
+        this.checkPickedMedia();
+      },
+
+      componentDidMount: function () {
+        var controlID = String(this.props.forID || '');
+        var pending = pendingMediaPicks[controlID];
+        if (!pending) return;
+        pending.instance = this;
+        this.startMediaPickPolling();
+        this.consumePendingMediaPick();
+      },
+
+      componentWillUnmount: function () {
+        var controlID = String(this.props.forID || '');
+        var pending = pendingMediaPicks[controlID];
+        if (pending && pending.instance === this) pending.instance = null;
+        this.stopMediaPickPolling();
       },
 
       onDrop: function (after, beforeId, event) {
