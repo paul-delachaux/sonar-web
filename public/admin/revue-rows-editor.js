@@ -607,6 +607,9 @@
         return h('section', {
           key: rowIndex,
           className: 'sonar-revue-row',
+          'data-sonar-editor-field': 'revue_rows',
+          'data-sonar-editor-index': rowIndex,
+          'data-sonar-editor-side': side,
           onContextMenu: function (event) { self.openInsertMenu(rowIndex, event); },
           onKeyDown: function (event) {
             if (event.key === 'Escape' && self.state.insertMenuRow === rowIndex) {

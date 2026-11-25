@@ -206,7 +206,10 @@
         var imageUrl = intro.image && global.SonarCmsMedia && global.SonarCmsMedia.url
           ? global.SonarCmsMedia.url(intro.image)
           : intro.image;
-        return h('div', { className: 'sonar-intro-editor' },
+        return h('div', {
+          className: 'sonar-intro-editor',
+          'data-sonar-editor-field': widgetFieldName(this.props.field, this.props.forID)
+        },
           h('label', { className: 'sonar-intro-label' },
             'Afficher',
             h('select', {
@@ -246,16 +249,23 @@
 
     function Preview(props) {
       var intro = valueAsIntro(props.value);
+      var fieldName = widgetFieldName(props.field, props.forID);
       if (intro.mode === 'image' && intro.image) {
         var src = global.SonarCmsMedia && global.SonarCmsMedia.url
           ? global.SonarCmsMedia.url(intro.image)
           : intro.image;
-        return h('figure', { className: 'sonar-intro-preview' },
+        return h('figure', {
+          className: 'sonar-intro-preview',
+          'data-sonar-editor-field': fieldName
+        },
           h('img', { src: src, alt: '' }),
           intro.caption && h('figcaption', {}, intro.caption)
         );
       }
-      return intro.text ? h('p', { className: 'sonar-intro-text-preview' }, intro.text) : null;
+      return intro.text ? h('p', {
+        className: 'sonar-intro-text-preview',
+        'data-sonar-editor-field': fieldName
+      }, intro.text) : null;
     }
     CMS.registerWidget('article-intro', Control, Preview);
   }
@@ -782,6 +792,8 @@
         return h('section', {
           key: block.id,
           className: 'sonar-body-block',
+          'data-sonar-editor-field': widgetFieldName(this.props.field, this.props.forID),
+          'data-sonar-editor-index': index,
           onContextMenu: block.type === 'text'
             ? function (event) { self.openInsertMenu(block.id, event); }
             : undefined,
@@ -885,17 +897,26 @@
 
     function Preview(props) {
       var blocks = parseBlocks(valueAsString(props.value));
+      var fieldName = widgetFieldName(props.field, props.forID);
       var nodes = [];
-      blocks.forEach(function (block) {
+      blocks.forEach(function (block, index) {
         if (block.type === 'heading') {
           var level = Number(block.level) === 3 ? 3 : 2;
-          nodes.push(h(level === 3 ? 'h3' : 'h2', { key: block.id }, block.text));
+          nodes.push(h(level === 3 ? 'h3' : 'h2', {
+            key: block.id,
+            'data-sonar-editor-field': fieldName,
+            'data-sonar-editor-index': index
+          }, block.text));
         } else if (block.type === 'image') {
           if (block.src) {
             var imageUrl = global.SonarCmsMedia && global.SonarCmsMedia.url
               ? global.SonarCmsMedia.url(block.src) || block.src
               : block.src;
-            nodes.push(h('figure', { key: block.id },
+            nodes.push(h('figure', {
+              key: block.id,
+              'data-sonar-editor-field': fieldName,
+              'data-sonar-editor-index': index
+            },
               h('img', { src: imageUrl, alt: block.alt || '' }),
               block.caption && h('figcaption', {}, block.caption)
             ));
@@ -908,7 +929,12 @@
             });
           });
           if (textNodes.length) {
-            nodes.push(h('div', { key: block.id, className: 'article-body-text-block' }, textNodes));
+            nodes.push(h('div', {
+              key: block.id,
+              className: 'article-body-text-block',
+              'data-sonar-editor-field': fieldName,
+              'data-sonar-editor-index': index
+            }, textNodes));
           }
         }
       });

@@ -2357,6 +2357,9 @@
       const win = (props && props.window) || (doc && doc.defaultView) || window;
       window.__SONAR_PREVIEW_DOC = doc;
       window.__SONAR_PREVIEW_WIN = win;
+      if (typeof window.__sonarAttachPreviewClickHandler === 'function') {
+        window.__sonarAttachPreviewClickHandler(doc);
+      }
     }
 
     function formatDateFR(rawDate) {
@@ -2389,13 +2392,19 @@
         const caption = value && typeof value === 'object'
           ? value.caption || ''
           : entry.getIn(['data', 'description_image_caption']) || '';
-        return h('figure', { className: descriptionClass + ' article-intro-image' },
+        return h('figure', {
+          className: descriptionClass + ' article-intro-image',
+          'data-sonar-editor-field': 'description'
+        },
           h('img', { src: sonarMediaUrl(image), alt: caption }),
           caption && h('figcaption', {}, caption)
         );
       }
       const description = value && typeof value === 'object' ? value.text : value;
-      return description ? h('p', { className: descriptionClass }, description) : null;
+      return description ? h('p', {
+        className: descriptionClass,
+        'data-sonar-editor-field': 'description'
+      }, description) : null;
     }
 
     function getPreviewAuthors(entry) {
@@ -2436,7 +2445,11 @@
       if (!sourcesArray.length) return null;
       return h('ul', { className: 'sources-list' },
         ...sourcesArray.map(function(src, i) {
-          return h('li', { key: i },
+          return h('li', {
+            key: i,
+            'data-sonar-editor-field': 'consulted_sources',
+            'data-sonar-editor-index': i
+          },
             src.source_url
               ? h('a', { href: src.source_url, target: '_blank', rel: 'noopener noreferrer' }, src.source_title)
               : h('span', {}, src.source_title)
@@ -2758,6 +2771,9 @@
         }
         if (!element) continue;
         element.classList.add('injected-media-block');
+        element.setAttribute('data-sonar-editor-field', 'media_blocks');
+        element.setAttribute('data-sonar-editor-index', String(block._i));
+        element.setAttribute('data-sonar-editor-id', block.id);
         insertAtParagraphPosition(container, element, Number(block.after) || 0);
         applyPreviewMediaSize(element, block, doc);
       }
@@ -3039,8 +3055,14 @@
 
     // 👁️ Preview Articles (layout classique)
     const ArticlePreview = createClass({
-      componentDidMount: function() { startPreviewInjection(this); },
-      componentDidUpdate: function() { bindPreviewInjection(this); },
+      componentDidMount: function() {
+        rememberPreviewContext(this.props);
+        startPreviewInjection(this);
+      },
+      componentDidUpdate: function() {
+        rememberPreviewContext(this.props);
+        bindPreviewInjection(this);
+      },
       componentWillUnmount: function() { stopPreviewInjection(this); },
       syncPositionedElements: function() {
         if (!this._proseNode) return;
@@ -3085,7 +3107,10 @@
             h('div', { className: 'article-container' },
 
               h('header', { className: 'article-header' },
-                h('h1', { className: 'main-title' }, title),
+                h('h1', {
+                  className: 'main-title',
+                  'data-sonar-editor-field': 'title'
+                }, title),
                 renderIntro(entry, 'main-description'),
                 h('div', { className: 'author-meta-block' },
                   h('div', { className: 'author-avatar-group' },
@@ -3094,8 +3119,22 @@
                     })
                   ),
                   h('div', { className: 'author-text-meta' },
-                    h('p', { className: 'author-name' }, 'Par ' + authorNames),
-                    h('p', { className: 'publication-date' }, readingTime + ' min de lecture — Publié le ' + dateAffichee + ' à ' + heureAffichee)
+                    h('p', { className: 'author-name' },
+                      'Par ',
+                      ...authors.map(function(item, i) {
+                        return [
+                          i ? ' et ' : null,
+                          h('span', {
+                            key: 'name-' + i,
+                            'data-sonar-editor-field': item.index === 1 ? 'author2' : 'author'
+                          }, item.name)
+                        ];
+                      })
+                    ),
+                    h('p', {
+                      className: 'publication-date',
+                      'data-sonar-editor-field': 'date'
+                    }, readingTime + ' min de lecture — Publié le ' + dateAffichee + ' à ' + heureAffichee)
                   )
                 )
               ),
@@ -3128,6 +3167,7 @@
           h('div', { style: { border: '2px dashed #1D9E75', padding: '15px', backgroundColor: '#0a131d', borderRadius: '4px', maxWidth: '1200px', margin: 'auto' } },
             h('div', { style: { color: '#1D9E75', fontFamily: 'Helvetica, sans-serif', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px' } }, 'Aperçu en direct de la miniature :'),
             h('div', {
+              'data-sonar-editor-field': 'thumbnail_layout',
               style: {
                 backgroundImage: bg ? 'url(' + bg + ')' : 'none',
                 backgroundColor: '#121f2f',
@@ -3163,8 +3203,14 @@
 
     // 👁️ Preview Brèves (layout court, deux colonnes avec auteur en aside)
     const BrevePreview = createClass({
-      componentDidMount: function() { startPreviewInjection(this); },
-      componentDidUpdate: function() { bindPreviewInjection(this); },
+      componentDidMount: function() {
+        rememberPreviewContext(this.props);
+        startPreviewInjection(this);
+      },
+      componentDidUpdate: function() {
+        rememberPreviewContext(this.props);
+        bindPreviewInjection(this);
+      },
       componentWillUnmount: function() { stopPreviewInjection(this); },
       syncPositionedElements: function() {
         if (!this._proseNode) return;
@@ -3198,9 +3244,15 @@
             h('article', { className: 'breve-layout-container' },
 
               h('header', { className: 'breve-header' },
-                h('div', { className: 'breve-theme' }, categoryLabel),
+                h('div', {
+                  className: 'breve-theme',
+                  'data-sonar-editor-field': 'category'
+                }, categoryLabel),
                 h('div', { className: 'breve-header-main' },
-                  h('h1', { className: 'breve-title' }, title),
+                  h('h1', {
+                    className: 'breve-title',
+                    'data-sonar-editor-field': 'title'
+                  }, title),
                   renderIntro(entry, 'breve-description')
                 )
               ),
@@ -3293,6 +3345,8 @@
     `;
 
     const RevuePreview = createClass({
+      componentDidMount: function() { rememberPreviewContext(this.props); },
+      componentDidUpdate: function() { rememberPreviewContext(this.props); },
       render: function() {
         const entry = this.props.entry;
         const title = entry.getIn(['data', 'title']) || 'Titre de la revue';
@@ -3316,12 +3370,17 @@
           return h('span', { className: 'revue-wave' }, bars);
         }
 
-        function renderCell(cell) {
+        function renderCell(cell, rowIndex, side) {
           const item = cell || {};
           const type = item.type || 'texte';
+          const targetAttrs = {
+            'data-sonar-editor-field': 'revue_rows',
+            'data-sonar-editor-index': rowIndex,
+            'data-sonar-editor-side': side
+          };
           if (type === 'image' && item.image) {
             const caption = item.image_caption || item.image_caption_en || '';
-            return h('div', { className: 'revue-cell revue-cell-image' },
+            return h('div', Object.assign({ className: 'revue-cell revue-cell-image' }, targetAttrs),
               h('figure', { className: 'revue-figure' },
                 h('img', { src: sonarMediaUrl(item.image), className: 'revue-image', alt: caption }),
                 caption && h('figcaption', { className: 'revue-caption' }, caption)
@@ -3331,7 +3390,7 @@
           if (type === 'audio') {
             const tracks = Array.isArray(item.tracks) ? item.tracks : [];
             const list = tracks.length ? tracks : [{ title: 'Piste audio' }];
-            return h('div', { className: 'revue-cell revue-cell-audio' },
+            return h('div', Object.assign({ className: 'revue-cell revue-cell-audio' }, targetAttrs),
               list.map(function (track, i) {
                 return h('div', { key: i, className: 'revue-audio' },
                   h('span', { className: 'revue-audio-play' }),
@@ -3343,7 +3402,7 @@
             );
           }
           if (type === 'intertitre') {
-            return h('div', { className: 'revue-cell revue-cell-intertitre' },
+            return h('div', Object.assign({ className: 'revue-cell revue-cell-intertitre' }, targetAttrs),
               h('h2', { className: 'revue-intertitre', 'data-lang-content': 'FR' }, item.text || ''),
               h('h2', { className: 'revue-intertitre', 'data-lang-content': 'EN', hidden: true }, item.text_en || item.text || '')
             );
@@ -3351,8 +3410,11 @@
           const markdown = window.SonarArticleBody && window.SonarArticleBody.markdownToPreviewHtml;
           const text = item.text || '';
           return markdown
-            ? h('div', { className: 'revue-cell revue-text', dangerouslySetInnerHTML: { __html: markdown(text) } })
-            : h('div', { className: 'revue-cell revue-text' }, text);
+            ? h('div', Object.assign({
+                className: 'revue-cell revue-text',
+                dangerouslySetInnerHTML: { __html: markdown(text) }
+              }, targetAttrs))
+            : h('div', Object.assign({ className: 'revue-cell revue-text' }, targetAttrs), text);
         }
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh' } },
@@ -3363,7 +3425,10 @@
                 h('p', { className: 'revue-kicker' }, 'CULTURE - REVUE MUSICALE'),
                 h('div', { className: 'revue-header-top' },
                   h('div', { className: 'revue-header-main' },
-                    h('h1', { className: 'revue-title' }, title),
+                    h('h1', {
+                      className: 'revue-title',
+                      'data-sonar-editor-field': 'title'
+                    }, title),
                     h('div', { className: 'author-meta-block' },
                       h('div', { className: 'author-avatar-group' },
                         ...authors.map(function(item, i) {
@@ -3371,8 +3436,14 @@
                         })
                       ),
                       h('div', { className: 'author-text-meta' },
-                        h('p', { className: 'author-name' }, 'Par ' + authorNames),
-                        h('p', { className: 'publication-date' }, readingTime + ' min de lecture — Publié le ' + dateFormatted.date + ' à ' + dateFormatted.time)
+                        h('p', {
+                          className: 'author-name',
+                          'data-sonar-editor-field': 'author'
+                        }, 'Par ' + authorNames),
+                        h('p', {
+                          className: 'publication-date',
+                          'data-sonar-editor-field': 'date'
+                        }, readingTime + ' min de lecture — Publié le ' + dateFormatted.date + ' à ' + dateFormatted.time)
                       )
                     )
                   ),
@@ -3381,9 +3452,14 @@
               ),
               h('div', { className: 'revue-rows' },
                 (rows.length ? rows : [{}]).map(function (row, i) {
-                  return h('div', { key: i, className: 'revue-row' + (row.full_width ? ' is-full-width' : '') },
-                    renderCell(row.left),
-                    !row.full_width && renderCell(row.right)
+                  return h('div', {
+                    key: i,
+                    className: 'revue-row' + (row.full_width ? ' is-full-width' : ''),
+                    'data-sonar-editor-field': 'revue_rows',
+                    'data-sonar-editor-index': i
+                  },
+                    renderCell(row.left, i, 'left'),
+                    !row.full_width && renderCell(row.right, i, 'right')
                   );
                 })
               ),
@@ -3835,6 +3911,136 @@
       var hideTimer = null;
       var showTimer = null;
       var scrollTimers = [];
+      var editorFlashTimer = null;
+
+      function normalizeFieldLabel(value) {
+        return String(value || '').trim().toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      }
+
+      var EDITOR_FIELD_LABELS = {
+        title: /^titre \(fr\)$/,
+        title_en: /^titre \(en\)(?: \(optional\))?$/,
+        date: /^date de publication$/,
+        category: /^categorie$/,
+        image: /^image de miniature$/,
+        author: /^auteur de l'article(?: \(optional\))?$/,
+        author2: /^deuxieme auteur/,
+        consulted_sources: /^sources consultables(?: \(optional\))?$/,
+        thumbnail_layout: /^apercu et textes de la miniature/,
+        tweet_url: /^lien.*tweet/
+      };
+
+      function findEditorTarget(field, index, id) {
+        var marked = document.querySelectorAll('[data-sonar-editor-field]');
+        var indexMatch = null;
+        for (var i = 0; i < marked.length; i++) {
+          var candidate = marked[i];
+          if (candidate.getAttribute('data-sonar-editor-field') !== field) continue;
+          if (index != null && candidate.getAttribute('data-sonar-editor-index') !== String(index)) continue;
+          if (id && candidate.getAttribute('data-sonar-editor-id') !== id) {
+            if (!indexMatch) indexMatch = candidate;
+            continue;
+          }
+          if (field === 'media_blocks' && !id) continue;
+          return candidate;
+        }
+        if (indexMatch) return indexMatch;
+
+        var pattern = EDITOR_FIELD_LABELS[field];
+        if (!pattern) return null;
+        var controls = document.querySelectorAll('[class*="ControlContainer"]');
+        for (var j = 0; j < controls.length; j++) {
+          var label = controls[j].querySelector('label');
+          if (!label || !pattern.test(normalizeFieldLabel(label.textContent))) continue;
+          if (field === 'consulted_sources' && index != null) {
+            var items = controls[j].querySelectorAll('[class*="ListItem"], [class*="list-item"]');
+            if (items[index]) return items[index];
+          }
+          return controls[j];
+        }
+        return null;
+      }
+
+      function revealEditorTarget(target, field, side) {
+        if (!target) return;
+        if (field === 'revue_rows') {
+          var rowBody = target.querySelector('.sonar-revue-row-body');
+          if (rowBody && rowBody.classList.contains('is-collapsed')) {
+            var collapseButton = target.querySelector('.sonar-revue-collapse-row');
+            if (collapseButton) collapseButton.click();
+          }
+          var workspace = target.querySelector('.sonar-revue-row-workspace');
+          var isRight = workspace && workspace.classList.contains('is-right');
+          if (side && side !== (isRight ? 'right' : 'left') && workspace && !workspace.classList.contains('is-single')) {
+            var switchButton = target.querySelector('.sonar-revue-switch');
+            if (switchButton) switchButton.click();
+          }
+        } else if (field === 'body' || field === 'body_en') {
+          var content = target.querySelector('.sonar-body-block-content');
+          if (content && content.classList.contains('is-collapsed')) {
+            var toggleButton = target.querySelector('.sonar-body-block-header > button');
+            if (toggleButton) toggleButton.click();
+          }
+        }
+
+        window.setTimeout(function() {
+          var current = findEditorTarget(field, target.getAttribute('data-sonar-editor-index'), target.getAttribute('data-sonar-editor-id'));
+          if (!current) current = target;
+          if (current.scrollIntoView) {
+            try { current.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }); }
+            catch (err) { current.scrollIntoView(true); }
+          }
+          if (!document.getElementById('sonar-editor-target-flash-style')) {
+            var style = document.createElement('style');
+            style.id = 'sonar-editor-target-flash-style';
+            style.textContent = '.sonar-editor-target-flash{outline:3px solid #ff7900!important;outline-offset:3px;transition:outline-color .25s ease;position:relative;z-index:1}';
+            document.head.appendChild(style);
+          }
+          document.querySelectorAll('.sonar-editor-target-flash').forEach(function(el) {
+            el.classList.remove('sonar-editor-target-flash');
+          });
+          current.classList.add('sonar-editor-target-flash');
+          window.clearTimeout(editorFlashTimer);
+          editorFlashTimer = window.setTimeout(function() {
+            current.classList.remove('sonar-editor-target-flash');
+          }, 1500);
+        }, 140);
+      }
+
+      function onPreviewEditorClick(event) {
+        var node = event.target;
+        if (!node || !node.closest) return;
+        var target = node.closest('[data-sonar-editor-field]');
+        if (!target) return;
+        var field = target.getAttribute('data-sonar-editor-field');
+        var indexValue = target.getAttribute('data-sonar-editor-index');
+        var index = indexValue == null ? null : Number(indexValue);
+        var id = target.getAttribute('data-sonar-editor-id');
+        var side = target.getAttribute('data-sonar-editor-side');
+        var editorTarget = findEditorTarget(field, index, id);
+        if (!editorTarget) {
+          console.warn('[Sonar preview] Champ d’édition introuvable :', field);
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        revealEditorTarget(editorTarget, field, side);
+      }
+
+      function attachPreviewClickHandler(doc) {
+        if (!doc || !doc.addEventListener || doc.__sonarEditorClickHandlerAttached) return;
+        doc.__sonarEditorClickHandlerAttached = true;
+        if (doc.head && !doc.getElementById('sonar-preview-editor-target-style')) {
+          var style = doc.createElement('style');
+          style.id = 'sonar-preview-editor-target-style';
+          style.textContent = '[data-sonar-editor-field]{cursor:pointer}[data-sonar-editor-field]:hover{outline:2px solid rgba(255,121,0,.7);outline-offset:2px}';
+          doc.head.appendChild(style);
+        }
+        doc.addEventListener('click', onPreviewEditorClick, true);
+      }
+
+      window.__sonarAttachPreviewClickHandler = attachPreviewClickHandler;
 
       function isSettingsEditor() {
         return /\/collections\/settings\//.test(window.location.hash || '');

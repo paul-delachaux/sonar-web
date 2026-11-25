@@ -12,6 +12,12 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function widgetFieldName(field, fallback) {
+    if (field && typeof field.get === 'function') return field.get('name') || fallback;
+    if (field && typeof field === 'object') return field.name || fallback;
+    return fallback;
+  }
+
   function uid(prefix) {
     return prefix + '-' + Math.random().toString(36).slice(2, 9);
   }
@@ -501,9 +507,13 @@
       renderCard: function (block) {
         var self = this;
         var isTweet = block.type === 'tweet';
+        var blockIndex = this.blocks().findIndex(function (item) { return item.id === block.id; });
         return h('div', {
           key: block.id,
           className: 'sonar-composer-card' + (isTweet ? ' is-tweet' : ''),
+          'data-sonar-editor-field': widgetFieldName(this.props.field, 'media_blocks'),
+          'data-sonar-editor-index': blockIndex,
+          'data-sonar-editor-id': block.id,
           draggable: true,
           onDragStart: function (event) {
             event.dataTransfer.setData('text/plain', block.id);
