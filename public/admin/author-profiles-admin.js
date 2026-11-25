@@ -404,6 +404,9 @@
             sidebar.appendChild(header);
             sidebar.appendChild(item);
           } else sidebar.appendChild(item);
+          if (role === 'admin' && global.SonarAdminFeedback && global.SonarAdminFeedback.addNav) {
+            global.SonarAdminFeedback.addNav(sidebar);
+          }
           navRetryAfter = 0;
           return true;
         });

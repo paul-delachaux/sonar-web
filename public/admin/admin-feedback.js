@@ -66,6 +66,16 @@
     }).join('') + '</div>';
   }
 
+  function messageMarkup(messages) {
+    if (!Array.isArray(messages) || !messages.length) return '';
+    return '<div class="sonar-feedback-thread" aria-label="Conversation">' + messages.map(function (message) {
+      return '<article class="sonar-feedback-message">' +
+        '<header><strong>' + escapeHtml(message.author_name || message.author_login) + '</strong>' +
+        '<time datetime="' + escapeHtml(message.created_at) + '">' + escapeHtml(formatDate(message.created_at)) + '</time></header>' +
+        '<p>' + escapeHtml(message.body).replace(/\r?\n/g, '<br>') + '</p></article>';
+    }).join('') + '</div>';
+  }
+
   function renderFeedback(items) {
     var list = document.getElementById('sonar-feedback-list');
     if (!list) return;
@@ -97,24 +107,32 @@
         ? '<p class="sonar-feedback-resolved-meta">Résolu par ' + escapeHtml(item.resolved_by) +
           (item.resolved_at ? ' · ' + escapeHtml(formatDate(item.resolved_at)) : '') + '</p>'
         : '';
-      var action = superadmin
+      var action = superadmin && isResolved
         ? '<button type="button" class="sonar-feedback-toggle" data-feedback-id="' + escapeHtml(item.id) +
-          '" data-feedback-status="' + (isResolved ? 'pending' : 'resolved') + '">' +
-          (isResolved ? 'Remettre en attente' : 'Marquer comme résolu') + '</button>'
+          '" data-feedback-status="pending">Remettre en attente</button>'
+        : '';
+      var mayReply = !isResolved && (superadmin || String(item.created_by || '').toLowerCase() === login);
+      var reply = mayReply
+        ? '<div class="sonar-feedback-reply"><label for="sonar-feedback-reply-' + escapeHtml(item.id) + '">Votre réponse</label>' +
+          '<textarea id="sonar-feedback-reply-' + escapeHtml(item.id) + '" maxlength="5000" rows="3" placeholder="Écrire un message…"></textarea>' +
+          '<div class="sonar-feedback-actions"><button type="button" class="sonar-feedback-reply-button" data-feedback-reply="' + escapeHtml(item.id) + '">Répondre</button>' +
+          (superadmin ? '<button type="button" class="sonar-feedback-resolve-button" data-feedback-resolve="' + escapeHtml(item.id) + '">Répondre et marquer comme résolu</button>' : '') +
+          '</div></div>'
         : '';
       var canDelete = (superadmin && isResolved)
         || (!superadmin && item.status === 'pending' && String(item.created_by || '').toLowerCase() === login);
-      if (canDelete) {
-        action += '<button type="button" class="sonar-feedback-delete" data-feedback-delete="' + escapeHtml(item.id) + '">' +
-          (superadmin ? 'Supprimer la demande' : 'Annuler ma demande') + '</button>';
-      }
+      var deleteButton = canDelete
+        ? '<button type="button" class="sonar-feedback-delete" data-feedback-delete="' + escapeHtml(item.id) + '">' +
+          (superadmin ? 'Supprimer la demande' : 'Annuler ma demande') + '</button>'
+        : '';
       return '<article class="sonar-feedback-card' + (isResolved ? ' is-resolved' : '') + '">' +
         '<header><div><span class="sonar-feedback-badge ' + (isResolved ? 'is-resolved' : 'is-pending') + '">' +
         escapeHtml(statusLabel(item.status)) + '</span><h3>' + escapeHtml(item.title) + '</h3></div>' +
         '<time datetime="' + escapeHtml(item.created_at) + '">' + escapeHtml(formatDate(item.created_at)) + '</time></header>' +
         (superadmin ? '<p class="sonar-feedback-author">Par ' + escapeHtml(item.created_by_name || item.created_by) + '</p>' : '') +
         '<p class="sonar-feedback-body">' + escapeHtml(item.body).replace(/\r?\n/g, '<br>') + '</p>' +
-        attachmentMarkup(item.attachments) + details + (action ? '<footer class="sonar-feedback-actions">' + action + '</footer>' : '') +
+        attachmentMarkup(item.attachments) + messageMarkup(item.messages) + details + reply +
+        (action || deleteButton ? '<footer class="sonar-feedback-actions">' + action + deleteButton + '</footer>' : '') +
         '</article>';
     }).join('');
   }
@@ -172,6 +190,10 @@
       if (target.closest('[data-feedback-close]')) close();
       var toggle = target.closest('[data-feedback-id]');
       if (toggle) updateStatus(toggle.getAttribute('data-feedback-id'), toggle.getAttribute('data-feedback-status'), toggle);
+      var reply = target.closest('[data-feedback-reply]');
+      if (reply) submitReply(reply.getAttribute('data-feedback-reply'), false, reply);
+      var resolve = target.closest('[data-feedback-resolve]');
+      if (resolve) submitReply(resolve.getAttribute('data-feedback-resolve'), true, resolve);
       var remove = target.closest('[data-feedback-delete]');
       if (remove) deleteFeedback(remove.getAttribute('data-feedback-delete'), remove);
       if (target.closest('#sonar-feedback-refresh')) loadFeedback();
@@ -259,6 +281,28 @@
     });
   }
 
+  function submitReply(id, resolve, button) {
+    var textarea = document.getElementById('sonar-feedback-reply-' + id);
+    var message = textarea ? textarea.value.trim() : '';
+    if (!message) {
+      setStatus('Écris un message avant de l’envoyer.', true);
+      if (textarea) textarea.focus();
+      return;
+    }
+    button.disabled = true;
+    request('/api/admin/feedback', {
+      method: 'PATCH',
+      headers: authHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify({ id: id, message: message, resolve: resolve })
+    }).then(function () {
+      setStatus(resolve ? 'Réponse envoyée et demande résolue.' : 'Réponse envoyée.', false);
+      loadFeedback();
+    }).catch(function (error) {
+      setStatus(error.message || 'Impossible d’envoyer la réponse.', true);
+      button.disabled = false;
+    });
+  }
+
   function deleteFeedback(id, button) {
     if (!id) return;
     var superadmin = global.__SONAR_CMS_ROLE === 'superadmin';
@@ -316,6 +360,17 @@
       '.sonar-feedback-badge.is-resolved{background:#123e34;color:#9be0ca}' +
       '.sonar-feedback-author{margin:8px 0 0;color:#aaa9b7;font-size:12px}' +
       '.sonar-feedback-body{margin:12px 0 0;color:#e5e7eb;font-size:14px;line-height:1.6;overflow-wrap:anywhere}' +
+      '.sonar-feedback-thread{display:grid;gap:8px;margin-top:14px;padding-left:14px;border-left:2px solid #4a4863}' +
+      '.sonar-feedback-message{padding:10px 12px;border-radius:6px;background:#080725}' +
+      '.sonar-feedback-message>header{display:flex;justify-content:space-between;gap:10px;color:#ffb36b;font-size:12px}' +
+      '.sonar-feedback-message time{color:#aaa9b7;font-size:11px}' +
+      '.sonar-feedback-message p{margin:7px 0 0;color:#e5e7eb;font-size:14px;line-height:1.6;overflow-wrap:anywhere}' +
+      '.sonar-feedback-reply{display:grid;gap:8px;margin-top:14px;padding:12px;border:1px solid #34324f;border-radius:7px}' +
+      '.sonar-feedback-reply label{color:#ffb36b;font-size:12px;font-weight:800}' +
+      '.sonar-feedback-reply textarea{box-sizing:border-box;width:100%;resize:vertical;border:1px solid #4a4863;border-radius:6px;padding:9px;background:#080725;color:#fff;font:14px/1.5 Helvetica,Arial,sans-serif}' +
+      '.sonar-feedback-reply-button,.sonar-feedback-resolve-button{border:0;border-radius:6px;padding:8px 11px;background:#34324f;color:#fff;font-weight:800;cursor:pointer}' +
+      '.sonar-feedback-resolve-button{background:#ff7900}' +
+      '.sonar-feedback-reply button:disabled{opacity:.55;cursor:wait}' +
       '.sonar-feedback-attachments{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}' +
       '.sonar-feedback-attachments a{display:flex;flex-direction:column;gap:5px;width:min(180px,40%);color:#ffb36b;font-size:11px;text-decoration:none;overflow-wrap:anywhere}' +
       '.sonar-feedback-attachments img{width:100%;height:110px;object-fit:cover;border:1px solid #4a4863;border-radius:5px}' +
@@ -351,6 +406,22 @@
       if (existing) existing.remove();
       return;
     }
+    if (role === 'admin') {
+      var profileItem = document.getElementById('cms-author-profile-nav');
+      if (profileItem && profileItem.parentNode) {
+        profileItem.parentNode.insertBefore(existing || document.createElement('button'), profileItem.nextSibling);
+        if (!existing) {
+          existing = profileItem.nextSibling;
+          existing.type = 'button';
+          existing.id = 'cms-feedback-nav';
+          existing.className = 'cms-moderation-item';
+          existing.style.paddingLeft = '10px';
+          existing.textContent = 'Retours sur le site';
+          existing.addEventListener('click', open);
+        }
+        return;
+      }
+    }
     if (existing) return;
     var anchor = document.getElementById('cms-announcements-nav')
       || document.getElementById('cms-logs-nav')
@@ -362,7 +433,9 @@
     item.style.paddingLeft = '10px';
     item.textContent = 'Retours sur le site';
     item.addEventListener('click', open);
-    if (anchor && anchor.parentNode) {
+    if (role === 'admin' && sidebar) {
+      sidebar.appendChild(item);
+    } else if (anchor && anchor.parentNode) {
       anchor.parentNode.insertBefore(item, anchor.nextSibling);
     } else if (sidebar) {
       sidebar.appendChild(item);

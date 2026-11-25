@@ -31,6 +31,9 @@ function supabaseSetupMessage(error: { code?: string; message?: string }) {
   if (error.code === '42P01' || error.code === 'PGRST205' || /relation .* does not exist/i.test(error.message || '')) {
     return 'Le module de retours n’est pas configuré dans Supabase. Exécutez supabase/admin-feedback.sql.';
   }
+  if (error.code === 'PGRST202' || /function .* does not exist/i.test(error.message || '')) {
+    return 'La conversation des retours n’est pas configurée dans Supabase. Exécutez supabase/admin-feedback.sql.';
+  }
   if (error.code === '404' || /bucket .* not found|bucket not found/i.test(error.message || '')) {
     return 'Le stockage des captures n’est pas configuré. Exécutez supabase/admin-feedback.sql.';
   }
@@ -93,10 +96,26 @@ export const GET: APIRoute = async ({ request }) => {
     return json({ message: supabaseSetupMessage(error) }, 503);
   }
 
+  const items = data || [];
+  let messages: Array<Record<string, unknown>> = [];
+  if (items.length) {
+    const { data: messageData, error: messageError } = await admin
+      .from('admin_site_feedback_messages')
+      .select('id, feedback_id, author_login, author_name, author_role, body, created_at')
+      .in('feedback_id', items.map((item) => item.id))
+      .order('created_at', { ascending: true });
+    if (messageError) {
+      console.error('[admin/feedback] Could not load conversation messages:', messageError);
+      return json({ message: supabaseSetupMessage(messageError) }, 503);
+    }
+    messages = (messageData || []) as Array<Record<string, unknown>>;
+  }
+
   try {
-    const feedback = await Promise.all((data || []).map(async (item) => ({
+    const feedback = await Promise.all(items.map(async (item) => ({
       ...item,
       attachments: await signedAttachments(admin, (Array.isArray(item.attachments) ? item.attachments : []) as FeedbackAttachment[]),
+      messages: messages.filter((message) => message.feedback_id === item.id),
     })));
     return json({ feedback });
   } catch (error) {
@@ -187,7 +206,6 @@ export const POST: APIRoute = async ({ request }) => {
 export const PATCH: APIRoute = async ({ request }) => {
   const auth = await requireCmsAdmin(request);
   if (!auth.ok) return json({ message: auth.message }, auth.status);
-  if (auth.role !== 'superadmin') return json({ message: 'Réservé aux superadmins.' }, 403);
 
   const admin = createServiceClient();
   if (!admin) return json({ message: 'La clé SUPABASE_SERVICE_ROLE_KEY manque.' }, 503);
@@ -200,9 +218,52 @@ export const PATCH: APIRoute = async ({ request }) => {
   }
 
   const id = typeof payload.id === 'string' ? payload.id : '';
-  const status = payload.status;
   if (!UUID_PATTERN.test(id)) return json({ message: 'La demande sélectionnée est invalide.' }, 400);
+
+  if (typeof payload.message === 'string') {
+    const body = payload.message.trim();
+    const resolve = payload.resolve === true;
+    if (!body || body.length > MAX_BODY_LENGTH) {
+      return json({ message: 'La réponse doit contenir de 1 à 5 000 caractères.' }, 400);
+    }
+    if (resolve && auth.role !== 'superadmin') {
+      return json({ message: 'Seul un superadmin peut résoudre une demande.' }, 403);
+    }
+    const { data: current, error: readError } = await admin
+      .from(TABLE)
+      .select('status, created_by')
+      .eq('id', id)
+      .maybeSingle();
+    if (readError) {
+      console.error('[admin/feedback] Could not authorize conversation reply:', readError);
+      return json({ message: supabaseSetupMessage(readError) }, 500);
+    }
+    if (!current) return json({ message: 'Cette demande n’existe plus.' }, 404);
+    if (current.status !== 'pending') return json({ message: 'Cette demande est déjà résolue.' }, 409);
+    if (auth.role === 'admin' && current.created_by !== auth.login) {
+      return json({ message: 'Vous ne pouvez répondre qu’à vos propres demandes.' }, 403);
+    }
+    const { data, error } = await admin.rpc('add_admin_feedback_message', {
+      p_feedback_id: id,
+      p_author_login: auth.login,
+      p_author_name: auth.githubName || auth.login,
+      p_author_role: auth.role,
+      p_body: body,
+      p_resolve: resolve,
+    });
+    if (error) {
+      console.error('[admin/feedback] Could not add conversation message:', error);
+      const message = error.message || '';
+      const status = /does not exist|not found/i.test(message) ? 404 : 409;
+      return json({ message: supabaseSetupMessage(error) }, status);
+    }
+    return json({ ok: true, message: data });
+  }
+
+  if (auth.role !== 'superadmin') return json({ message: 'Réservé aux superadmins.' }, 403);
+  const status = payload.status;
   if (status !== 'pending' && status !== 'resolved') return json({ message: 'Le statut demandé est invalide.' }, 400);
+  if (status === 'resolved') return json({ message: 'Ajoutez une réponse écrite pour résoudre cette demande.' }, 400);
 
   const now = new Date().toISOString();
   const { data, error } = await admin
