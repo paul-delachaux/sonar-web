@@ -2,11 +2,15 @@
 layout_type: revue_musicale
 category: revue-musicale
 title: "In Absentia "
-description: |-
-  « Always the summers are slipping away
-  A 60-ton angel falls to the earth
-  A pile of old metal, a radiant blur
-  Scars in the country, the summer and her »
+description:
+  mode: text
+  text: |-
+    « Always the summers are slipping away
+    A 60-ton angel falls to the earth
+    A pile of old metal, a radiant blur
+    Scars in the country, the summer and her »
+  image: /assets/uploads/0c16a51e30e4f671919faf09d8fbea8a.jpg
+  caption: ""
 title_en: In Absentia
 description_en: La description là
 revue_rows:
@@ -26,6 +30,7 @@ revue_rows:
       type: image
       image: ""
     full_width: true
+    editor_title: Ligne 1
   - left:
       type: image
       image: /assets/uploads/2d5e5e08abf3a16dbfe9837538c47866.jpg

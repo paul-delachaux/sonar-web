@@ -140,8 +140,9 @@ const articles = defineCollection({
     revue_rows: z.array(
       z.object({
         full_width: z.boolean().default(false),
+        editor_title: z.string().nullish().optional(),
         left: z.object({
-          type: z.enum(['texte', 'image', 'audio']).default('texte'),
+          type: z.enum(['texte', 'intertitre', 'image', 'audio']).default('texte'),
           text: z.string().nullish().optional(),
           text_en: z.string().nullish().optional(),
           image: z.string().nullish().optional(),
@@ -157,7 +158,7 @@ const articles = defineCollection({
           ).optional(),
         }).optional(),
         right: z.object({
-          type: z.enum(['texte', 'image', 'audio']).default('texte'),
+          type: z.enum(['texte', 'intertitre', 'image', 'audio']).default('texte'),
           text: z.string().nullish().optional(),
           text_en: z.string().nullish().optional(),
           image: z.string().nullish().optional(),

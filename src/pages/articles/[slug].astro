@@ -97,7 +97,9 @@ const markdownToHtml = (md: string) => {
   return String(md || '')
     .split(/\n\s*\n/)
     .map((block) => {
-      const trimmed = block.trim();
+      let trimmed = block.trim();
+      const editorTitleMarker = trimmed.match(/^<!--sonar-editor-title:[0-9a-f]{4}(?:-[0-9a-f]{4})*-->(?:\r?\n)?/i);
+      if (editorTitleMarker) trimmed = trimmed.slice(editorTitleMarker[0].length).trim();
       if (!trimmed) return '';
 
       const heading = trimmed.match(/^(#{2,3})\s+([\s\S]*)$/);

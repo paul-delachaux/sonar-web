@@ -100,6 +100,19 @@
     return field || fallback;
   }
 
+  function mediaPathToken(value) {
+    var plain = value && typeof value.toJS === 'function' ? value.toJS() : value;
+    try { return JSON.stringify(plain); } catch (e) { return String(plain); }
+  }
+
+  function mediaPathSource(value) {
+    var plain = value && typeof value.toJS === 'function' ? value.toJS() : value;
+    var item = Array.isArray(plain) ? plain[0] : plain;
+    if (typeof item === 'string') return item.trim();
+    if (!item || typeof item !== 'object') return '';
+    return String(item.path || item.src || item.url || item.id || '').trim();
+  }
+
   function registerIntro(CMS, createClass, h) {
     if (!CMS || !createClass || !h) return;
     var Control = createClass({
@@ -119,8 +132,15 @@
         this.props.onChange(value);
       },
       chooseImage: function () {
+        var controlID = String(this.props.forID || '');
+        var paths = this.props.mediaPaths;
+        var existing = paths && paths.get ? paths.get(this.props.forID) : paths && paths[this.props.forID];
+        var selected = global.SonarCmsMedia && typeof global.SonarCmsMedia.controlMedia === 'function'
+          ? global.SonarCmsMedia.controlMedia(controlID)
+          : null;
         this._pickingImage = true;
-        this._lastPick = null;
+        this._lastPick = mediaPathToken(selected == null ? existing : selected);
+        this.startMediaPickPolling();
         if (typeof this.props.onOpenMediaLibrary === 'function') {
           this.props.onOpenMediaLibrary({
             controlID: this.props.forID,
@@ -129,23 +149,56 @@
             allowMultiple: false,
             field: this.props.field
           });
+          this.checkPickedImage();
         } else {
+          this.stopMediaPickPolling();
+          this._pickingImage = false;
           var src = global.prompt('Chemin ou URL de l’image', '/assets/uploads/');
           if (src) this.emit({ image: src });
         }
       },
-      componentDidUpdate: function () {
+      startMediaPickPolling: function () {
+        if (this._mediaPickTimer) return;
+        this._mediaPickTimer = global.setInterval(this.checkPickedImage.bind(this), 150);
+        this._mediaPickTimeout = global.setTimeout(function () {
+          this.stopMediaPickPolling();
+          this._pickingImage = false;
+        }.bind(this), 300000);
+      },
+      stopMediaPickPolling: function () {
+        if (this._mediaPickTimer) {
+          global.clearInterval(this._mediaPickTimer);
+          this._mediaPickTimer = null;
+        }
+        if (this._mediaPickTimeout) {
+          global.clearTimeout(this._mediaPickTimeout);
+          this._mediaPickTimeout = null;
+        }
+      },
+      checkPickedImage: function () {
+        if (!this._pickingImage) return;
         var paths = this.props.mediaPaths;
-        if (!this._pickingImage || !paths || !paths.get) return;
-        var raw = paths.get(this.props.forID);
+        var raw = paths && paths.get ? paths.get(this.props.forID) : paths && paths[this.props.forID];
+        var controlID = String(this.props.forID || '');
+        var selected = global.SonarCmsMedia && typeof global.SonarCmsMedia.controlMedia === 'function'
+          ? global.SonarCmsMedia.controlMedia(controlID)
+          : null;
+        if (selected != null && selected !== '') raw = selected;
         if (raw == null || raw === '') return;
-        var token = String(raw);
+        var token = mediaPathToken(raw);
         if (token === this._lastPick) return;
         this._lastPick = token;
+        var src = mediaPathSource(raw);
+        if (!src) return;
         this._pickingImage = false;
-        var selected = typeof raw.toJS === 'function' ? raw.toJS() : raw;
-        var src = Array.isArray(selected) ? selected[0] : selected;
-        if (src) this.emit({ image: String(src) });
+        this.stopMediaPickPolling();
+        this.emit({ image: src });
+      },
+      componentDidUpdate: function () {
+        this.checkPickedImage();
+      },
+      componentWillUnmount: function () {
+        this.stopMediaPickPolling();
       },
       render: function () {
         var self = this;
@@ -207,30 +260,67 @@
     CMS.registerWidget('article-intro', Control, Preview);
   }
 
+  function encodeEditorTitle(title) {
+    return String(title || '').trim().split('').map(function (character) {
+      return ('0000' + character.charCodeAt(0).toString(16)).slice(-4);
+    }).join('-');
+  }
+
+  function decodeEditorTitle(encoded) {
+    if (!/^[0-9a-f]{4}(?:-[0-9a-f]{4})*$/i.test(encoded)) return '';
+    return encoded.split('-').map(function (code) {
+      return String.fromCharCode(parseInt(code, 16));
+    }).join('');
+  }
+
   function parseBlocks(markdown) {
     return String(markdown || '')
       .split(/\n\s*\n/)
-      .map(function (raw) { return raw.trim(); })
-      .filter(Boolean)
       .map(function (raw) {
-        var heading = raw.match(/^(#{2,3})\s+([\s\S]*)$/);
-        if (heading) return { id: uid(), type: 'heading', level: heading[1].length, text: heading[2] };
-
-        var figure = raw.match(/^<figure class="article-body-image">\s*<img src="([^"]*)" alt="([^"]*)"\s*\/?>(?:\s*<figcaption>([\s\S]*?)<\/figcaption>)?\s*<\/figure>$/i);
-        if (figure) {
-          return {
-            id: uid(),
-            type: 'image',
-            src: figure[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'),
-            alt: figure[2].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'),
-            caption: (figure[3] || '').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-          };
+        raw = raw.trim();
+        if (!raw) return null;
+        var editorTitle = '';
+        var titleMarker = raw.match(/^<!--sonar-editor-title:([0-9a-f]{4}(?:-[0-9a-f]{4})*)-->(?:\r?\n)?/i);
+        if (titleMarker) {
+          editorTitle = decodeEditorTitle(titleMarker[1]);
+          raw = raw.slice(titleMarker[0].length).trim();
+        }
+        if (!raw) {
+          return editorTitle ? { id: uid(), type: 'text', text: '', editorTitle: editorTitle } : null;
         }
 
-        var image = raw.match(/^!\[([^\]]*)\]\((<?)([^)\s>]+)>?\)$/);
-        if (image) return { id: uid(), type: 'image', src: image[3], alt: image[1], caption: '' };
-        return { id: uid(), type: 'text', text: raw };
-      });
+        var block;
+        var heading = raw.match(/^(#{2,3})\s+([\s\S]*)$/);
+        if (heading) block = { id: uid(), type: 'heading', level: heading[1].length, text: heading[2] };
+        else {
+          var figure = raw.match(/^<figure class="article-body-image">\s*<img src="([^"]*)" alt="([^"]*)"\s*\/?>(?:\s*<figcaption>([\s\S]*?)<\/figcaption>)?\s*<\/figure>$/i);
+          if (figure) {
+            block = {
+              id: uid(),
+              type: 'image',
+              src: figure[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'),
+              alt: figure[2].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'),
+              caption: (figure[3] || '').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+            };
+          } else {
+            var image = raw.match(/^!\[([^\]]*)\]\((<?)([^)\s>]+)>?\)$/);
+            block = image
+              ? { id: uid(), type: 'image', src: image[3], alt: image[1], caption: '' }
+              : { id: uid(), type: 'text', text: raw };
+          }
+        }
+        if (editorTitle) block.editorTitle = editorTitle;
+        return block;
+      })
+      .filter(Boolean);
+  }
+
+  function collapsedTextBlocks(blocks) {
+    var collapsed = {};
+    (blocks || []).forEach(function (block) {
+      if (block.type === 'text') collapsed[block.id] = true;
+    });
+    return collapsed;
   }
 
   function serializeBlocks(blocks, preserveTextBreaks) {
@@ -258,7 +348,10 @@
           return '\n' + '\\\\\n'.repeat(breaks.length - 1);
         });
       }
-      return text;
+      var editorTitle = block.type === 'text' ? encodeEditorTitle(block.editorTitle) : '';
+      return editorTitle
+        ? '<!--sonar-editor-title:' + editorTitle + '-->' + (text ? '\n' + text : '')
+        : text;
     }).filter(Boolean).join('\n\n');
   }
 
@@ -342,8 +435,14 @@
       '.sonar-body-blocks{display:flex;flex-direction:column;gap:8px;padding:12px;}',
       '.sonar-body-block{border:1px solid #d9dee7;border-radius:7px;background:#fff;overflow:hidden;}',
       '.sonar-body-block-header{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#f6f7f9;border-bottom:1px solid #e4e7ec;}',
-      '.sonar-body-block-header strong{flex:1;color:#38445a;font-size:12px;}',
+      '.sonar-body-block-header strong{flex:1;min-width:0;color:#38445a;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+      '.sonar-body-block-header .sonar-body-block-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;background:transparent;padding:0;color:#38445a;font-size:12px;font-weight:700;text-align:left;}',
+      '.sonar-body-block-header .sonar-body-block-title:hover{border:0;background:transparent;color:#d65f00;text-decoration:underline;}',
+      '.sonar-body-block-header input.sonar-body-block-title-editor{flex:1;min-width:0;width:auto;margin:0;padding:4px 6px;font-size:12px;font-weight:700;}',
+      '.sonar-body-block-content.is-collapsed{display:none;}',
       '.sonar-body-block button{padding:4px 8px;font-size:11px;}',
+      '.sonar-body-insert-menu{display:flex;flex:0 0 100%;gap:5px;padding:0 9px 7px;background:#f6f7f9;}',
+      '.sonar-body-insert-menu button{padding:4px 8px;font-size:11px;}',
       '.sonar-body-block textarea,.sonar-body-block input{display:block;width:calc(100% - 20px);box-sizing:border-box;margin:10px;padding:9px;border:1px solid #cbd2dc;border-radius:5px;background:#fff;color:#182230;font:14px/1.5 Helvetica,Arial,sans-serif;}',
       '.sonar-body-block textarea{min-height:100px;resize:vertical;}',
       '.sonar-body-block textarea.heading{min-height:58px;font-size:16px;font-weight:700;}',
@@ -397,7 +496,13 @@
       return createClass({
       getInitialState: function () {
         this._lastValue = valueAsString(this.props.value);
-        return { blocks: parseBlocks(this._lastValue) };
+        var blocks = parseBlocks(this._lastValue);
+        return {
+          blocks: blocks,
+          collapsedBlocks: collapsedTextBlocks(blocks),
+          insertMenuBlockId: null,
+          editingBlockTitleId: null
+        };
       },
 
       blocks: function () {
@@ -413,18 +518,38 @@
       },
 
       addBlock: function (type) {
+        this.insertBlockAt(type, this.blocks().length);
+      },
+
+      insertBlockAt: function (type, index) {
         if (type === 'image' && !allowImages) return;
         var blocks = this.blocks().slice();
-        if (type === 'heading') blocks.push({ id: uid(), type: 'heading', level: 2, text: '' });
-        else if (type === 'image') blocks.push({ id: uid(), type: 'image', src: '', alt: '', caption: '' });
-        else blocks.push({ id: uid(), type: 'text', text: '' });
+        var block;
+        if (type === 'heading') block = { id: uid(), type: 'heading', level: 2, text: '' };
+        else if (type === 'image') block = { id: uid(), type: 'image', src: '', alt: '', caption: '' };
+        else block = { id: uid(), type: 'text', text: '' };
+        blocks.splice(index, 0, block);
+        this.setState({ insertMenuBlockId: null });
         this.emit(blocks);
+      },
+
+      toggleInsertMenu: function (blockId) {
+        this.setState({ insertMenuBlockId: this.state.insertMenuBlockId === blockId ? null : blockId });
+      },
+
+      openInsertMenu: function (blockId, event) {
+        event.preventDefault();
+        this.setState({ insertMenuBlockId: blockId });
       },
 
       updateBlock: function (id, patch) {
         this.emit(this.blocks().map(function (block) {
           return block.id === id ? Object.assign({}, block, patch) : block;
         }));
+      },
+
+      finishBlockTitleEdit: function () {
+        this.setState({ editingBlockTitleId: null });
       },
 
       moveBlock: function (index, offset) {
@@ -437,7 +562,17 @@
       },
 
       removeBlock: function (id) {
+        var collapsedBlocks = Object.assign({}, this.state.collapsedBlocks || {});
+        delete collapsedBlocks[id];
+        this.setState({ collapsedBlocks: collapsedBlocks, insertMenuBlockId: null });
         this.emit(this.blocks().filter(function (block) { return block.id !== id; }));
+      },
+
+      toggleBlock: function (id) {
+        var collapsedBlocks = Object.assign({}, this.state.collapsedBlocks || {});
+        if (collapsedBlocks[id]) delete collapsedBlocks[id];
+        else collapsedBlocks[id] = true;
+        this.setState({ collapsedBlocks: collapsedBlocks });
       },
 
       chooseImage: function (id) {
@@ -462,14 +597,20 @@
         var incoming = valueAsString(this.props.value);
         if (incoming !== this._lastEmitted && incoming !== this._lastValue) {
           var previousBlocks = this.state.blocks || parseBlocks(this._lastValue);
+          var previousIds = {};
+          previousBlocks.forEach(function (block) { previousIds[block.id] = true; });
           var parsedBlocks = parseBlocks(incoming).map(function (block, index) {
             var previous = previousBlocks[index];
             return previous && previous.type === block.type
               ? Object.assign({}, block, { id: previous.id })
               : block;
           });
+          var collapsedBlocks = Object.assign({}, this.state.collapsedBlocks || {});
+          parsedBlocks.forEach(function (block) {
+            if (block.type === 'text' && !previousIds[block.id]) collapsedBlocks[block.id] = true;
+          });
           this._lastValue = incoming;
-          this.setState({ blocks: parsedBlocks });
+          this.setState({ blocks: parsedBlocks, collapsedBlocks: collapsedBlocks });
           return;
         }
         var paths = this.props.mediaPaths;
@@ -489,6 +630,28 @@
       renderBlock: function (block, index, total) {
         var self = this;
         var labels = { text: 'Paragraphe', heading: 'Intertitre', image: 'Image' };
+        var summarySource = block.type === 'image'
+          ? (block.caption || block.alt || '')
+          : (block.text || '');
+        var summary = String(summarySource)
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+          .replace(/^\s*[-+*]\s+/gm, '')
+          .replace(/[*_`~]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (summary.length > 72) summary = summary.slice(0, 69).replace(/\s+$/, '') + '…';
+        var collapsed = !!(this.state.collapsedBlocks && this.state.collapsedBlocks[block.id]);
+        var insertMenuOpen = this.state.insertMenuBlockId === block.id;
+        var paragraphNumber = block.type === 'text'
+          ? this.blocks().slice(0, index + 1).filter(function (item) { return item.type === 'text'; }).length
+          : 0;
+        var paragraphTitle = block.type === 'text'
+          ? String(block.editorTitle || '').trim() || 'Paragraphe ' + paragraphNumber
+          : '';
+        var title = block.type === 'text'
+          ? paragraphTitle + (summary ? ' — ' + summary : '')
+          : (index + 1) + '. ' + labels[block.type] + (summary ? ' — ' + summary : '');
+        var editingTitle = block.type === 'text' && this.state.editingBlockTitleId === block.id;
         var fields = [];
         if (block.type === 'heading') {
           fields.push(h('select', {
@@ -616,14 +779,79 @@
           }));
         }
 
-        return h('section', { key: block.id, className: 'sonar-body-block' },
+        return h('section', {
+          key: block.id,
+          className: 'sonar-body-block',
+          onContextMenu: block.type === 'text'
+            ? function (event) { self.openInsertMenu(block.id, event); }
+            : undefined,
+          onKeyDown: function (event) {
+            if (event.key === 'Escape' && self.state.insertMenuBlockId === block.id) {
+              event.stopPropagation();
+              self.setState({ insertMenuBlockId: null });
+            }
+          }
+        },
           h('div', { className: 'sonar-body-block-header' },
-            h('strong', {}, (index + 1) + '. ' + labels[block.type]),
+            h('button', {
+              type: 'button',
+              title: collapsed ? 'Déplier le bloc' : 'Replier le bloc',
+              'aria-label': (collapsed ? 'Déplier ' : 'Replier ') + labels[block.type] + ' ' + (index + 1),
+              'aria-expanded': !collapsed,
+              onClick: function () { self.toggleBlock(block.id); }
+            }, collapsed ? '▸' : '▾'),
+            editingTitle
+              ? h('input', {
+                  type: 'text',
+                  className: 'sonar-body-block-title-editor',
+                  autoFocus: true,
+                  maxLength: 100,
+                  'aria-label': 'Titre de repérage du paragraphe ' + paragraphNumber,
+                  value: block.editorTitle || paragraphTitle,
+                  onChange: function (event) { self.updateBlock(block.id, { editorTitle: event.target.value }); },
+                  onFocus: function (event) { event.currentTarget.select(); },
+                  onBlur: function (event) {
+                    self.updateBlock(block.id, { editorTitle: event.currentTarget.value.trim() });
+                    self.finishBlockTitleEdit();
+                  },
+                  onKeyDown: function (event) {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    }
+                  }
+                })
+              : block.type === 'text'
+                ? h('button', {
+                    type: 'button',
+                    className: 'sonar-body-block-title',
+                    title: 'Cliquer pour modifier le titre',
+                    'aria-label': 'Modifier le titre du paragraphe ' + paragraphNumber,
+                    onClick: function () { self.setState({ editingBlockTitleId: block.id }); }
+                  }, title)
+                : h('strong', { title: title }, title),
+            block.type === 'text' && h('button', {
+              type: 'button',
+              title: 'Ou clic droit sur le paragraphe',
+              'aria-label': 'Insérer un paragraphe près du paragraphe ' + (index + 1),
+              'aria-expanded': insertMenuOpen,
+              onClick: function () { self.toggleInsertMenu(block.id); }
+            }, 'Insérer'),
             h('button', { type: 'button', disabled: index === 0, onClick: function () { self.moveBlock(index, -1); }, 'aria-label': 'Monter le bloc' }, '↑'),
             h('button', { type: 'button', disabled: index === total - 1, onClick: function () { self.moveBlock(index, 1); }, 'aria-label': 'Descendre le bloc' }, '↓'),
             h('button', { type: 'button', onClick: function () { self.removeBlock(block.id); } }, 'Supprimer')
           ),
-          fields
+          insertMenuOpen && h('div', {
+            className: 'sonar-body-insert-menu',
+            role: 'group',
+            'aria-label': 'Position du nouveau paragraphe'
+          },
+            h('button', { type: 'button', onClick: function () { self.insertBlockAt('text', index); } }, 'Ajouter avant'),
+            h('button', { type: 'button', onClick: function () { self.insertBlockAt('text', index + 1); } }, 'Ajouter après')
+          ),
+          h('div', {
+            className: 'sonar-body-block-content' + (collapsed ? ' is-collapsed' : '')
+          }, fields)
         );
       },
 
@@ -639,7 +867,7 @@
             h('button', { type: 'button', onClick: function () { self.addBlock('heading'); } }, '+ Intertitre'),
             allowImages && h('button', { type: 'button', onClick: function () { self.addBlock('image'); } }, '+ Image')
           ),
-          h('p', { className: 'sonar-body-hint' }, 'La mise en forme apparaît directement pendant la saisie. Markdown : **gras**, *italique*, __souligné__. Sélectionne un texte puis utilise les boutons, dont « Liste à puces ». Le contenu existant est conservé.' + (allowImages ? '' : ' Entrée ajoute une nouvelle ligne ou une puce ; Maj+Entrée fait un retour à la ligne dans une puce. « + Paragraphe » crée un bloc distinct.')),
+          h('p', { className: 'sonar-body-hint' }, 'La mise en forme apparaît directement pendant la saisie. Markdown : **gras**, *italique*, __souligné__. Sélectionne un texte puis utilise les boutons, dont « Liste à puces ». Clique sur le titre d’un paragraphe pour modifier son nom de repérage. Le contenu existant est conservé.' + (allowImages ? '' : ' Entrée ajoute une nouvelle ligne ou une puce ; Maj+Entrée fait un retour à la ligne dans une puce. « + Paragraphe » crée un bloc distinct.')),
           h('div', { className: 'sonar-body-blocks' },
             blocks.length
               ? blocks.map(function (block, index) { return self.renderBlock(block, index, blocks.length); })
@@ -694,6 +922,7 @@
   global.SonarArticleBody = {
     register: register,
     markdownToHtml: markdownToHtml,
+    htmlToMarkdown: htmlToMarkdown,
     markdownToPreviewHtml: markdownToPreviewHtml
   };
 

@@ -69,7 +69,7 @@ collections:
       
       # --- IMAGES ---
       - { label: "Image de miniature", name: "image", widget: "image", hint: "Carte d’accueil / catégories. Les images dans le corps de l’article se gèrent dans « Ordre dans l’article »." }
-      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: false, required: false }
 
       # --- INFOS AUTEUR & LECTURE ---
       - label: "Auteur de l'article"
@@ -214,7 +214,7 @@ collections:
         options_length: 50
         hint: "Domaines et sous-domaines (Paramètres → Domaines). Un article de sous-domaine apparaît aussi sur la page du domaine principal."
       - { label: "Image de miniature", name: "image", widget: "image", hint: "Carte d’accueil / catégories. Les images dans le corps se gèrent dans « Ordre dans la brève »." }
-      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: false, required: false }
 
       - label: "Sources consultables"
         name: "consulted_sources"
@@ -261,73 +261,11 @@ collections:
       - { name: "description_en", label: "Introduction (EN)", widget: "article-intro", required: false }
 
       - { label: "LIGNES DU LAYOUT", name: "sep_rows", widget: "separator", required: false }
-      - label: "Lignes"
+      - label: "Lignes du layout"
         name: "revue_rows"
-        widget: "list"
-        label_singular: "Ligne"
-        summary: "{{left.type}} · {{right.type}}"
+        widget: "revue-rows-editor"
         required: false
-        hint: "Chaque ligne affiche deux blocs côte à côte par défaut. Active « Pleine largeur » pour utiliser uniquement le bloc gauche sur toute la largeur."
-        fields:
-          - { label: "Pleine largeur (utiliser uniquement le bloc gauche)", name: "full_width", widget: "boolean", default: false, required: false }
-          - label: "Bloc gauche"
-            name: "left"
-            widget: "object"
-            collapsed: false
-            fields:
-              - label: "Type de bloc"
-                name: "type"
-                widget: "select"
-                default: "texte"
-                options:
-                  - { label: "Texte", value: "texte" }
-                  - { label: "Image", value: "image" }
-                  - { label: "Audio", value: "audio" }
-              - { label: "Texte (FR)", name: "text", widget: "article-short-body", required: false }
-              - { label: "Texte (EN)", name: "text_en", widget: "article-short-body", required: false }
-              - { label: "Image", name: "image", widget: "image", required: false }
-              - { label: "Légende de l'image (FR)", name: "image_caption", widget: "string", required: false }
-              - { label: "Légende de l'image (EN)", name: "image_caption_en", widget: "string", required: false }
-              - label: "Pistes audio"
-                name: "tracks"
-                widget: "list"
-                required: false
-                summary: "{{title}} {{file}} {{url}}"
-                hint: "Fichier mp3, ou URL YouTube / fichier audio en ligne."
-                fields:
-                  - { label: "Fichier audio (mp3)", name: "file", widget: "file", required: false, hint: "Upload d'un mp3/wav. Pour YouTube, utilise le champ URL ci-dessous." }
-                  - { label: "URL YouTube ou audio", name: "url", widget: "string", required: false, hint: "Colle un lien YouTube (youtube.com/watch ou youtu.be) ou l'URL directe d'un mp3." }
-                  - { label: "Titre (FR)", name: "title", widget: "string", required: false }
-                  - { label: "Titre (EN)", name: "title_en", widget: "string", required: false }
-          - label: "Bloc droit"
-            name: "right"
-            widget: "object"
-            collapsed: false
-            fields:
-              - label: "Type de bloc"
-                name: "type"
-                widget: "select"
-                default: "texte"
-                options:
-                  - { label: "Texte", value: "texte" }
-                  - { label: "Image", value: "image" }
-                  - { label: "Audio", value: "audio" }
-              - { label: "Texte (FR)", name: "text", widget: "article-short-body", required: false }
-              - { label: "Texte (EN)", name: "text_en", widget: "article-short-body", required: false }
-              - { label: "Image", name: "image", widget: "image", required: false }
-              - { label: "Légende de l'image (FR)", name: "image_caption", widget: "string", required: false }
-              - { label: "Légende de l'image (EN)", name: "image_caption_en", widget: "string", required: false }
-              - label: "Pistes audio"
-                name: "tracks"
-                widget: "list"
-                required: false
-                summary: "{{title}} {{file}} {{url}}"
-                hint: "Fichier mp3, ou URL YouTube / fichier audio en ligne."
-                fields:
-                  - { label: "Fichier audio (mp3)", name: "file", widget: "file", required: false, hint: "Upload d'un mp3/wav. Pour YouTube, utilise le champ URL ci-dessous." }
-                  - { label: "URL YouTube ou audio", name: "url", widget: "string", required: false, hint: "Colle un lien YouTube (youtube.com/watch ou youtu.be) ou l'URL directe d'un mp3." }
-                  - { label: "Titre (FR)", name: "title", widget: "string", required: false }
-                  - { label: "Titre (EN)", name: "title_en", widget: "string", required: false }
+        hint: "Clique sur le titre d'une ligne pour le renommer. Choisis une ou deux colonnes par ligne. En mode deux blocs, utilise la flèche à droite pour passer de l'un à l'autre."
 
       - { label: "INFORMATIONS GÉNÉRALES", name: "sep_article", widget: "separator", required: false }
       - { label: "Date de publication", name: "date", widget: "datetime" }
@@ -361,7 +299,7 @@ collections:
           - { label: "Partenaires (FR)", name: "author_partners", widget: "text", required: false }
           - { label: "Partenaires (EN)", name: "author_partners_en", widget: "text", required: false }
       - { label: "Temps de lecture (minutes)", name: "reading_time", widget: "number", default: 5, value_type: "int" }
-      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: true, required: false }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: false, required: false }
       - { label: "Image de miniature", name: "image", widget: "image", hint: "Miniature d'accueil et de la page Culture" }
       - label: "Sources consultables"
         name: "consulted_sources"
