@@ -13,7 +13,7 @@
     #sonar-cms-brand {
       position: absolute;
       top: 50%;
-      left: 22px;
+      left: 20px;
       z-index: 2;
       display: flex;
       width: 48px;
@@ -855,8 +855,10 @@
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="/admin/revue-rows-editor.js?v=20261125j"></script>
-  <script src="/admin/cms-boot.js?v=20261030c"></script>
-  <script src="/admin/domains-admin.js?v=20260825r"></script>
+  <script src="/admin/domain-featured-editor.js?v=20261125a"></script>
+  <script src="/admin/homepage-featured-editor.js?v=20261125a"></script>
+  <script src="/admin/cms-boot.js?v=20261125b"></script>
+  <script src="/admin/domains-admin.js?v=20261125a"></script>
   <script src="/admin/moderation.js?v=20260825r"></script>
   <script src="/admin/bulk-admin.js?v=20260825r"></script>
   <script src="/admin/accounts-admin.js?v=20261030a"></script>
@@ -919,7 +921,8 @@
       asymLeftStyles: 'preview-asym-left',
       sep_giant_article: 'preview-asym-right',
       asymRightArticle: 'preview-asym-right',
-      asymRightStyle: 'preview-asym-right'
+      asymRightStyle: 'preview-asym-right',
+      homepage_featuredArticles: 'preview-hero'
     };
 
     function sonarDomains() {
@@ -2277,10 +2280,13 @@
         };
       }
       const data = rec.data || rec;
+      const description = toPlain(data.description);
       return {
         slug: slug,
         title: data.title || slug,
-        description: data.description || '',
+        description: typeof description === 'string'
+          ? description
+          : (description && typeof description.text === 'string' ? description.text : ''),
         image: data.image || data.article_image || PREVIEW_IMG_PLACEHOLDER,
         category: data.category || '',
         use_thumbnail: data.use_thumbnail === true || data.use_thumbnail === 'true',
@@ -2302,7 +2308,16 @@
     }
 
     function resolveSlot(props, slug) {
-      return lookupRelatedArticle(props, unwrapSlug(slug));
+      const cleanSlug = unwrapSlug(slug);
+      const related = lookupRelatedArticle(props, cleanSlug);
+      if (!related.missing || !cleanSlug) return related;
+      const articles = toPlain(props.previewArticles);
+      if (!Array.isArray(articles)) return related;
+      const key = slugKey(cleanSlug);
+      const match = articles.find(function(article) {
+        return slugKey(article && (article.slug || article.id)) === key;
+      });
+      return match ? normalizeRelatedArticle({ data: match }, cleanSlug) : related;
     }
 
     function slugKey(slug) {
@@ -2967,6 +2982,7 @@
       .home-preview .article-tag { margin: 0 0 10px 0; }
       .home-preview .sidebar-tag, .home-preview .card-tag { font-size: 0.8rem; margin: 0 0 5px 0; }
       .home-preview .article-desc, .home-preview .sidebar-desc { font-size: 0.95rem; line-height: 1.5; color: #c9c9d4; margin: 0; }
+      .home-preview .sidebar-desc, .home-preview .card-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; text-overflow: ellipsis; }
       .home-preview .article-bottom-card.has-bg { position: relative; background-size: cover; background-position: center; border: none; z-index: 1; overflow: hidden; }
       .home-preview .article-bottom-card.has-bg .overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)); z-index: -1; }
       .home-preview .article-bottom-card.has-bg h3 { color: #ffffff !important; }
@@ -3477,30 +3493,61 @@
 
     function renderHomepagePreview(props) {
       const entry = props.entry;
-      const smallSlugs = getSlugList(entry, 'sidebarSmallArticles', 2);
-      const bottomSlugs = getSlugList(entry, 'bottomArticles', 3);
-      const asymLeftSlugs = getSlugList(entry, 'asymLeftArticles', 3);
+      const combined = toPlain(entry.getIn(['data', 'homepage_featuredArticles']));
+      const hasCombined = combined && typeof combined === 'object' && !Array.isArray(combined);
+      const homeValue = function(field) {
+        return hasCombined ? combined[field] : entry.getIn(['data', field]);
+      };
+      const listValue = function(field, length) {
+        const plain = toPlain(homeValue(field));
+        const values = Array.isArray(plain) ? plain : [];
+        const out = values.slice(0, length);
+        while (out.length < length) out.push(null);
+        return out;
+      };
+      const smallCountValue = Number(toPlain(homeValue('sidebarSmallArticleCount')));
+      const smallCount = smallCountValue === 1 ? 1 : 2;
+      const bottomCountValue = Number(toPlain(homeValue('bottomArticleCount')));
+      const bottomCount = [1, 2, 3].indexOf(bottomCountValue) !== -1 ? bottomCountValue : 3;
+      const smallSlugs = listValue('sidebarSmallArticles', 2).slice(0, smallCount).map(unwrapSlug);
+      const bottomSlugs = listValue('bottomArticles', 3).slice(0, bottomCount).map(unwrapSlug);
+      const asymLeftSlugs = listValue('asymLeftArticles', 3).map(unwrapSlug);
 
       const flagged = flagDuplicates(
-        [resolveSlot(props, entry.getIn(['data', 'heroArticle']))]
-          .concat([resolveSlot(props, entry.getIn(['data', 'sidebarLongArticle']))])
+        [resolveSlot(props, homeValue('heroArticle'))]
+          .concat([resolveSlot(props, homeValue('sidebarLongArticle'))])
           .concat(smallSlugs.map(function(slug) { return resolveSlot(props, slug); }))
           .concat(bottomSlugs.map(function(slug) { return resolveSlot(props, slug); }))
           .concat(asymLeftSlugs.map(function(slug) { return resolveSlot(props, slug); }))
-          .concat([resolveSlot(props, entry.getIn(['data', 'asymRightArticle']))])
+          .concat([resolveSlot(props, homeValue('asymRightArticle'))])
       );
 
-      const hero = flagged[0];
-      const longArt = flagged[1];
-      const smallArts = flagged.slice(2, 4);
-      const bottomArts = flagged.slice(4, 7);
-      const asymLeftArts = flagged.slice(7, 10);
-      const asymRight = flagged[10];
-      const asymRightStyle = toPlain(entry.getIn(['data', 'asymRightStyle'])) || {};
+      let slotIndex = 0;
+      const hero = flagged[slotIndex++];
+      const longArt = flagged[slotIndex++];
+      const smallArts = flagged.slice(slotIndex, slotIndex + smallCount);
+      slotIndex += smallCount;
+      const bottomArts = flagged.slice(slotIndex, slotIndex + bottomCount);
+      slotIndex += bottomCount;
+      const asymLeftArts = flagged.slice(slotIndex, slotIndex + 3);
+      slotIndex += 3;
+      const asymRight = flagged[slotIndex];
+      const asymRightStyle = toPlain(homeValue('asymRightStyle')) || {};
+      const getHomepageStyle = function(field, legacyField, index) {
+        const item = toPlain(listValue(field, field === 'bottomArticles' ? 3 : 3)[index]);
+        if (item && typeof item === 'object' &&
+          (item.titleSize || item.titleWeight || item.titleFont || item.overlay_opacity != null)) return item;
+        const legacyStyles = toPlain(homeValue(legacyField));
+        return Array.isArray(legacyStyles) ? (legacyStyles[index] || {}) : {};
+      };
 
       return h('div', { className: 'home-preview' },
         h('style', {}, PREVIEW_STYLES),
-        h('p', { className: 'home-preview-note' }, 'Aperçu de l’accueil — survolez un sous-menu à gauche pour localiser la zone. Les emplacements vides sont remplis automatiquement par l\'article le plus récent.'),
+        h('p', { className: 'home-preview-note' },
+          'Aperçu de l’accueil — survolez un sous-menu à gauche pour localiser la zone. Les emplacements vides seront remplis automatiquement sur le site.'
+          + (props.previewLoading ? ' · Chargement des articles…' : '')
+          + (props.previewError ? ' · ' + props.previewError : '')
+        ),
         h('div', { className: 'container-accueil' },
           h('div', { className: 'main-grid' },
             h('div', { className: 'preview-anchor', 'data-preview-anchor': 'preview-hero' }, withDuplicateOverlay(hero, renderHomeHero(hero))),
@@ -3508,17 +3555,25 @@
               h('div', { className: 'preview-anchor', 'data-preview-anchor': 'preview-sidebar-long' },
                 withDuplicateOverlay(longArt, renderHomeSidebarCard(longArt, true))
               ),
-              h('div', { className: 'sub-grid preview-anchor', 'data-preview-anchor': 'preview-sidebar-small' },
+              h('div', {
+                className: 'sub-grid preview-anchor',
+                'data-preview-anchor': 'preview-sidebar-small',
+                style: { gridTemplateColumns: 'repeat(' + smallCount + ', minmax(0, 1fr))' }
+              },
                 smallArts.map(function(art, i) {
                   return h('div', { key: 'small-' + i, className: 'preview-anchor', 'data-preview-anchor': 'preview-sidebar-small-' + i }, withDuplicateOverlay(art, renderHomeSidebarCard(art, false)));
                 })
               )
             )
           ),
-          h('section', { className: 'bottom-row-grid preview-anchor', 'data-preview-anchor': 'preview-bottom' },
+          h('section', {
+            className: 'bottom-row-grid preview-anchor',
+            'data-preview-anchor': 'preview-bottom',
+            style: { gridTemplateColumns: 'repeat(' + bottomCount + ', minmax(0, 1fr))' }
+          },
             bottomArts.map(function(art, i) {
               return h('div', { key: 'bottom-' + i, className: 'preview-anchor', 'data-preview-anchor': 'preview-bottom-' + i },
-                withDuplicateOverlay(art, renderHomeBgCard(art, getStyleAt(entry, 'bottomArticlesStyles', i), '', true))
+                withDuplicateOverlay(art, renderHomeBgCard(art, getHomepageStyle('bottomArticles', 'bottomArticlesStyles', i), '', true))
               );
             })
           ),
@@ -3526,7 +3581,7 @@
             h('div', { className: 'asym-left-stack preview-anchor', 'data-preview-anchor': 'preview-asym-left' },
               asymLeftArts.map(function(art, i) {
                 return h('div', { key: 'asym-' + i, className: 'preview-anchor', 'data-preview-anchor': 'preview-asym-left-' + i },
-                  withDuplicateOverlay(art, renderHomeBgCard(art, getStyleAt(entry, 'asymLeftStyles', i), '', false))
+                  withDuplicateOverlay(art, renderHomeBgCard(art, getHomepageStyle('asymLeftArticles', 'asymLeftStyles', i), '', false))
                 );
               })
             ),
@@ -3586,9 +3641,18 @@
 
       return h('div', { className: 'categories-config-preview' },
         h('style', {}, PREVIEW_STYLES),
-        h('p', { className: 'home-preview-note' }, 'Aperçu des pages catégories — survolez une rubrique à gauche pour y défiler. Sans remplissage automatique'),
+        h('p', { className: 'home-preview-note' },
+          'Aperçu des pages catégories — survolez une rubrique à gauche pour y défiler. Sans remplissage automatique'
+          + (props.previewLoading ? ' · Chargement des articles…' : '')
+          + (props.previewError ? ' · ' + props.previewError : '')
+        ),
         sections.map(function(section) {
-          const slugs = getSlugList(entry, section.key + '_topArticles', 3);
+          const combined = toPlain(entry.getIn(['data', section.key + '_featuredArticles']));
+          const hasCombined = Array.isArray(combined);
+          const slugs = hasCombined
+            ? combined.map(function(row) { return unwrapSlug(row && row.article); }).slice(0, 3)
+            : getSlugList(entry, section.key + '_topArticles', 3);
+          while (slugs.length < 3) slugs.push(null);
           const arts = flagDuplicates(slugs.map(function(slug) { return resolveSlot(props, slug); }));
           return h('section', {
             key: section.key,
@@ -3608,7 +3672,7 @@
                 },
                   withDuplicateOverlay(art, renderCategoryHeroCard(
                     art,
-                    getStyleAt(entry, section.key + '_topStyles', i)
+                    hasCombined ? (combined[i] || {}) : getStyleAt(entry, section.key + '_topStyles', i)
                   ))
                 );
               })
@@ -3678,15 +3742,63 @@
     }
 
     const HomepagePreview = createClass({
-      componentDidMount: function() { rememberPreviewContext(this.props); },
+      getInitialState: function() {
+        return { articles: [], loading: true, error: '' };
+      },
+      componentDidMount: function() {
+        rememberPreviewContext(this.props);
+        const search = window.SonarArticleSearch;
+        if (!search || typeof search.fetchArticles !== 'function') {
+          this.setState({ loading: false, error: 'Le service de chargement des articles est indisponible.' });
+          return;
+        }
+        search.fetchArticles().then((articles) => {
+          this.setState({ articles: Array.isArray(articles) ? articles : [], loading: false });
+        }).catch((error) => {
+          this.setState({
+            loading: false,
+            error: 'Métadonnées indisponibles : ' + (error && error.message ? error.message : 'erreur inconnue')
+          });
+        });
+      },
       componentDidUpdate: function() { rememberPreviewContext(this.props); },
-      render: function() { return renderHomepagePreview(this.props); }
+      render: function() {
+        return renderHomepagePreview(Object.assign({}, this.props, {
+          previewArticles: this.state.articles,
+          previewLoading: this.state.loading,
+          previewError: this.state.error
+        }));
+      }
     });
 
     const CategoriesPreview = createClass({
-      componentDidMount: function() { rememberPreviewContext(this.props); },
+      getInitialState: function() {
+        return { articles: [], loading: true, error: '' };
+      },
+      componentDidMount: function() {
+        rememberPreviewContext(this.props);
+        const search = window.SonarArticleSearch;
+        if (!search || typeof search.fetchArticles !== 'function') {
+          this.setState({ loading: false, error: 'Le service de chargement des articles est indisponible.' });
+          return;
+        }
+        search.fetchArticles().then((articles) => {
+          this.setState({ articles: Array.isArray(articles) ? articles : [], loading: false });
+        }).catch((error) => {
+          this.setState({
+            loading: false,
+            error: 'Métadonnées indisponibles : ' + (error && error.message ? error.message : 'erreur inconnue')
+          });
+        });
+      },
       componentDidUpdate: function() { rememberPreviewContext(this.props); },
-      render: function() { return renderCategoriesPreview(this.props); }
+      render: function() {
+        return renderCategoriesPreview(Object.assign({}, this.props, {
+          previewArticles: this.state.articles,
+          previewLoading: this.state.loading,
+          previewError: this.state.error
+        }));
+      }
     });
 
     const SettingsPreview = createClass({
@@ -3700,9 +3812,9 @@
           return renderDomainsPreview(this.props);
         }
         if (slug === 'categories' || /categories\.json$/.test(path)) {
-          return renderCategoriesPreview(this.props);
+          return h(CategoriesPreview, this.props);
         }
-        return renderHomepagePreview(this.props);
+        return h(HomepagePreview, this.props);
       }
     });
 

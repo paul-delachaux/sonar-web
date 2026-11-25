@@ -1,4 +1,59 @@
 {
+  "culture_featuredArticles": [
+    {
+      "article": "in-absentia",
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    },
+    {
+      "article": "",
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    },
+    {
+      "article": "",
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    }
+  ],
+  "revue-musicale_featuredArticles": [
+    {
+      "article": "in-absentia",
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    }
+  ],
+  "politique_featuredArticles": [
+    {
+      "article": "le--manifeste--de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    },
+    {
+      "article": "7-octobre-2023-selon-haaretz-benjamin-netanyahou-était-informé-des-risques-dattaque",
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    },
+    {
+      "article": "groenland-un-accord-diplomatique-qui-soulage-des-tensions-entre-alliés",
+      "titleSize": "1.2rem",
+      "titleWeight": "700",
+      "descSize": "0.8rem",
+      "overlay_opacity": 75
+    }
+  ],
   "technologie_topStyles": [
     {
       "titleSize": "1.2rem",

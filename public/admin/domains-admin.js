@@ -89,6 +89,12 @@
     return match ? match[1] : '';
   }
 
+  function parseFrontmatterValue(raw, key) {
+    var match = String(raw || '').match(new RegExp('^' + key + ':\\s*(.*)$', 'm'));
+    if (!match) return '';
+    return String(match[1] || '').trim().replace(/^(['"])(.*)\1$/, '$2');
+  }
+
   function loadArticlesFromGithub() {
     var token = githubToken();
     if (!token) return Promise.resolve(null);
@@ -120,7 +126,9 @@
         }).then(function (raw) {
           return {
             slug: String(file.name || '').replace(/\.mdx?$/, ''),
-            category: parseCategoryFromMarkdown(raw)
+            title: parseFrontmatterValue(raw, 'title') || String(file.name || '').replace(/\.mdx?$/, ''),
+            category: parseCategoryFromMarkdown(raw),
+            isVisible: parseFrontmatterValue(raw, 'isVisible') !== 'false'
           };
         });
       }));
@@ -135,6 +143,8 @@
       return fetchArticlesDirect();
     });
   }
+
+  global.SonarDomainAdminArticles = { fetchArticles: loadArticles };
 
   function entryData(entry) {
     if (entry && typeof entry.get === 'function') {
@@ -316,7 +326,7 @@
     data.entrySeq().forEach(function (pair) {
       var key = String(pair[0] || '');
       var val = pair[1];
-      if (!/_top(Articles|Styles)$/.test(key)) return;
+      if (!/(?:_top(Articles|Styles)|_featuredArticles)$/.test(key)) return;
       if (val && typeof val.size === 'number' && val.size > 3 && typeof val.slice === 'function') {
         next = next.set(key, val.slice(0, 3));
       }

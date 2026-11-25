@@ -1,4 +1,73 @@
 {
+  "homepage_featuredArticles": {
+    "heroArticle": "",
+    "sidebarLongArticle": "",
+    "sidebarSmallArticleCount": "1",
+    "sidebarSmallArticles": [
+      {
+        "article": "",
+        "titleWeight": "undefined"
+      },
+      {
+        "article": "",
+        "titleWeight": "undefined"
+      }
+    ],
+    "bottomArticleCount": "2",
+    "bottomArticles": [
+      {
+        "article": "",
+        "titleSize": "1.2rem",
+        "titleWeight": "700",
+        "titleFont": "sans-serif",
+        "overlay_opacity": 75
+      },
+      {
+        "article": "",
+        "titleSize": "1.2rem",
+        "titleWeight": "700",
+        "titleFont": "sans-serif",
+        "overlay_opacity": 75
+      },
+      {
+        "article": "",
+        "titleSize": "1.2rem",
+        "titleWeight": "700",
+        "titleFont": "sans-serif",
+        "overlay_opacity": 75
+      }
+    ],
+    "asymLeftArticles": [
+      {
+        "article": "",
+        "titleSize": "1.1rem",
+        "titleWeight": "700",
+        "titleFont": "sans-serif",
+        "overlay_opacity": 75
+      },
+      {
+        "article": "",
+        "titleSize": "1.1rem",
+        "titleWeight": "700",
+        "titleFont": "sans-serif",
+        "overlay_opacity": 75
+      },
+      {
+        "article": "",
+        "titleSize": "1.1rem",
+        "titleWeight": "700",
+        "titleFont": "sans-serif",
+        "overlay_opacity": 75
+      }
+    ],
+    "asymRightArticle": "",
+    "asymRightStyle": {
+      "titleSize": "1.8rem",
+      "titleWeight": "700",
+      "titleFont": "sans-serif",
+      "overlay_opacity": 75
+    }
+  },
   "partial": false,
   "sidebarSmallArticleCount": "1",
   "bottomArticleCount": "2",

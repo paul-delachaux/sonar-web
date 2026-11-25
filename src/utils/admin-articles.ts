@@ -9,6 +9,12 @@ export type AdminArticle = {
   category: string;
   isVisible: boolean;
   layout_type: string;
+  description?: unknown;
+  image?: string | null;
+  article_image?: string | null;
+  use_thumbnail?: boolean;
+  thumbnail_bg?: string | null;
+  thumbnail_layout?: unknown;
 };
 
 const ARTICLES_DIR = path.join(process.cwd(), 'src/content/articles');
@@ -60,23 +66,32 @@ async function listFromFiles(): Promise<AdminArticle[]> {
 async function listFromCollection(): Promise<AdminArticle[]> {
   const posts = await getCollection('articles');
   return posts
-    .map((post) => ({
-      slug: post.id,
-      title: String(post.data.title || post.id),
-      title_en: String(post.data.title_en || ''),
-      category: String(post.data.category || ''),
-      isVisible: post.data.isVisible !== false,
-      layout_type: String((post.data as { layout_type?: string }).layout_type || ''),
-    }))
+    .map((post) => {
+      const data = post.data;
+      return {
+        slug: post.id,
+        title: String(data.title || post.id),
+        title_en: String(data.title_en || ''),
+        category: String(data.category || ''),
+        isVisible: data.isVisible !== false,
+        layout_type: String((data as { layout_type?: string }).layout_type || ''),
+        description: data.description,
+        image: data.image || null,
+        article_image: data.article_image || null,
+        use_thumbnail: data.use_thumbnail === true,
+        thumbnail_bg: data.thumbnail_bg || null,
+        thumbnail_layout: data.thumbnail_layout || null,
+      };
+    })
     .sort((a, b) => a.title.localeCompare(b.title, 'fr'));
 }
 
 export async function listAdminArticles(): Promise<AdminArticle[]> {
   try {
-    return await listFromFiles();
+    return await listFromCollection();
   } catch {
     try {
-      return await listFromCollection();
+      return await listFromFiles();
     } catch {
       return [];
     }

@@ -9,6 +9,13 @@ import Analytics from '@vercel/analytics/astro';
 import { supabase } from '../utils/supabase';
 import { articleDescriptionText } from '../utils/i18n.js';
 
+const combinedHomepageSettings = (homeSettings as any).homepage_featuredArticles;
+const homepageSettings = combinedHomepageSettings &&
+    typeof combinedHomepageSettings === 'object' &&
+    !Array.isArray(combinedHomepageSettings)
+    ? combinedHomepageSettings
+    : homeSettings;
+
 // On récupère les données de Supabase
 const { data: testComments, error } = await supabase
   .from('comments') 
@@ -92,33 +99,42 @@ const avecStyles = (art: any, styleDecap: any, defaults: { fontSize: string; fon
     };
 };
 
-const slotsSmall = (homeSettings.sidebarSmallArticles?.length > 0)
-    ? homeSettings.sidebarSmallArticles
+const slugDepuisEmplacement = (slot: any) =>
+    slot && typeof slot === 'object' ? slot.article : slot;
+const styleDepuisEmplacement = (slot: any, fallback: any) =>
+    slot && typeof slot === 'object' &&
+    (slot.titleSize || slot.titleWeight || slot.titleFont || slot.overlay_opacity != null)
+        ? slot
+        : fallback;
+
+const slotsSmall = (homepageSettings.sidebarSmallArticles?.length > 0)
+    ? homepageSettings.sidebarSmallArticles
     : [null, null];
-const slotsBottom = (homeSettings.bottomArticles?.length > 0)
-    ? homeSettings.bottomArticles
+const slotsBottom = (homepageSettings.bottomArticles?.length > 0)
+    ? homepageSettings.bottomArticles
     : [null, null, null];
-const sidebarSmallArticleCount = [1, 2].includes(Number(homeSettings.sidebarSmallArticleCount))
-    ? Number(homeSettings.sidebarSmallArticleCount)
+const sidebarSmallArticleCount = [1, 2].includes(Number(homepageSettings.sidebarSmallArticleCount))
+    ? Number(homepageSettings.sidebarSmallArticleCount)
     : 2;
-const bottomArticleCount = [1, 2, 3].includes(Number(homeSettings.bottomArticleCount))
-    ? Number(homeSettings.bottomArticleCount)
+const bottomArticleCount = [1, 2, 3].includes(Number(homepageSettings.bottomArticleCount))
+    ? Number(homepageSettings.bottomArticleCount)
     : 3;
-const slotsAsymLeft = (homeSettings.asymLeftArticles?.length > 0)
-    ? homeSettings.asymLeftArticles
+const slotsAsymLeft = (homepageSettings.asymLeftArticles?.length > 0)
+    ? homepageSettings.asymLeftArticles
     : [null, null, null];
 
 // Passe 1 — réservations admin (ne remplit JAMAIS un trou ici)
-let articleUneFR: any = reserverAdmin(homeSettings.heroArticle);
-let premierSecondaireLongFR: any = reserverAdmin(homeSettings.sidebarLongArticle);
+let articleUneFR: any = reserverAdmin(homepageSettings.heroArticle);
+let premierSecondaireLongFR: any = reserverAdmin(homepageSettings.sidebarLongArticle);
 
-let autresSecondairesBasFR: any[] = slotsSmall.slice(0, sidebarSmallArticleCount).map((slug: any) => reserverAdmin(slug));
+let autresSecondairesBasFR: any[] = slotsSmall.slice(0, sidebarSmallArticleCount)
+    .map((slot: any) => reserverAdmin(slugDepuisEmplacement(slot)));
 while (autresSecondairesBasFR.length < sidebarSmallArticleCount) autresSecondairesBasFR.push(null);
 
 let articlesRangeeInferieureFR: any[] = slotsBottom.slice(0, bottomArticleCount).map((slug: any, index: number) =>
     avecStyles(
-        reserverAdmin(slug),
-        homeSettings.bottomArticlesStyles?.[index],
+        reserverAdmin(slugDepuisEmplacement(slug)),
+        styleDepuisEmplacement(slug, homepageSettings.bottomArticlesStyles?.[index]),
         { fontSize: "1.2rem", fontWeight: "700", fontFamily: "sans-serif" }
     )
 );
@@ -126,14 +142,14 @@ while (articlesRangeeInferieureFR.length < bottomArticleCount) articlesRangeeInf
 
 let articlesAsymGaucheFR: any[] = slotsAsymLeft.slice(0, 3).map((slug: any, index: number) =>
     avecStyles(
-        reserverAdmin(slug),
-        homeSettings.asymLeftStyles?.[index],
+        reserverAdmin(slugDepuisEmplacement(slug)),
+        styleDepuisEmplacement(slug, homepageSettings.asymLeftStyles?.[index]),
         { fontSize: "1.1rem", fontWeight: "700", fontFamily: "sans-serif" }
     )
 );
 while (articlesAsymGaucheFR.length < 3) articlesAsymGaucheFR.push(null);
 
-let articleAsymDroiteFR: any = reserverAdmin(homeSettings.asymRightArticle);
+let articleAsymDroiteFR: any = reserverAdmin(homepageSettings.asymRightArticle);
 
 // Passe 2 — combler les trous (haut → bas), sans toucher aux réservations
 articleUneFR = articleUneFR || prochainRecent();
@@ -142,14 +158,14 @@ autresSecondairesBasFR = autresSecondairesBasFR.map((art) => art || prochainRece
 articlesRangeeInferieureFR = articlesRangeeInferieureFR.map((art, index) =>
     art || avecStyles(
         prochainRecent(),
-        homeSettings.bottomArticlesStyles?.[index],
+        styleDepuisEmplacement(slotsBottom[index], homepageSettings.bottomArticlesStyles?.[index]),
         { fontSize: "1.2rem", fontWeight: "700", fontFamily: "sans-serif" }
     )
 );
 articlesAsymGaucheFR = articlesAsymGaucheFR.map((art, index) =>
     art || avecStyles(
         prochainRecent(),
-        homeSettings.asymLeftStyles?.[index],
+        styleDepuisEmplacement(slotsAsymLeft[index], homepageSettings.asymLeftStyles?.[index]),
         { fontSize: "1.1rem", fontWeight: "700", fontFamily: "sans-serif" }
     )
 );
@@ -160,7 +176,7 @@ autresSecondairesBasFR = autresSecondairesBasFR.filter(Boolean);
 articlesRangeeInferieureFR = articlesRangeeInferieureFR.filter(Boolean);
 articlesAsymGaucheFR = articlesAsymGaucheFR.filter(Boolean);
 
-const styleDroiteDecap = homeSettings.asymRightStyle || {};
+const styleDroiteDecap = homepageSettings.asymRightStyle || {};
 const overlayDroiteRaw = (styleDroiteDecap as any).overlay_opacity;
 const overlayDroiteParsed = Number(overlayDroiteRaw);
 const styleGrandArticle = {
@@ -191,12 +207,15 @@ const assignerSlotsEN = (slotsFR: any[]) => {
         if (adminEnQueue.some((a) => a.id === art.id)) return;
         adminEnQueue.push(art);
     };
-    pushAdminEn(homeSettings.heroArticle);
-    pushAdminEn(homeSettings.sidebarLongArticle);
-    (homeSettings.sidebarSmallArticles || []).slice(0, sidebarSmallArticleCount).forEach(pushAdminEn);
-    (homeSettings.bottomArticles || []).slice(0, bottomArticleCount).forEach(pushAdminEn);
-    (homeSettings.asymLeftArticles || []).forEach(pushAdminEn);
-    pushAdminEn(homeSettings.asymRightArticle);
+    pushAdminEn(homepageSettings.heroArticle);
+    pushAdminEn(homepageSettings.sidebarLongArticle);
+    (homepageSettings.sidebarSmallArticles || []).slice(0, sidebarSmallArticleCount)
+        .forEach((slot: any) => pushAdminEn(slugDepuisEmplacement(slot)));
+    (homepageSettings.bottomArticles || []).slice(0, bottomArticleCount)
+        .forEach((slot: any) => pushAdminEn(slugDepuisEmplacement(slot)));
+    (homepageSettings.asymLeftArticles || []).forEach((slot: any) =>
+        pushAdminEn(slugDepuisEmplacement(slot)));
+    pushAdminEn(homepageSettings.asymRightArticle);
 
     const prochainAdminEn = () => adminEnQueue.find((a) => !usedIds.has(a.id)) || null;
     const prochainDateEn = () => articlesENDisponibles.find((a) => !usedIds.has(a.id)) || null;

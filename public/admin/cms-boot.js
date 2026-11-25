@@ -18,37 +18,6 @@
     return String(slug || '').replace(/[^a-z0-9]+/gi, '_');
   }
 
-  function styleFields() {
-    return [
-      { label: 'Taille du titre (ex: 1.2rem)', name: 'titleSize', widget: 'string', default: '1.2rem', required: false },
-      {
-        label: 'Épaisseur du titre',
-        name: 'titleWeight',
-        widget: 'select',
-        default: '700',
-        required: false,
-        options: [
-          { label: 'Fin (300)', value: '300' },
-          { label: 'Normal (400)', value: '400' },
-          { label: 'Gras (700)', value: '700' },
-          { label: 'Ultra-Gras (900)', value: '900' }
-        ]
-      },
-      { label: 'Taille de la description (ex: 0.8rem)', name: 'descSize', widget: 'string', default: '0.8rem', required: false },
-      {
-        label: 'Intensité du filtre sombre',
-        name: 'overlay_opacity',
-        widget: 'number',
-        default: 75,
-        value_type: 'int',
-        min: 0,
-        max: 100,
-        required: false,
-        hint: 'Voile sombre sur la carte hero. 0 = image brute, 75 = défaut du site, 100 = très sombre.'
-      }
-    ];
-  }
-
   function makeArticlesCollection(domain) {
     var slug = domain.slug;
     return {
@@ -74,39 +43,61 @@
     return [
       { label: label, name: 'sep_' + fieldSafe(slug), widget: 'separator', required: false, collapsed: true, nested: nested },
       {
-        label: '3 articles mis en avant',
-        name: slug + '_topArticles',
-        widget: 'list',
-        label_singular: 'Article',
-        summary: 'Article : {{article}}',
-        min: 0,
-        max: 3,
-        allow_duplicate: false,
+        label: 'Articles mis en avant et leur apparence',
+        name: slug + '_featuredArticles',
+        widget: 'domain-featured-editor',
+        domain_slug: slug,
         required: false,
-        field: {
-          label: 'Article',
-          name: 'article',
-          widget: 'relation-filtered',
-          target_category: slug,
-          collection: domainCollectionName(slug),
-          required: false,
-          search_fields: ['title'],
-          value_field: '{{slug}}',
-          display_fields: ['title']
-        }
-      },
-      {
-        label: 'Styles des 3 articles',
-        name: slug + '_topStyles',
-        widget: 'list',
-        label_singular: 'Style',
-        summary: '__STYLE_SUMMARY__',
-        min: 0,
-        max: 3,
-        required: false,
-        fields: styleFields()
+        hint: 'Choisis jusqu’à trois articles ; leur style reste associé à chaque emplacement.'
       }
     ];
+  }
+
+  function patchHomepageFields(file) {
+    if (!file || !Array.isArray(file.fields)) return;
+    var legacyNames = {
+      sep_article_une: true,
+      heroArticle: true,
+      sep_sidebar_long: true,
+      sidebarLongArticle: true,
+      sidebarSmallArticleCount: true,
+      sidebarSmallArticles: true,
+      sep_sidebar_mid: true,
+      bottomArticleCount: true,
+      bottomArticles: true,
+      bottomArticlesStyles: true,
+      sep_sidebar_left: true,
+      asymLeftArticles: true,
+      asymLeftStyles: true,
+      sep_giant_article: true,
+      asymRightArticle: true,
+      asymRightStyle: true
+    };
+    var fields = [];
+    var inserted = false;
+    file.fields.forEach(function (field) {
+      if (!field || !legacyNames[field.name]) {
+        fields.push(field);
+        return;
+      }
+      if (inserted) return;
+      fields.push({
+        label: 'Articles et mise en page de l’accueil',
+        name: 'homepage_featuredArticles',
+        widget: 'homepage-featured-editor',
+        required: false
+      });
+      inserted = true;
+    });
+    if (!inserted) {
+      fields.push({
+        label: 'Articles et mise en page de l’accueil',
+        name: 'homepage_featuredArticles',
+        widget: 'homepage-featured-editor',
+        required: false
+      });
+    }
+    file.fields = fields;
   }
 
   function patchConfig(config, domains) {
@@ -132,6 +123,7 @@
             return fields.concat(makeCategoryBlock(domain));
           }, []);
         }
+        if (file && file.name === 'homepage') patchHomepageFields(file);
       });
     });
 

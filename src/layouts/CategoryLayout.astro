@@ -20,7 +20,8 @@ const nettoyer = (s: any) =>
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
 
 const slugEstVide = (s: any) => s == null || String(s).trim() === "";
 
@@ -34,8 +35,14 @@ const checkHasEn = (art: any) =>
   Boolean(art && art.data && art.data.title_en && String(art.data.title_en).trim() !== "");
 
 const currentSlug = categorySlug.toLowerCase();
-const selectedSlugs = (categorySettings as any)[`${currentSlug}_topArticles`] || [];
-const selectedStyles = (categorySettings as any)[`${currentSlug}_topStyles`] || [];
+const combinedFeatured = (categorySettings as any)[`${currentSlug}_featuredArticles`];
+const hasCombinedFeatured = Array.isArray(combinedFeatured);
+const selectedSlugs = hasCombinedFeatured
+  ? combinedFeatured.map((item: any) => item?.article || null)
+  : ((categorySettings as any)[`${currentSlug}_topArticles`] || []);
+const selectedStyles = hasCombinedFeatured
+  ? combinedFeatured
+  : ((categorySettings as any)[`${currentSlug}_topStyles`] || []);
 
 const slotsAdmin = (Array.isArray(selectedSlugs) && selectedSlugs.length > 0)
   ? [...selectedSlugs, null, null, null].slice(0, 3)
