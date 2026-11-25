@@ -1,11 +1,11 @@
 {
   "homepage_featuredArticles": {
-    "heroArticle": "",
+    "heroArticle": "in-absentia",
     "sidebarLongArticle": "",
     "sidebarSmallArticleCount": "1",
     "sidebarSmallArticles": [
       {
-        "article": "",
+        "article": "sommet-international-sur-lespace-à-paris-apesanteur-politique-pesanteur-économique",
         "titleWeight": "undefined"
       },
       {
@@ -13,28 +13,28 @@
         "titleWeight": "undefined"
       }
     ],
-    "bottomArticleCount": "2",
+    "bottomArticleCount": "3",
     "bottomArticles": [
       {
-        "article": "",
+        "article": "7-octobre-2023-selon-haaretz-benjamin-netanyahou-était-informé-des-risques-dattaque",
         "titleSize": "1.2rem",
         "titleWeight": "700",
         "titleFont": "sans-serif",
         "overlay_opacity": 75
       },
       {
-        "article": "",
+        "article": "groenland-un-accord-diplomatique-qui-soulage-des-tensions-entre-alliés",
         "titleSize": "1.2rem",
         "titleWeight": "700",
         "titleFont": "sans-serif",
         "overlay_opacity": 75
       },
       {
-        "article": "",
+        "article": "le--manifeste--de-palantir-lia-militaire-et-le-réarmement-au-cœur-dune-doctrine-décomplexée",
         "titleSize": "1.2rem",
         "titleWeight": "700",
         "titleFont": "sans-serif",
-        "overlay_opacity": 75
+        "overlay_opacity": 80
       }
     ],
     "asymLeftArticles": [
