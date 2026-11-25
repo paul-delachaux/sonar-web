@@ -867,7 +867,7 @@
   <script src="/admin/cms-media.js?v=20261124e"></script>
   <script src="/admin/cms-deploy.js?v=20261014f"></script>
   <script src="/admin/body-composer.js?v=20261124g"></script>
-  <script src="/admin/article-body-composer.js?v=20261124d"></script>
+  <script src="/admin/article-body-composer.js?v=20261125b"></script>
 
   <script type="text/javascript">
     (function installCmsBrand() {
@@ -3324,7 +3324,11 @@
               })
             );
           }
-          return h('div', { className: 'revue-cell revue-text' }, item.text || '');
+          const markdown = window.SonarArticleBody && window.SonarArticleBody.markdownToPreviewHtml;
+          const text = item.text || '';
+          return markdown
+            ? h('div', { className: 'revue-cell revue-text', dangerouslySetInnerHTML: { __html: markdown(text) } })
+            : h('div', { className: 'revue-cell revue-text' }, text);
         }
 
         return h('div', { style: { padding: '20px', background: '#000000', minHeight: '100vh' } },

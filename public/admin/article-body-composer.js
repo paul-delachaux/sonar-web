@@ -266,6 +266,69 @@
     return markdownToHtml(text);
   }
 
+  function previewTextNodes(text) {
+    var output = [];
+    var paragraphLines = [];
+    var listItems = [];
+    function flushParagraph() {
+      if (!paragraphLines.length) return;
+      output.push({
+        paragraph: true,
+        html: '<p>' + paragraphLines.map(function (line) {
+          return line === '\u0000' ? '<br/>' : renderMarkdownText(line);
+        }).join('<br/>') + '</p>'
+      });
+      paragraphLines = [];
+    }
+    function flushList() {
+      if (!listItems.length) return;
+      output.push({
+        paragraph: false,
+        html: '<ul>' + listItems.map(function (item) {
+          return '<li>' + renderMarkdownText(item) + '</li>';
+        }).join('') + '</ul>'
+      });
+      listItems = [];
+    }
+    String(text || '').split('\n').forEach(function (line) {
+      var item = line.match(/^\s*[*+-]\s+([\s\S]*)$/);
+      if (item) {
+        flushParagraph();
+        listItems.push(item[1]);
+      } else if (listItems.length && /^\s{2,}/.test(line)) {
+        var continuation = line.replace(/^\s{2}/, '');
+        listItems[listItems.length - 1] += continuation.trim() === '\\\\' ? '\n' : '\n' + continuation;
+      } else if (line.trim() === '\\\\') {
+        flushList();
+        paragraphLines.push('\u0000');
+      } else {
+        flushList();
+        paragraphLines.push(line);
+      }
+    });
+    flushParagraph();
+    flushList();
+    return output;
+  }
+
+  function markdownToPreviewHtml(markdown) {
+    return parseBlocks(markdown).map(function (block) {
+      if (block.type === 'heading') {
+        var level = Number(block.level) === 3 ? 3 : 2;
+        return '<h' + level + '>' + renderMarkdownText(block.text) + '</h' + level + '>';
+      }
+      if (block.type === 'image' && block.src) {
+        var src = String(block.src);
+        if (!/^(https?:\/\/|\/|[^:]+$)/i.test(src)) return '';
+        return '<figure class="revue-figure"><img class="revue-image" src="' + htmlEscape(src) +
+          '" alt="' + htmlEscape(block.alt || '') + '">' +
+          (block.caption ? '<figcaption class="revue-caption">' + htmlEscape(block.caption) + '</figcaption>' : '') +
+          '</figure>';
+      }
+      return previewTextNodes(block.text).map(function (node) { return node.html; }).join('');
+    }).join('');
+  }
+
   function ensureStyle() {
     if (document.getElementById('sonar-article-body-css')) return;
     var style = document.createElement('style');
@@ -592,51 +655,6 @@
     var Control = createControl(true);
     var ShortControl = createControl(false);
 
-    function previewTextNodes(text) {
-      var output = [];
-      var paragraphLines = [];
-      var listItems = [];
-      function flushParagraph() {
-        if (!paragraphLines.length) return;
-        output.push({
-          paragraph: true,
-          html: '<p>' + paragraphLines.map(function (line) {
-            return line === '\u0000' ? '<br/>' : renderMarkdownText(line);
-          }).join('<br/>') + '</p>'
-        });
-        paragraphLines = [];
-      }
-      function flushList() {
-        if (!listItems.length) return;
-        output.push({
-          paragraph: false,
-          html: '<ul>' + listItems.map(function (item) {
-            return '<li>' + renderMarkdownText(item) + '</li>';
-          }).join('') + '</ul>'
-        });
-        listItems = [];
-      }
-      String(text || '').split('\n').forEach(function (line) {
-        var item = line.match(/^\s*[*+-]\s+([\s\S]*)$/);
-        if (item) {
-          flushParagraph();
-          listItems.push(item[1]);
-        } else if (listItems.length && /^\s{2,}/.test(line)) {
-          var continuation = line.replace(/^\s{2}/, '');
-          listItems[listItems.length - 1] += continuation.trim() === '\\\\' ? '\n' : '\n' + continuation;
-        } else if (line.trim() === '\\\\') {
-          flushList();
-          paragraphLines.push('\u0000');
-        } else {
-          flushList();
-          paragraphLines.push(line);
-        }
-      });
-      flushParagraph();
-      flushList();
-      return output;
-    }
-
     function Preview(props) {
       var blocks = parseBlocks(valueAsString(props.value));
       var nodes = [];
@@ -673,7 +691,11 @@
     CMS.registerWidget('article-short-body', ShortControl, Preview);
   }
 
-  global.SonarArticleBody = { register: register };
+  global.SonarArticleBody = {
+    register: register,
+    markdownToHtml: markdownToHtml,
+    markdownToPreviewHtml: markdownToPreviewHtml
+  };
 
   function boot() {
     if (global.CMS && global.createClass && global.h) register(global.CMS, global.createClass, global.h);
