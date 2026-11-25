@@ -408,19 +408,24 @@
     }
     if (role === 'admin') {
       var profileItem = document.getElementById('cms-author-profile-nav');
-      if (profileItem && profileItem.parentNode) {
-        profileItem.parentNode.insertBefore(existing || document.createElement('button'), profileItem.nextSibling);
-        if (!existing) {
-          existing = profileItem.nextSibling;
-          existing.type = 'button';
-          existing.id = 'cms-feedback-nav';
-          existing.className = 'cms-moderation-item';
-          existing.style.paddingLeft = '10px';
-          existing.textContent = 'Retours sur le site';
-          existing.addEventListener('click', open);
-        }
-        return;
+      if (!profileItem || !profileItem.parentNode) return;
+      var feedbackItem = existing || document.createElement('button');
+      if (!existing) {
+        feedbackItem.type = 'button';
+        feedbackItem.id = 'cms-feedback-nav';
+        feedbackItem.className = 'cms-moderation-item';
+        feedbackItem.style.paddingLeft = '10px';
+        feedbackItem.textContent = 'Retours sur le site';
+        feedbackItem.addEventListener('click', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          open();
+        });
       }
+      if (feedbackItem.parentNode !== profileItem.parentNode || profileItem.nextSibling !== feedbackItem) {
+        profileItem.parentNode.insertBefore(feedbackItem, profileItem.nextSibling);
+      }
+      return;
     }
     if (existing) return;
     var anchor = document.getElementById('cms-announcements-nav')

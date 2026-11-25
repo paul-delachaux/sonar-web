@@ -360,6 +360,52 @@
       return Promise.resolve(false);
     }
     var existing = document.getElementById('cms-author-profile-nav');
+    if (role === 'admin') {
+      var adminGroup = document.getElementById('cms-author-profile-group');
+      if (!adminGroup) {
+        adminGroup = document.createElement('div');
+        adminGroup.id = 'cms-author-profile-group';
+        adminGroup.className = 'cms-sidebar-header';
+        adminGroup.style.cssText = 'font-weight:bold;font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;background:#01002b;color:#fff;padding:10px 14px;margin-top:8px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;user-select:none;cursor:pointer';
+        adminGroup.innerHTML = '<span>Administration</span><span class="arrow" style="font-size:.7rem">▼</span>';
+        var collapsed = false;
+        adminGroup.addEventListener('click', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          collapsed = !collapsed;
+          adminGroup.querySelector('.arrow').textContent = collapsed ? '►' : '▼';
+          [document.getElementById('cms-author-profile-nav'), document.getElementById('cms-feedback-nav')]
+            .forEach(function (item) {
+              if (item) item.style.display = collapsed ? 'none' : 'flex';
+            });
+        });
+        sidebar.appendChild(adminGroup);
+      }
+      if (!existing) {
+        existing = document.createElement('button');
+        existing.type = 'button';
+        existing.id = 'cms-author-profile-nav';
+        existing.className = 'cms-moderation-item';
+        existing.style.paddingLeft = '10px';
+        existing.innerHTML = '<span>Mon profil d’auteur</span>';
+        existing.addEventListener('click', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          open();
+        });
+      }
+      if (existing.parentNode !== adminGroup.parentNode || adminGroup.nextSibling !== existing) {
+        adminGroup.parentNode.insertBefore(existing, adminGroup.nextSibling);
+      }
+      if (global.SonarAdminFeedback && global.SonarAdminFeedback.addNav) {
+        global.SonarAdminFeedback.addNav(sidebar);
+      }
+      if (navTimer) {
+        global.clearInterval(navTimer);
+        navTimer = null;
+      }
+      return Promise.resolve(true);
+    }
     if (existing) return Promise.resolve();
     if (role === 'superadmin' &&
         !document.getElementById('cms-accounts-group') &&
@@ -389,24 +435,7 @@
           var logsItem = document.getElementById('cms-logs-nav');
           var anchor = role === 'superadmin' ? (logsItem || accountsItem) : null;
           if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(item, anchor.nextSibling);
-          else if (role === 'admin') {
-            var header = document.createElement('div');
-            header.id = 'cms-author-profile-group';
-            header.className = 'cms-sidebar-header';
-            header.style.cssText = 'font-weight:bold;font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;background:#01002b;color:#fff;padding:10px 14px;margin-top:8px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;user-select:none;cursor:pointer';
-            header.innerHTML = '<span>Administration</span><span class="arrow" style="font-size:.7rem">▼</span>';
-            var collapsed = false;
-            header.addEventListener('click', function () {
-              collapsed = !collapsed;
-              header.querySelector('.arrow').textContent = collapsed ? '►' : '▼';
-              item.style.display = collapsed ? 'none' : 'flex';
-            });
-            sidebar.appendChild(header);
-            sidebar.appendChild(item);
-          } else sidebar.appendChild(item);
-          if (role === 'admin' && global.SonarAdminFeedback && global.SonarAdminFeedback.addNav) {
-            global.SonarAdminFeedback.addNav(sidebar);
-          }
+          else sidebar.appendChild(item);
           navRetryAfter = 0;
           return true;
         });
