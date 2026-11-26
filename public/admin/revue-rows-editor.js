@@ -58,6 +58,7 @@
     var type = cell.type === 'image' || cell.type === 'audio' || cell.type === 'intertitre'
       ? cell.type
       : 'texte';
+    var colorType = type === 'intertitre' ? 'title' : (type === 'texte' ? 'text' : type);
     var label = type === 'intertitre' ? 'Intertitre'
       : type === 'image' ? 'Image'
       : type === 'audio' ? 'Audio'
@@ -73,13 +74,16 @@
     } else {
       content = cell.text || cell.text_en || '';
     }
-    return (side === 'left' ? 'Gauche' : 'Droite') + ' · ' + label + ': ' + (summaryText(content, 52) || 'Vide');
+    return {
+      colorType: colorType,
+      text: (side === 'left' ? 'Gauche' : 'Droite') + ' · ' + label + ': ' + (summaryText(content, 52) || 'Vide')
+    };
   }
 
   function rowSummary(row) {
     var parts = [cellSummary(cellFrom(row, 'left'), 'left')];
     if (!row.full_width) parts.push(cellSummary(cellFrom(row, 'right'), 'right'));
-    return parts.join(' | ');
+    return parts;
   }
 
   function collapsedRowsFrom(value) {
@@ -116,6 +120,7 @@
     style.id = 'sonar-revue-rows-editor-style';
     style.textContent = [
       '.sonar-revue-rows-editor{font-family:Helvetica,Arial,sans-serif;color:#253044;}',
+      '.sonar-revue-rows-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 8px;}',
       '.sonar-revue-rows-list{display:flex;flex-direction:column;gap:12px;}',
       '.sonar-revue-row{overflow:hidden;border:1px solid #d5d9e0;border-radius:8px;background:#fff;}',
       '.sonar-revue-row-header{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 10px;background:#f1f3f6;border-bottom:1px solid #d5d9e0;}',
@@ -123,7 +128,12 @@
       '.sonar-revue-row-header button.sonar-revue-row-title{flex:1;min-width:90px;border:0;background:transparent;padding:0;color:#38445a;font-size:13px;font-weight:700;text-align:left;}',
       '.sonar-revue-row-header button.sonar-revue-row-title:hover{border:0;background:transparent;color:#d65f00;text-decoration:underline;}',
       '.sonar-revue-row-header input.sonar-revue-row-title-editor{flex:1;min-width:90px;width:auto;margin:0;padding:4px 6px;font-size:13px;font-weight:700;}',
-      '.sonar-revue-row-summary{flex:0 0 100%;min-width:0;margin:0;color:#667085;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+      '.sonar-revue-row-summary{display:flex;flex:0 0 100%;min-width:0;gap:6px;margin:0;color:#253044;font-size:11px;}',
+      '.sonar-revue-row-summary-cell{flex:1;min-width:0;padding:3px 6px;border-radius:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+      '.sonar-revue-row-summary-cell.is-type-image{background:#fff057;}',
+      '.sonar-revue-row-summary-cell.is-type-title{background:#88fa4f;}',
+      '.sonar-revue-row-summary-cell.is-type-text{background:#72fce9;}',
+      '.sonar-revue-row-summary-cell.is-type-audio{background:#ff968d;}',
       '.sonar-revue-row-body.is-collapsed{display:none;}',
       '.sonar-revue-rows-editor button,.sonar-revue-rows-editor select,.sonar-revue-rows-editor input,.sonar-revue-rows-editor textarea{font-family:Helvetica,Arial,sans-serif;}',
       '.sonar-revue-rows-editor button{border:1px solid #cbd2dc;border-radius:5px;background:#fff;color:#283448;padding:6px 9px;font-weight:700;cursor:pointer;}',
@@ -173,6 +183,8 @@
       '.sonar-revue-add-row{margin-top:10px;}',
       '.sonar-revue-empty{margin:0;padding:18px;border:1px dashed #cbd2dc;border-radius:7px;color:#667085;text-align:center;font-size:13px;}',
       '.sonar-revue-rows-summary{margin:0;padding:4px 0;color:#667085;font-size:12px;}',
+      '.sonar-revue-color-toggle{flex:0 0 auto;font-size:11px;}',
+      '.sonar-revue-color-toggle[aria-pressed="true"]{border-color:#1d9e75!important;background:#e8f7f1!important;color:#137558!important;}',
       '@media(max-width:600px){.sonar-revue-row-header{align-items:flex-start}.sonar-revue-row-workspace{grid-template-columns:minmax(0,1fr) 30px;padding:7px}.sonar-revue-row-workspace.is-right{grid-template-columns:30px minmax(0,1fr)}.sonar-revue-cell-panel{padding:9px}.sonar-revue-image-picker{grid-template-columns:1fr}.sonar-revue-image-preview,.sonar-revue-image-empty{height:150px}}'
     ].join('');
     document.head.appendChild(style);
@@ -189,6 +201,7 @@
         return {
           activeSides: {},
           collapsedRows: collapsedRowsFrom(this.props.value),
+          colorCodingEnabled: true,
           editingRowTitle: null,
           insertMenuRow: null
         };
@@ -337,6 +350,10 @@
         if (collapsedRows[rowIndex]) delete collapsedRows[rowIndex];
         else collapsedRows[rowIndex] = true;
         this.setState({ collapsedRows: collapsedRows });
+      },
+
+      toggleColorCoding: function () {
+        this.setState({ colorCodingEnabled: !this.state.colorCodingEnabled });
       },
 
       startMediaPick: function (rowIndex, side, fieldName, trackIndex) {
@@ -594,6 +611,7 @@
         var cell = cellFrom(row, side);
         var collapsed = Boolean(this.state.collapsedRows && this.state.collapsedRows[rowIndex]);
         var summary = rowSummary(row);
+        var summaryLabel = summary.map(function (item) { return item.text; }).join(' | ');
         var rowTitle = String(row.editor_title || '').trim() || 'Ligne ' + (rowIndex + 1);
         var editingRowTitle = this.state.editingRowTitle === rowIndex;
         var switchButton = !fullWidth && h('button', {
@@ -688,7 +706,18 @@
               h('button', { type: 'button', onClick: function () { self.insertRow(rowIndex + 1); } }, 'Ajouter après')
             )
           ),
-          collapsed && h('p', { className: 'sonar-revue-row-summary', title: summary }, summary),
+          collapsed && h('div', {
+            className: 'sonar-revue-row-summary',
+            title: summaryLabel,
+            role: 'group',
+            'aria-label': summaryLabel
+          }, summary.map(function (item, index) {
+            return h('span', {
+              key: index,
+              className: 'sonar-revue-row-summary-cell'
+                + (self.state.colorCodingEnabled ? ' is-type-' + item.colorType : '')
+            }, item.text);
+          })),
           h('div', { className: 'sonar-revue-row-body' + (collapsed ? ' is-collapsed' : '') },
             h('div', {
               className: 'sonar-revue-row-workspace'
@@ -707,7 +736,16 @@
         var self = this;
         var rows = this.rows();
         return h('div', { className: 'sonar-revue-rows-editor' },
-          h('p', { className: 'sonar-revue-rows-summary' }, rows.length + (rows.length === 1 ? ' ligne' : ' lignes')),
+          h('div', { className: 'sonar-revue-rows-toolbar' },
+            h('p', { className: 'sonar-revue-rows-summary' }, rows.length + (rows.length === 1 ? ' ligne' : ' lignes')),
+            h('button', {
+              type: 'button',
+              className: 'sonar-revue-color-toggle',
+              'aria-pressed': Boolean(this.state.colorCodingEnabled),
+              title: this.state.colorCodingEnabled ? 'Désactiver le code couleur' : 'Activer le code couleur',
+              onClick: function () { self.toggleColorCoding(); }
+            }, 'Couleurs ' + (this.state.colorCodingEnabled ? 'activées' : 'désactivées'))
+          ),
           rows.length
             ? h('div', { className: 'sonar-revue-rows-list' }, rows.map(function (row, index) {
                 return self.renderRow(row, index, rows.length);

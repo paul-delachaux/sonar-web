@@ -61,12 +61,25 @@
     if ((tag === 'div' || tag === 'p') && node.childNodes.length === 1
       && node.firstChild.nodeType === 1 && node.firstChild.tagName.toLowerCase() === 'br') return '';
     var childNodes = Array.from(node.childNodes);
+    function isLineBreak(child) {
+      return child && child.nodeType === 1 && child.tagName.toLowerCase() === 'br';
+    }
     var content = childNodes.map(function (child, index) {
       var previous = childNodes[index - 1];
       var blockTags = ['div', 'p', 'ul', 'ol'];
       var childIsBlock = child.nodeType === 1 && blockTags.indexOf(child.tagName.toLowerCase()) !== -1;
       var previousIsBlock = previous && previous.nodeType === 1 && blockTags.indexOf(previous.tagName.toLowerCase()) !== -1;
-      return (index > 0 && (childIsBlock || previousIsBlock) ? '\n' : '') + htmlToMarkdown(child);
+      var previousIsLineBreak = isLineBreak(previous);
+      var childIsLineBreak = isLineBreak(child);
+      if (childIsLineBreak && previousIsLineBreak) return '';
+      var lineBreaks = htmlToMarkdown(child);
+      if (childIsLineBreak) {
+        var breakCount = 1;
+        while (isLineBreak(childNodes[index + breakCount])) breakCount += 1;
+        lineBreaks = '\n\\\\\n'.repeat(Math.floor(breakCount / 2)) + (breakCount % 2 ? '\n' : '');
+      }
+      return (index > 0 && (childIsBlock || previousIsBlock) && !previousIsLineBreak && !childIsLineBreak
+        ? '\n' : '') + lineBreaks;
     }).join('');
     if (tag === 'strong' || tag === 'b') return '**' + content + '**';
     if (tag === 'em' || tag === 'i') return '*' + content + '*';

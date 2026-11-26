@@ -67,6 +67,39 @@
     .cms-sidebar-header:hover { background-color: #01002b; }
     .cms-sidebar-header .arrow { font-size: 10px; transition: transform 0.2s ease; }
     .cms-sidebar-header.collapsed .arrow { transform: rotate(-90deg); }
+    #sonar-admin-sidebar-columns {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      width: 100%;
+      height: calc(100vh - 120px);
+      box-sizing: border-box;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    #sonar-admin-sidebar-collections,
+    #sonar-admin-sidebar-tools { min-width: 0; }
+    @media (min-width: 1400px) {
+      #sonar-admin-sidebar-columns {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+        overflow: hidden;
+      }
+      #sonar-admin-sidebar-collections,
+      #sonar-admin-sidebar-tools {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+      }
+      #sonar-admin-sidebar-tools { border-left: 1px solid #e4e7ec; padding-left: 10px; }
+    }
+    @media (max-width: 1399px) {
+      #sonar-admin-sidebar-collections,
+      #sonar-admin-sidebar-tools { overflow: visible; }
+      #sonar-admin-sidebar-tools { border-top: 1px solid #e4e7ec; padding-top: 8px; }
+    }
 
     [data-section-header="true"][data-preview-target]:hover {
       box-shadow: 0 0 0 3px rgba(255, 121, 0, 0.55) !important;
@@ -504,7 +537,9 @@
     .sonar-mod-keep { background: #1D9E75; }
     .sonar-mod-delete { background: #e5484d; }
     .sonar-bulk-bar {
-      width: 60%;
+      width: 100%;
+      max-width: 682px;
+      box-sizing: border-box;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -854,14 +889,14 @@
   <script src="/admin/article-search.js?v=20260825r"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/revue-rows-editor.js?v=20261125j"></script>
+  <script src="/admin/revue-rows-editor.js?v=20261126d"></script>
   <script src="/admin/domain-featured-editor.js?v=20261125a"></script>
   <script src="/admin/homepage-featured-editor.js?v=20261125a"></script>
   <script src="/admin/cms-boot.js?v=20261125b"></script>
   <script src="/admin/domains-admin.js?v=20261125a"></script>
   <script src="/admin/moderation.js?v=20260825r"></script>
   <script src="/admin/bulk-admin.js?v=20260825r"></script>
-  <script src="/admin/accounts-admin.js?v=20261030a"></script>
+  <script src="/admin/accounts-admin.js?v=20261126b"></script>
   <script src="/admin/author-profiles-admin.js?v=20261125f"></script>
   <script src="/admin/cms-logs.js?v=20261014m"></script>
   <script src="/admin/admin-announcements.js?v=20261030a"></script>
@@ -2627,6 +2662,63 @@
       }));
     }
 
+    function previewContentSignature(container) {
+      const clone = container.cloneNode(true);
+      clone.querySelectorAll('.injected-media-block').forEach(function(el) { el.remove(); });
+      return clone.innerHTML;
+    }
+
+    function previewMediaIsPositioned(container, blocks) {
+      const paragraphs = getContentParagraphs(container);
+      if (!paragraphs.length) {
+        return (blocks || []).every(function(block) {
+          return Array.from(container.querySelectorAll('.injected-media-block')).some(function(el) {
+            return el.getAttribute('data-sonar-editor-id') === String(block.id)
+              && el.parentNode === container;
+          });
+        });
+      }
+
+      const groups = {};
+      (blocks || []).forEach(function(block, index) {
+        const position = Math.max(0, Number(block.after) || 0);
+        const target = Math.min(position, paragraphs.length);
+        groups[target] = groups[target] || [];
+        groups[target].push({ block: block, index: index });
+      });
+      Object.keys(groups).forEach(function(target) {
+        groups[target].sort(function(a, b) {
+          return (Number(a.block.after) || 0) - (Number(b.block.after) || 0) || a.index - b.index;
+        });
+      });
+
+      const mediaElements = Array.from(container.querySelectorAll('.injected-media-block'));
+      return Object.keys(groups).every(function(target) {
+        const targetIndex = Number(target);
+        const anchor = targetIndex === 0 ? paragraphs[0] : paragraphs[targetIndex - 1];
+        let cursor = anchor;
+        const group = groups[targetIndex];
+        if (targetIndex === 0) {
+          for (let i = group.length - 1; i >= 0; i--) {
+            const element = mediaElements.find(function(el) {
+              return el.getAttribute('data-sonar-editor-id') === String(group[i].block.id);
+            });
+            if (!element || element.parentNode !== anchor.parentNode || element.nextElementSibling !== cursor) return false;
+            cursor = element;
+          }
+        } else {
+          for (let i = 0; i < group.length; i++) {
+            const element = mediaElements.find(function(el) {
+              return el.getAttribute('data-sonar-editor-id') === String(group[i].block.id);
+            });
+            if (!element || element.parentNode !== anchor.parentNode || cursor.nextElementSibling !== element) return false;
+            cursor = element;
+          }
+        }
+        return true;
+      });
+    }
+
     function previewPercent(value) {
       var n = Number(value);
       if (!isFinite(n) || n <= 0) return 100;
@@ -2744,8 +2836,13 @@
       if (!container) return;
       options = options || {};
       const sig = mediaBlocksSignature(blocks) + '|' + (options.figureClass || '');
-      if (container._sonarMediaSig === sig && container.querySelector('.injected-media-block')) return;
+      const contentSig = previewContentSignature(container);
+      if (container._sonarMediaSig === sig
+        && container._sonarMediaContentSig === contentSig
+        && previewMediaIsPositioned(container, blocks)
+        && container.querySelector('.injected-media-block')) return;
       container._sonarMediaSig = sig;
+      container._sonarMediaContentSig = contentSig;
       container.querySelectorAll('.injected-media-block').forEach(function(el) { el.remove(); });
       const ordered = (blocks || []).slice().map(function(block, index) {
         return Object.assign({}, block, { _i: index });
@@ -2777,6 +2874,7 @@
         insertAtParagraphPosition(container, element, Number(block.after) || 0);
         applyPreviewMediaSize(element, block, doc);
       }
+      container._sonarMediaContentSig = previewContentSignature(container);
       loadTwitterWidgets(container);
     }
 
@@ -3345,7 +3443,9 @@
     `;
 
     const RevuePreview = createClass({
-      componentDidMount: function() { rememberPreviewContext(this.props); },
+      componentDidMount: function() {
+        rememberPreviewContext(this.props);
+      },
       componentDidUpdate: function() { rememberPreviewContext(this.props); },
       render: function() {
         const entry = this.props.entry;
@@ -4457,6 +4557,87 @@
         return window.__SONAR_CMS_ROLE !== 'admin' || group.title !== 'Paramètres';
       });
 
+      const TOOL_NAV_IDS = [
+        'cms-moderation-group',
+        'cms-moderation-nav',
+        'cms-moderation-published',
+        'cms-accounts-group',
+        'cms-accounts-nav',
+        'cms-logs-nav',
+        'cms-announcements-group',
+        'cms-announcements-nav',
+        'cms-author-profile-group',
+        'cms-author-profile-nav',
+        'cms-feedback-nav'
+      ];
+
+      function isToolNavNode(node) {
+        return node && node.nodeType === 1 && TOOL_NAV_IDS.indexOf(node.id) !== -1;
+      }
+
+      function setSidebarWidth(sidebarContainer) {
+        const useColumns = window.innerWidth >= 1400;
+        const mainPane = Array.from(sidebarContainer.parentElement.children).find(function (child) {
+          return child !== sidebarContainer && child.tagName === 'MAIN';
+        });
+        if (!sidebarContainer.__sonarSidebarBaseMetrics) {
+          sidebarContainer.__sonarSidebarBaseMetrics = {
+            width: parseFloat(getComputedStyle(sidebarContainer).width) || 250,
+            mainPaddingLeft: mainPane ? (parseFloat(getComputedStyle(mainPane).paddingLeft) || 0) : 0
+          };
+        }
+        const base = sidebarContainer.__sonarSidebarBaseMetrics;
+        sidebarContainer.style.flex = useColumns ? '0 0 500px' : '';
+        sidebarContainer.style.width = useColumns ? '500px' : '';
+        if (mainPane) {
+          const extraWidth = useColumns ? 500 - base.width : 0;
+          mainPane.style.paddingLeft = (base.mainPaddingLeft + extraWidth) + 'px';
+        }
+      }
+
+      function ensureSidebarColumns(sidebarContainer) {
+        let layout = sidebarContainer.querySelector('#sonar-admin-sidebar-columns');
+        let collectionsColumn;
+        let toolsColumn;
+        if (!layout) {
+          layout = document.createElement('div');
+          layout.id = 'sonar-admin-sidebar-columns';
+          collectionsColumn = document.createElement('div');
+          collectionsColumn.id = 'sonar-admin-sidebar-collections';
+          toolsColumn = document.createElement('div');
+          toolsColumn.id = 'sonar-admin-sidebar-tools';
+          layout.appendChild(collectionsColumn);
+          layout.appendChild(toolsColumn);
+          Array.from(sidebarContainer.children).forEach(function (child) {
+            (isToolNavNode(child) ? toolsColumn : collectionsColumn).appendChild(child);
+          });
+          sidebarContainer.appendChild(layout);
+        } else {
+          collectionsColumn = layout.querySelector('#sonar-admin-sidebar-collections');
+          toolsColumn = layout.querySelector('#sonar-admin-sidebar-tools');
+          Array.from(sidebarContainer.children).forEach(function (child) {
+            if (child === layout) return;
+            (isToolNavNode(child) ? toolsColumn : collectionsColumn).appendChild(child);
+          });
+        }
+
+        TOOL_NAV_IDS.forEach(function (id) {
+          const node = sidebarContainer.querySelector('#' + id);
+          if (node && !toolsColumn.contains(node)) toolsColumn.appendChild(node);
+        });
+
+        if (!window.__SONAR_ADMIN_SIDEBAR_RESIZE_LISTENER) {
+          window.__SONAR_ADMIN_SIDEBAR_RESIZE_LISTENER = true;
+          window.addEventListener('resize', function () {
+            document.querySelectorAll('#sonar-admin-sidebar-columns').forEach(function (currentLayout) {
+              if (currentLayout.parentNode) setSidebarWidth(currentLayout.parentNode);
+            });
+          });
+        }
+        setSidebarWidth(sidebarContainer);
+        return { collections: collectionsColumn, tools: toolsColumn };
+      }
+
       function addModerationNav(sidebarContainer) {
         if (sidebarContainer.querySelector('#cms-moderation-group')) return;
 
@@ -4656,9 +4837,12 @@
         if (!sidebarContainer) return;
 
         // On ne récupère que les liens <a> situés À L'INTÉRIEUR de la sidebar
-        const sidebarLinks = Array.from(sidebarContainer.querySelectorAll('a'));
+        const sidebarColumns = ensureSidebarColumns(sidebarContainer);
+        const collectionsColumn = sidebarColumns.collections;
+        const toolsColumn = sidebarColumns.tools;
+        const sidebarLinks = Array.from(collectionsColumn.querySelectorAll('a'));
 
-        if (!sidebarContainer.querySelector('[data-cms-group]') && sidebarLinks.length > 0) {
+        if (!collectionsColumn.querySelector('[data-cms-group]') && sidebarLinks.length > 0) {
         SIDEBAR_GROUPS.forEach(group => {
           const itemsToGroup = [];
 
@@ -4725,33 +4909,33 @@
         });
         }
 
-        nestCategorySubdomains(sidebarContainer);
+        nestCategorySubdomains(collectionsColumn);
         if (window.__SONAR_CMS_ROLE === 'admin') {
-          sidebarContainer.querySelectorAll('a[href*="/collections/settings"], a[href*="/collections/domains"]').forEach((link) => {
+          collectionsColumn.querySelectorAll('a[href*="/collections/settings"], a[href*="/collections/domains"]').forEach((link) => {
             const row = link.closest('li') || link;
             row.style.display = 'none';
           });
-          sidebarContainer.querySelectorAll('[data-cms-group="Paramètres"]').forEach((header) => {
+          collectionsColumn.querySelectorAll('[data-cms-group="Paramètres"]').forEach((header) => {
             header.style.display = 'none';
           });
         }
         if (window.__SONAR_CMS_ROLE !== 'admin') {
-          addModerationNav(sidebarContainer);
+          addModerationNav(toolsColumn);
         }
         if (window.SonarAccountsAdmin && window.SonarAccountsAdmin.addNav) {
-          window.SonarAccountsAdmin.addNav(sidebarContainer);
+          window.SonarAccountsAdmin.addNav(toolsColumn);
         }
         if (window.SonarCmsLogs && window.SonarCmsLogs.addNav) {
-          window.SonarCmsLogs.addNav(sidebarContainer);
+          window.SonarCmsLogs.addNav(toolsColumn);
         }
         if (window.SonarAdminAnnouncements && window.SonarAdminAnnouncements.addNav) {
-          window.SonarAdminAnnouncements.addNav(sidebarContainer);
+          window.SonarAdminAnnouncements.addNav(toolsColumn);
         }
         if (window.SonarAdminFeedback && window.SonarAdminFeedback.addNav) {
-          window.SonarAdminFeedback.addNav(sidebarContainer);
+          window.SonarAdminFeedback.addNav(toolsColumn);
         }
         if (window.SonarAuthorProfiles && window.SonarAuthorProfiles.addNav) {
-          window.SonarAuthorProfiles.addNav(sidebarContainer);
+          window.SonarAuthorProfiles.addNav(toolsColumn);
         }
       }
 

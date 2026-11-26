@@ -593,6 +593,8 @@
       if (announcementsItem) announcementsItem.style.display = collapsed ? 'none' : 'flex';
       var authorProfileItem = document.getElementById('cms-author-profile-nav');
       if (authorProfileItem) authorProfileItem.style.display = collapsed ? 'none' : 'flex';
+      var feedbackItem = document.getElementById('cms-feedback-nav');
+      if (feedbackItem) feedbackItem.style.display = collapsed ? 'none' : 'flex';
     });
 
     sidebarContainer.appendChild(header);
