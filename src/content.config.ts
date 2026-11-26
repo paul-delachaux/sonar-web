@@ -1,6 +1,46 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
+function timecodeSeconds(value: string | null | undefined) {
+  const parts = String(value || '').trim().split(':');
+  if (parts.length !== 2 && parts.length !== 3) return null;
+  if (parts.some((part) => !/^\d+$/.test(part))) return null;
+
+  const numbers = parts.map(Number);
+  const seconds = numbers[numbers.length - 1];
+  const minutes = numbers[numbers.length - 2];
+  if (seconds > 59 || (parts.length === 3 && minutes > 59)) return null;
+
+  const total = parts.length === 2
+    ? numbers[0] * 60 + seconds
+    : numbers[0] * 3600 + minutes * 60 + seconds;
+  return Number.isSafeInteger(total) ? total : null;
+}
+
+const revueTrackSchema = z.object({
+  file: z.string().nullish().optional(),
+  url: z.string().nullish().optional(),
+  title: z.string().nullish().optional(),
+  title_en: z.string().nullish().optional(),
+  use_excerpt: z.boolean().nullish().optional(),
+  start_time: z.string().nullish().optional(),
+  end_time: z.string().nullish().optional(),
+}).superRefine((track, context) => {
+  if (!track.use_excerpt) return;
+
+  const start = timecodeSeconds(track.start_time);
+  const end = timecodeSeconds(track.end_time);
+  if (start === null) {
+    context.addIssue({ code: 'custom', path: ['start_time'], message: 'Le début doit être au format mm:ss ou hh:mm:ss.' });
+  }
+  if (end === null) {
+    context.addIssue({ code: 'custom', path: ['end_time'], message: 'La fin doit être au format mm:ss ou hh:mm:ss.' });
+  }
+  if (start !== null && end !== null && end <= start) {
+    context.addIssue({ code: 'custom', path: ['end_time'], message: 'La fin doit être après le début.' });
+  }
+});
+
 const articles = defineCollection({
   loader: glob({ pattern: '**/[^_]*.md', base: "./src/content/articles" }),
 
@@ -148,14 +188,7 @@ const articles = defineCollection({
           image: z.string().nullish().optional(),
           image_caption: z.string().nullish().optional(),
           image_caption_en: z.string().nullish().optional(),
-          tracks: z.array(
-            z.object({
-              file: z.string().nullish().optional(),
-              url: z.string().nullish().optional(),
-              title: z.string().nullish().optional(),
-              title_en: z.string().nullish().optional(),
-            })
-          ).optional(),
+          tracks: z.array(revueTrackSchema).optional(),
         }).optional(),
         right: z.object({
           type: z.enum(['texte', 'intertitre', 'image', 'audio']).default('texte'),
@@ -164,14 +197,7 @@ const articles = defineCollection({
           image: z.string().nullish().optional(),
           image_caption: z.string().nullish().optional(),
           image_caption_en: z.string().nullish().optional(),
-          tracks: z.array(
-            z.object({
-              file: z.string().nullish().optional(),
-              url: z.string().nullish().optional(),
-              title: z.string().nullish().optional(),
-              title_en: z.string().nullish().optional(),
-            })
-          ).optional(),
+          tracks: z.array(revueTrackSchema).optional(),
         }).optional(),
       })
     ).optional(),

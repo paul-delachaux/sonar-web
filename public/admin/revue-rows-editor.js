@@ -42,6 +42,104 @@
     try { return decodeURIComponent(name); } catch (e) { return name; }
   }
 
+  function youtubeIdFrom(value) {
+    var match = String(value || '').trim().match(
+      /(?:youtu\.be\/|youtube\.com\/(?:watch\?.*?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/
+    );
+    return match ? match[1] : '';
+  }
+
+  function timecodeSeconds(value) {
+    var parts = String(value || '').trim().split(':');
+    if (parts.length !== 2 && parts.length !== 3) return null;
+    if (parts.some(function (part) { return !/^\d+$/.test(part); })) return null;
+
+    var numbers = parts.map(Number);
+    var seconds = numbers[numbers.length - 1];
+    var minutes = numbers[numbers.length - 2];
+    if (seconds > 59 || (parts.length === 3 && minutes > 59)) return null;
+
+    var total = parts.length === 2
+      ? numbers[0] * 60 + seconds
+      : numbers[0] * 3600 + minutes * 60 + seconds;
+    return Number.isSafeInteger(total) ? total : null;
+  }
+
+  function formatTimecode(seconds) {
+    var total = Math.max(0, Math.floor(Number(seconds) || 0));
+    var hours = Math.floor(total / 3600);
+    var minutes = Math.floor((total % 3600) / 60);
+    var remainder = total % 60;
+    return hours
+      ? hours + ':' + String(minutes).padStart(2, '0') + ':' + String(remainder).padStart(2, '0')
+      : minutes + ':' + String(remainder).padStart(2, '0');
+  }
+
+  var youtubeApiPromise = null;
+  function loadYoutubeIframeApi() {
+    if (global.YT && global.YT.Player) return Promise.resolve(global.YT);
+    if (youtubeApiPromise) return youtubeApiPromise;
+
+    youtubeApiPromise = new Promise(function (resolve, reject) {
+      var timeout = global.setTimeout(function () {
+        youtubeApiPromise = null;
+        reject(new Error('Délai dépassé lors du chargement de YouTube.'));
+      }, 15000);
+      var previousReady = global.onYouTubeIframeAPIReady;
+      global.onYouTubeIframeAPIReady = function () {
+        if (typeof previousReady === 'function') previousReady();
+        global.clearTimeout(timeout);
+        if (global.YT && global.YT.Player) resolve(global.YT);
+        else {
+          youtubeApiPromise = null;
+          reject(new Error('Le lecteur YouTube est indisponible.'));
+        }
+      };
+
+      var script = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+      if (!script) {
+        script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        script.addEventListener('error', function () {
+          global.clearTimeout(timeout);
+          youtubeApiPromise = null;
+          reject(new Error('Impossible de charger le lecteur YouTube.'));
+        }, { once: true });
+        document.head.appendChild(script);
+      } else {
+        script.addEventListener('error', function () {
+          global.clearTimeout(timeout);
+          youtubeApiPromise = null;
+          reject(new Error('Impossible de charger le lecteur YouTube.'));
+        }, { once: true });
+      }
+    });
+    return youtubeApiPromise;
+  }
+
+  function timecodeMessage(track, duration) {
+    var start = timecodeSeconds(track.start_time);
+    var end = timecodeSeconds(track.end_time);
+    if (start === null || end === null) return 'Renseigne un début et une fin au format mm:ss ou hh:mm:ss.';
+    if (end <= start) return 'La fin doit être après le début.';
+    if (duration > 0 && start >= duration) return 'Le début doit être avant la durée de la vidéo.';
+    if (duration > 0 && end > duration) return 'La fin dépasse la durée de la vidéo.';
+    return '';
+  }
+
+  function updateExcerptValidation(preview, duration) {
+    var track = preview.closest('.sonar-revue-track');
+    var inputs = track && track.querySelectorAll('.sonar-revue-excerpt-times input');
+    var status = preview.querySelector('.sonar-revue-excerpt-validation');
+    if (!inputs || inputs.length < 2 || !status) return;
+    var message = timecodeMessage({
+      start_time: inputs[0].value,
+      end_time: inputs[1].value
+    }, duration);
+    status.textContent = message;
+    status.classList.toggle('is-error', Boolean(message));
+  }
+
   function summaryText(value, limit) {
     var text = String(value || '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
@@ -177,6 +275,17 @@
       '.sonar-revue-track-header{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#38445a;font-size:12px;font-weight:700;}',
       '.sonar-revue-track-file-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}',
       '.sonar-revue-track-file-row button{flex:0 0 auto;}',
+      '.sonar-revue-excerpt-toggle{display:flex!important;flex-direction:row!important;align-items:center;gap:8px!important;}',
+      '.sonar-revue-excerpt-toggle input{width:auto!important;margin:0;}',
+      '.sonar-revue-youtube-preview{display:flex;flex-direction:column;gap:8px;}',
+      '.sonar-revue-youtube-preview-frame{width:100%;max-width:480px;aspect-ratio:16/9;background:#000;}',
+      '.sonar-revue-youtube-preview-frame iframe{display:block;width:100%;height:100%;}',
+      '.sonar-revue-youtube-preview-status,.sonar-revue-excerpt-validation{margin:0;color:#526174;font-size:12px;font-weight:400;}',
+      '.sonar-revue-youtube-capture-status{margin:0;color:#526174;font-size:12px;font-weight:400;}',
+      '.sonar-revue-excerpt-validation.is-error{color:#b42318;}',
+      '.sonar-revue-excerpt-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}',
+      '.sonar-revue-excerpt-capture{display:flex;flex-wrap:wrap;gap:6px;}',
+      '.sonar-revue-excerpt-capture button{font-size:11px;}',
       '.sonar-revue-switch{display:flex;align-items:center;justify-content:center;border-left:0!important;border-radius:0 8px 8px 0!important;background:#f1f3f6!important;color:#38445a!important;font-size:20px!important;}',
       '.sonar-revue-row-workspace.is-right .sonar-revue-switch{border-right:0!important;border-left:1px solid #cbd2dc!important;border-radius:8px 0 0 8px!important;}',
       '.sonar-revue-switch:hover{background:#fff3e8!important;}',
@@ -185,7 +294,7 @@
       '.sonar-revue-rows-summary{margin:0;padding:4px 0;color:#667085;font-size:12px;}',
       '.sonar-revue-color-toggle{flex:0 0 auto;font-size:11px;}',
       '.sonar-revue-color-toggle[aria-pressed="true"]{border-color:#1d9e75!important;background:#e8f7f1!important;color:#137558!important;}',
-      '@media(max-width:600px){.sonar-revue-row-header{align-items:flex-start}.sonar-revue-row-workspace{grid-template-columns:minmax(0,1fr) 30px;padding:7px}.sonar-revue-row-workspace.is-right{grid-template-columns:30px minmax(0,1fr)}.sonar-revue-cell-panel{padding:9px}.sonar-revue-image-picker{grid-template-columns:1fr}.sonar-revue-image-preview,.sonar-revue-image-empty{height:150px}}'
+      '@media(max-width:600px){.sonar-revue-row-header{align-items:flex-start}.sonar-revue-row-workspace{grid-template-columns:minmax(0,1fr) 30px;padding:7px}.sonar-revue-row-workspace.is-right{grid-template-columns:30px minmax(0,1fr)}.sonar-revue-cell-panel{padding:9px}.sonar-revue-image-picker,.sonar-revue-excerpt-times{grid-template-columns:1fr}.sonar-revue-image-preview,.sonar-revue-image-empty{height:150px}}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -439,12 +548,159 @@
         }
       },
 
+      syncYoutubePreviews: function () {
+        var self = this;
+        var previewsRoot = document.querySelector('.sonar-revue-rows-editor');
+        var previews = previewsRoot
+          ? Array.prototype.slice.call(previewsRoot.querySelectorAll('.sonar-revue-youtube-preview'))
+          : [];
+        var players = this._youtubePreviewPlayers || (this._youtubePreviewPlayers = {});
+        var activeKeys = {};
+
+        previews.forEach(function (preview) {
+          var key = preview.getAttribute('data-preview-key') || '';
+          var videoId = preview.getAttribute('data-video-id') || '';
+          var frame = preview.querySelector('.sonar-revue-youtube-preview-frame');
+          if (!key || !videoId || !frame) return;
+          activeKeys[key] = true;
+
+          Array.prototype.forEach.call(preview.querySelectorAll('[data-capture-time]'), function (button) {
+            if (button.dataset.sonarCaptureBound === 'true') return;
+            button.dataset.sonarCaptureBound = 'true';
+            button.addEventListener('click', function (event) {
+              event.preventDefault();
+              self.captureYoutubeTime(
+                Number(preview.getAttribute('data-row-index')),
+                preview.getAttribute('data-side'),
+                Number(preview.getAttribute('data-track-index')),
+                button.getAttribute('data-capture-time')
+              );
+            });
+          });
+
+          var existing = players[key];
+          if (existing && existing.videoId === videoId && existing.frame === frame) {
+            if (existing.ready) {
+              var readyStatus = preview.querySelector('.sonar-revue-youtube-preview-status');
+              var duration = existing.player && existing.player.getDuration();
+              if (readyStatus) readyStatus.textContent = duration
+                ? 'Aperçu prêt · durée ' + formatTimecode(duration)
+                : 'Aperçu prêt.';
+              updateExcerptValidation(preview, duration || 0);
+              Array.prototype.forEach.call(preview.querySelectorAll('[data-capture-time]'), function (button) {
+                button.disabled = false;
+              });
+            }
+            return;
+          }
+
+          if (existing) {
+            if (existing.player && typeof existing.player.destroy === 'function') existing.player.destroy();
+            delete players[key];
+          }
+
+          var record = { videoId: videoId, frame: frame, player: null, ready: false, preview: preview };
+          players[key] = record;
+          frame.replaceChildren();
+          var target = document.createElement('div');
+          frame.appendChild(target);
+          loadYoutubeIframeApi().then(function (YT) {
+            if (players[key] !== record || !frame.isConnected) return;
+            record.player = new YT.Player(target, {
+              width: '480',
+              height: '270',
+              videoId: videoId,
+              playerVars: {
+                autoplay: 0,
+                controls: 1,
+                modestbranding: 1,
+                rel: 0,
+                playsinline: 1,
+                origin: global.location.origin
+              },
+              events: {
+                onReady: function () {
+                  if (players[key] !== record) return;
+                  record.ready = true;
+                  var status = preview.querySelector('.sonar-revue-youtube-preview-status');
+                  var duration = record.player.getDuration();
+                  if (status) status.textContent = duration
+                    ? 'Aperçu prêt · durée ' + formatTimecode(duration)
+                    : 'Aperçu prêt.';
+                  updateExcerptValidation(preview, duration || 0);
+                  Array.prototype.forEach.call(preview.querySelectorAll('[data-capture-time]'), function (button) {
+                    button.disabled = false;
+                  });
+                },
+                onError: function (event) {
+                  if (players[key] !== record) return;
+                  var status = preview.querySelector('.sonar-revue-youtube-preview-status');
+                  if (status) status.textContent = 'YouTube ne peut pas lire cette vidéo (code ' + event.data + ').';
+                }
+              }
+            });
+          }).catch(function () {
+            if (players[key] !== record) return;
+            var status = preview.querySelector('.sonar-revue-youtube-preview-status');
+            if (status) status.textContent = 'Impossible de charger l’aperçu YouTube. Vérifie la connexion et l’URL.';
+          });
+        });
+
+        Object.keys(players).forEach(function (key) {
+          if (activeKeys[key]) return;
+          var record = players[key];
+          if (record.player && typeof record.player.destroy === 'function') record.player.destroy();
+          delete players[key];
+        });
+      },
+
+      captureYoutubeTime: function (rowIndex, side, trackIndex, fieldName) {
+        var key = rowIndex + '-' + side + '-' + trackIndex;
+        var record = this._youtubePreviewPlayers && this._youtubePreviewPlayers[key];
+        var setStatus = function (message) {
+          var preview = document.querySelector('.sonar-revue-youtube-preview[data-preview-key="' + key + '"]');
+          var status = preview && preview.querySelector('.sonar-revue-youtube-capture-status');
+          if (status) status.textContent = message;
+        };
+        if (!record || !record.ready || !record.player) {
+          setStatus('Le lecteur YouTube n’est pas encore prêt.');
+          return;
+        }
+        var current = record.player.getCurrentTime();
+        if (!Number.isFinite(current)) {
+          setStatus('Impossible de lire la position actuelle.');
+          return;
+        }
+        var patch = {};
+        var capturedTime = formatTimecode(current);
+        patch[fieldName] = capturedTime;
+        this.updateTrack(rowIndex, side, trackIndex, patch);
+        global.setTimeout(function () {
+          setStatus((fieldName === 'start_time' ? 'Début' : 'Fin') + ' défini à ' + capturedTime + '.');
+        }, 0);
+      },
+
+      destroyYoutubePreviews: function () {
+        var players = this._youtubePreviewPlayers || {};
+        Object.keys(players).forEach(function (key) {
+          var record = players[key];
+          if (record.player && typeof record.player.destroy === 'function') record.player.destroy();
+        });
+        this._youtubePreviewPlayers = {};
+      },
+
+      componentDidMount: function () {
+        this.syncYoutubePreviews();
+      },
+
       componentDidUpdate: function () {
         this.checkMediaPick();
+        this.syncYoutubePreviews();
       },
 
       componentWillUnmount: function () {
         this.stopMediaPickPolling();
+        this.destroyYoutubePreviews();
       },
 
       renderRichTextField: function (rowIndex, side, fieldName, label, value) {
@@ -545,6 +801,13 @@
             tracks.length
               ? tracks.map(function (track, trackIndex) {
                   track = track || {};
+                  var youtubeId = track.file ? '' : youtubeIdFrom(track.url);
+                  var previewKey = rowIndex + '-' + side + '-' + trackIndex;
+                  var previewRecord = self._youtubePreviewPlayers && self._youtubePreviewPlayers[previewKey];
+                  var previewDuration = previewRecord && previewRecord.ready && previewRecord.player
+                    ? previewRecord.player.getDuration()
+                    : 0;
+                  var validationMessage = timecodeMessage(track, previewDuration || 0);
                   return h('div', { key: trackIndex, className: 'sonar-revue-track' },
                     h('div', { className: 'sonar-revue-track-header' },
                       h('span', {}, 'Piste ' + (trackIndex + 1)),
@@ -557,6 +820,66 @@
                     h('label', {}, 'URL YouTube ou fichier audio en ligne',
                       h('input', { type: 'url', value: track.url || '', onChange: function (event) { self.updateTrack(rowIndex, side, trackIndex, { url: event.target.value }); } })
                     ),
+                    youtubeId
+                      ? h('label', { className: 'sonar-revue-excerpt-toggle' },
+                          h('input', {
+                            type: 'checkbox',
+                            checked: Boolean(track.use_excerpt),
+                            onChange: function (event) { self.updateTrack(rowIndex, side, trackIndex, { use_excerpt: event.target.checked }); }
+                          }),
+                          'Lire un extrait de la vidéo'
+                        )
+                      : null,
+                    youtubeId && track.use_excerpt
+                      ? h('div', {
+                          className: 'sonar-revue-youtube-preview',
+                          'data-preview-key': previewKey,
+                          'data-video-id': youtubeId,
+                          'data-row-index': rowIndex,
+                          'data-side': side,
+                          'data-track-index': trackIndex
+                        },
+                          h('div', { className: 'sonar-revue-youtube-preview-frame' }),
+                          h('p', { className: 'sonar-revue-youtube-preview-status', role: 'status' }, 'Chargement de l’aperçu YouTube…'),
+                          h('div', { className: 'sonar-revue-excerpt-capture' },
+                            h('button', {
+                              type: 'button',
+                              'data-capture-time': 'start_time',
+                              disabled: true
+                            }, 'Définir le début à la position actuelle'),
+                            h('button', {
+                              type: 'button',
+                              'data-capture-time': 'end_time',
+                              disabled: true
+                            }, 'Définir la fin à la position actuelle')
+                          ),
+                          h('p', { className: 'sonar-revue-youtube-capture-status', role: 'status' }),
+                          h('div', { className: 'sonar-revue-excerpt-times' },
+                            h('label', {}, 'Début (mm:ss ou hh:mm:ss)',
+                              h('input', {
+                                type: 'text',
+                                inputMode: 'numeric',
+                                placeholder: '0:00',
+                                value: track.start_time || '',
+                                onChange: function (event) { self.updateTrack(rowIndex, side, trackIndex, { start_time: event.target.value }); }
+                              })
+                            ),
+                            h('label', {}, 'Fin (mm:ss ou hh:mm:ss)',
+                              h('input', {
+                                type: 'text',
+                                inputMode: 'numeric',
+                                placeholder: '0:30',
+                                value: track.end_time || '',
+                                onChange: function (event) { self.updateTrack(rowIndex, side, trackIndex, { end_time: event.target.value }); }
+                              })
+                            )
+                          ),
+                          h('p', {
+                            className: 'sonar-revue-excerpt-validation' + (validationMessage ? ' is-error' : ''),
+                            'aria-live': 'polite'
+                          }, validationMessage)
+                        )
+                      : null,
                     h('label', {}, 'Titre (FR)',
                       h('input', { type: 'text', value: track.title || '', onChange: function (event) { self.updateTrack(rowIndex, side, trackIndex, { title: event.target.value }); } })
                     ),

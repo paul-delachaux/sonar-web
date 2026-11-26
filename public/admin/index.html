@@ -889,7 +889,7 @@
   <script src="/admin/article-search.js?v=20260825r"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/revue-rows-editor.js?v=20261126d"></script>
+  <script src="/admin/revue-rows-editor.js?v=20261126i"></script>
   <script src="/admin/domain-featured-editor.js?v=20261125a"></script>
   <script src="/admin/homepage-featured-editor.js?v=20261125a"></script>
   <script src="/admin/cms-boot.js?v=20261125b"></script>
@@ -3492,10 +3492,13 @@
             const list = tracks.length ? tracks : [{ title: 'Piste audio' }];
             return h('div', Object.assign({ className: 'revue-cell revue-cell-audio' }, targetAttrs),
               list.map(function (track, i) {
+                var timeLabel = track.use_excerpt && track.start_time && track.end_time
+                  ? track.start_time + ' – ' + track.end_time
+                  : '0:00';
                 return h('div', { key: i, className: 'revue-audio' },
                   h('span', { className: 'revue-audio-play' }),
                   previewWave((track.title || '') + i),
-                  h('span', { className: 'revue-audio-time' }, '0:00'),
+                  h('span', { className: 'revue-audio-time' }, timeLabel),
                   h('span', { className: 'revue-audio-title' }, track.title || track.title_en || 'Piste audio')
                 );
               })
