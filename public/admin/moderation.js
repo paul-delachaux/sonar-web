@@ -271,8 +271,9 @@
   function setActiveNav() {
     var reported = document.getElementById('cms-moderation-nav');
     var published = document.getElementById('cms-moderation-published');
-    if (reported) reported.classList.toggle('is-active', currentView === 'reports');
-    if (published) published.classList.toggle('is-active', currentView === 'published');
+    var panelIsOpen = document.body.classList.contains('sonar-mod-open');
+    if (reported) reported.classList.toggle('is-active', panelIsOpen && currentView === 'reports');
+    if (published) published.classList.toggle('is-active', panelIsOpen && currentView === 'published');
   }
 
   function setPanelTitle() {
@@ -723,6 +724,7 @@
     var root = document.getElementById('sonar-moderation');
     if (root) root.hidden = true;
     document.body.classList.remove('sonar-mod-open');
+    setActiveNav();
   }
 
   window.SonarModeration = {
