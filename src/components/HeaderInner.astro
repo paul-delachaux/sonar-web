@@ -14,6 +14,7 @@ const menuOverlayId = fixedClone ? 'header-inner-menu-overlay-clone' : 'header-i
 import logoSonar from './LogoSonarVdef.png';
 import AuthNav from './AuthNav.astro';
 import NavDomains from './NavDomains.astro';
+import SondeHeaderLink from './SondeHeaderLink.astro';
 ---
 
 <header
@@ -77,6 +78,7 @@ import NavDomains from './NavDomains.astro';
         </nav>
 
         <div class="header-toolbar">
+            <SondeHeaderLink />
             <div class="hv2-lang-switch" role="group" aria-label="Langue">
                 <button type="button" class="hv2-lang-btn" data-lang-btn="FR" aria-pressed="true">FR</button>
                 <span class="hv2-lang-sep">/</span>
@@ -108,6 +110,7 @@ import NavDomains from './NavDomains.astro';
     </div>
     <div class="hv2-menu-links">
         <a href="/" data-i18n="nav_home">Accueil</a>
+        <a href="/sondages">La Sonde</a>
         <NavDomains />
     </div>
 </nav>

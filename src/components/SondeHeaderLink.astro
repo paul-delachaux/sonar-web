@@ -1,0 +1,49 @@
+<a class="sonde-header-link" href="/sondages" aria-label="La Sonde — sondages" title="La Sonde">
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5.6" />
+    <path d="M12 12 18.4 5.6" />
+    <path d="M12 12 12 3" />
+    <circle cx="12" cy="12" r="1.25" />
+  </svg>
+</a>
+
+<style>
+  .sonde-header-link {
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 121, 0, 0.6);
+    border-radius: 50%;
+    color: #ff7900;
+    transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .sonde-header-link:hover,
+  .sonde-header-link:focus-visible {
+    background: rgba(255, 121, 0, 0.14);
+    color: #ff9a3d;
+    transform: scale(1.05);
+  }
+
+  .sonde-header-link:focus-visible {
+    outline: 2px solid #ff9a3d;
+    outline-offset: 3px;
+  }
+
+  .sonde-header-link svg {
+    width: 23px;
+    height: 23px;
+    stroke: currentColor;
+    stroke-width: 1.35;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .sonde-header-link svg circle:last-child {
+    fill: currentColor;
+  }
+</style>

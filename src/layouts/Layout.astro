@@ -10,6 +10,7 @@ import AuthNav from '../components/AuthNav.astro';
 import HeaderInner from '../components/HeaderInner.astro';
 import AccountDrawer from '../components/AccountDrawer.astro';
 import NavDomains from '../components/NavDomains.astro';
+import SondeHeaderLink from '../components/SondeHeaderLink.astro';
 import { getCollection } from 'astro:content';
 import { categoryLabel } from '../utils/i18n.js';
 
@@ -1671,6 +1672,7 @@ const articleTitlesJson = JSON.stringify(
                         </div>
 
                         <div class="header-v2-right">
+                            <SondeHeaderLink />
                             <div class="hv2-lang-switch" role="group" aria-label="Langue">
                                 <button type="button" class="hv2-lang-btn" data-lang-btn="FR" aria-pressed="true">FR</button>
                                 <span class="hv2-lang-sep">/</span>
@@ -1710,6 +1712,7 @@ const articleTitlesJson = JSON.stringify(
                     </div>
                     <div class="hv2-menu-links">
                         <a href="/" data-i18n="nav_home">Accueil</a>
+                        <a href="/sondages">La Sonde</a>
                         <NavDomains />
                     </div>
                 </nav>

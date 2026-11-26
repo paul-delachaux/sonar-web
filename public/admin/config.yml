@@ -320,6 +320,63 @@ collections:
       - { label: "Utiliser la miniature custom ?", name: "use_thumbnail", widget: "boolean", default: false, required: false }
 
   # ==========================================
+  # 2c. COLLECTION : LA SONDE
+  # ==========================================
+  - name: "sondages"
+    label: "La Sonde"
+    label_singular: "Sondage"
+    folder: "src/content/sondages"
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { name: "layout", widget: "hidden", default: "single_choice" }
+      - { name: "version_fr_sep", widget: "separator", label: "🇫🇷 Version Française", collapsed: false, required: false }
+      - { name: "title", label: "Titre du sondage (FR)", widget: "string" }
+      - { name: "question", label: "Question (FR)", widget: "text" }
+      - label: "Réponses proposées"
+        name: "options"
+        widget: "list"
+        summary: "{{fields.label}}"
+        min: 2
+        fields:
+          - { label: "Identifiant stable (ex. oui, non)", name: "id", widget: "string", hint: "Ne le change pas une fois le sondage publié." }
+          - { label: "Réponse (FR)", name: "label", widget: "string" }
+          - { label: "Réponse (EN)", name: "label_en", widget: "string", required: false }
+
+      - { name: "version_en_sep", widget: "separator", label: "🇬🇧 Version Anglaise (Optionnelle)", collapsed: false, required: false }
+      - { name: "title_en", label: "Titre du sondage (EN)", widget: "string", required: false }
+      - { name: "question_en", label: "Question (EN)", widget: "text", required: false }
+
+      - { label: "Ordre d’affichage", name: "order", widget: "number", value_type: "int", default: 0, hint: "Plus le nombre est petit, plus le sondage apparaît tôt." }
+      - { label: "Visible sur le site ?", name: "isVisible", widget: "boolean", default: false, required: false }
+
+  - name: "sondages_ordre"
+    label: "Ordre d’affichage"
+    label_singular: "Ordre d’un sondage"
+    folder: "src/content/sondages"
+    create: false
+    delete: false
+    slug: "{{slug}}"
+    summary: "{{order}} — {{title}}"
+    fields:
+      - { name: "layout", widget: "hidden", default: "single_choice" }
+      - { name: "order", label: "Ordre d’affichage", widget: "number", value_type: "int", default: 0, hint: "Plus le nombre est petit, plus le sondage apparaît tôt." }
+      - { name: "isVisible", label: "Visible sur le site ?", widget: "boolean", default: false, required: false }
+      - { name: "title", label: "Titre du sondage (FR)", widget: "string" }
+      - { name: "question", label: "Question (FR)", widget: "text" }
+      - label: "Réponses proposées"
+        name: "options"
+        widget: "list"
+        summary: "{{fields.label}}"
+        min: 2
+        fields:
+          - { label: "Identifiant stable (ex. oui, non)", name: "id", widget: "string", hint: "Ne le change pas une fois le sondage publié." }
+          - { label: "Réponse (FR)", name: "label", widget: "string" }
+          - { label: "Réponse (EN)", name: "label_en", widget: "string", required: false }
+      - { name: "title_en", label: "Titre du sondage (EN)", widget: "string", required: false }
+      - { name: "question_en", label: "Question (EN)", widget: "text", required: false }
+
+  # ==========================================
   # 3. VUES FILTRÉES : ARTICLES PAR CATÉGORIE
   # ==========================================
   - name: "articles_politique"

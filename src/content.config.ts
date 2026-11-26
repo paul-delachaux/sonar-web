@@ -254,4 +254,34 @@ const articles = defineCollection({
   }),
 });
 
-export const collections = { articles };
+const sondages = defineCollection({
+  loader: glob({ pattern: '**/[^_]*.md', base: './src/content/sondages' }),
+  schema: z.object({
+    layout: z.enum(['single_choice']).default('single_choice'),
+    title: z.string().min(1),
+    title_en: z.string().nullish().optional(),
+    question: z.string().min(1),
+    question_en: z.string().nullish().optional(),
+    order: z.coerce.number().int().min(0).default(0),
+    isVisible: z.boolean().default(false),
+    options: z.array(z.object({
+      id: z.string().min(1).max(64),
+      label: z.string().min(1),
+      label_en: z.string().nullish().optional(),
+    })).min(2),
+  }).superRefine((poll, context) => {
+    const seen = new Set<string>();
+    poll.options.forEach((option, index) => {
+      if (seen.has(option.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['options', index, 'id'],
+          message: 'Chaque option doit avoir un identifiant unique.',
+        });
+      }
+      seen.add(option.id);
+    });
+  }),
+});
+
+export const collections = { articles, sondages };

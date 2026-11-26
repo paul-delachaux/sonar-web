@@ -1,0 +1,1158 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+
+const polls = (await getCollection('sondages'))
+  .filter((poll) => poll.data.isVisible)
+  .sort((a, b) => a.data.order - b.data.order || a.id.localeCompare(b.id));
+---
+
+<Layout title="La Sonde">
+  <section class="sonde-page" aria-labelledby="sonde-title">
+    <header class="sonde-heading">
+      <p class="sonde-kicker" data-lang-content="FR">L’Echo du Sonar · Espace participatif</p>
+      <p class="sonde-kicker" data-lang-content="EN" hidden>L’Echo du Sonar · Reader participation</p>
+      <h1 id="sonde-title">La Sonde</h1>
+      <div
+        class="sonde-mode-switch"
+        role="group"
+        aria-label="Disposition des sondages"
+        data-aria-label-fr="Disposition des sondages"
+        data-aria-label-en="Poll layout"
+      >
+        <button type="button" class="is-active" data-view-mode="grid" aria-pressed="true">
+          <span data-lang-content="FR">Mosaïque</span><span data-lang-content="EN" hidden>Grid</span>
+        </button>
+        <button type="button" data-view-mode="focus" aria-pressed="false">
+          <span data-lang-content="FR">Un sondage</span><span data-lang-content="EN" hidden>Focus</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="sonde-auth-note" data-auth-note hidden>
+      <span data-lang-content="FR">Connecte-toi pour enregistrer tes réponses.</span>
+      <span data-lang-content="EN" hidden>Sign in to submit your answers.</span>
+      <a href="/connexion?redirect=%2Fsondages" data-lang-content="FR">Connexion</a>
+      <a href="/connexion?redirect=%2Fsondages" data-lang-content="EN" hidden>Sign in</a>
+    </div>
+    <p class="sonde-status" id="sonde-auth-status" role="status" aria-live="polite"></p>
+
+    <div class="sonde-view" id="sonde-view" data-mode="grid" data-auth-state="loading">
+      <div class="sonde-poll-grid" id="sonde-poll-grid">
+        {polls.length ? polls.map((poll, index) => (
+          <article
+            class="sonde-poll-card"
+            data-poll-slug={poll.id}
+            data-poll-index={index}
+            data-auth-state="loading"
+            tabindex="0"
+            aria-label={`Ouvrir le sondage : ${poll.data.title}`}
+          >
+            <header class="sonde-poll-heading">
+              <div>
+                <h2 data-lang-content="FR">{poll.data.title}</h2>
+                <h2 data-lang-content="EN" hidden>{poll.data.title_en || poll.data.title}</h2>
+              </div>
+            </header>
+
+            <p class="sonde-question" data-lang-content="FR">{poll.data.question}</p>
+            <p class="sonde-question" data-lang-content="EN" hidden>{poll.data.question_en || poll.data.question}</p>
+
+            <div class="sonde-poll-content">
+              <div
+                class="sonde-options"
+                role="group"
+                aria-label="Choix de réponse"
+                data-aria-label-fr="Choix de réponse"
+                data-aria-label-en="Answer choices"
+              >
+                {poll.data.options.map((option) => (
+                  <button
+                    type="button"
+                    class="sonde-option"
+                    data-option-id={option.id}
+                    aria-pressed="false"
+                  >
+                    <span data-lang-content="FR">{option.label}</span>
+                    <span data-lang-content="EN" hidden>{option.label_en || option.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div class="sonde-response-panel">
+                <label for={`sonde-explanation-${index}`}>
+                  <span data-lang-content="FR">Développe ta réponse (facultatif)</span>
+                  <span data-lang-content="EN" hidden>Tell us more (optional)</span>
+                </label>
+                <textarea
+                  id={`sonde-explanation-${index}`}
+                  data-explanation
+                  maxlength="200"
+                  rows="4"
+                  placeholder="Pourquoi ce choix ?"
+                  data-placeholder-fr="Pourquoi ce choix ?"
+                  data-placeholder-en="What led you to this choice?"
+                ></textarea>
+                <p class="sonde-char-count" data-char-count aria-live="polite">0 / 200</p>
+                <p class="sonde-private-note">
+                  <span data-lang-content="FR">Ton texte est transmis à l’équipe éditoriale et n’est pas publié.</span>
+                  <span data-lang-content="EN" hidden>Your text is sent to the editorial team and is not published.</span>
+                </p>
+                <div class="sonde-submit-row">
+                  <p class="sonde-card-status" data-card-status role="status" aria-live="polite"></p>
+                  <button
+                    type="button"
+                    class="sonde-submit"
+                    data-submit-poll
+                    disabled
+                    aria-label="Envoyer ma réponse"
+                    data-aria-label-fr="Envoyer ma réponse"
+                    data-aria-label-en="Submit my response"
+                  >
+                    <span data-lang-content="FR">Oui</span>
+                    <span data-lang-content="EN" hidden>Submit</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        )) : (
+          <p class="sonde-empty" data-lang-content="FR">Les prochains sondages arriveront bientôt.</p>
+        )}
+      </div>
+
+      <nav
+        class="sonde-slide-controls"
+        aria-label="Navigation entre les sondages"
+        data-aria-label-fr="Navigation entre les sondages"
+        data-aria-label-en="Poll navigation"
+        hidden
+      >
+        <button
+          type="button"
+          data-slide="previous"
+          aria-label="Sondage précédent"
+          data-aria-label-fr="Sondage précédent"
+          data-aria-label-en="Previous poll"
+        >←</button>
+        <span data-slide-count></span>
+        <button
+          type="button"
+          data-slide="next"
+          aria-label="Sondage suivant"
+          data-aria-label-fr="Sondage suivant"
+          data-aria-label-en="Next poll"
+        >→</button>
+      </nav>
+    </div>
+  </section>
+
+  <div class="sonde-welcome" id="sonde-welcome" hidden>
+    <div class="sonde-welcome-backdrop" data-welcome-close></div>
+    <section class="sonde-welcome-card" role="dialog" aria-modal="true" aria-labelledby="sonde-welcome-title">
+      <button
+        type="button"
+        class="sonde-welcome-close"
+        data-welcome-close
+        aria-label="Fermer"
+        data-aria-label-fr="Fermer"
+        data-aria-label-en="Close"
+      >×</button>
+      <h2 id="sonde-welcome-title">La Sonde</h2>
+      <div data-lang-content="FR">
+        <p>Bienvenue dans l’espace sondage du média L’Echo du Sonar ! Ici, c’est à vous de prendre la parole. Afin de structurer nos interactions, nous organisons régulièrement des sondages sur nos contenus ainsi que sur notre méthode en tant que journalistes.</p>
+        <ul>
+          <li>Dans un premier temps, cela vous permet d’échanger vos perspectives et vos expériences avec d’autres lecteurs.</li>
+          <li>Dans un second temps, cela permet à notre rédaction de mieux comprendre vos opinions, vos interrogations mais aussi vos attentes à l’égard de ceux qui vous informent.</li>
+        </ul>
+        <p>Prochainement, certains résultats seront soumis à des experts d’horizons divers dans de nouveaux formats vidéo et écrits. L’objectif ? Croiser les perspectives, stimuler le débat, susciter la contradiction — à retrouver bientôt sur l’ensemble de nos plateformes.</p>
+      </div>
+      <div data-lang-content="EN" hidden>
+        <p>Welcome to L’Echo du Sonar’s polling space. This is where you can have your say. We regularly publish polls about our coverage and our work as journalists.</p>
+        <ul>
+          <li>Share your perspectives and experiences with other readers.</li>
+          <li>Help our newsroom better understand your views, questions and expectations of the people who inform you.</li>
+        </ul>
+        <p>Some results may later be discussed with experts from different backgrounds in new video and written formats. The goal is to bring perspectives together, encourage debate and welcome disagreement across our platforms.</p>
+      </div>
+      <p class="sonde-welcome-login" data-welcome-login>
+        <span data-lang-content="FR">Pour répondre, connecte-toi à ton compte.</span>
+        <span data-lang-content="EN" hidden>Sign in to take part in the polls.</span>
+        <a href="/connexion?redirect=%2Fsondages" data-lang-content="FR">Se connecter</a>
+        <a href="/connexion?redirect=%2Fsondages" data-lang-content="EN" hidden>Sign in</a>
+      </p>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  .sonde-page {
+    width: min(1180px, 100%);
+    margin: 30px auto 70px;
+    color: #f4f4f7;
+  }
+
+  .sonde-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 22px 26px;
+    border: 1px solid rgba(255, 121, 0, .38);
+    border-radius: 12px;
+    background: #02001d;
+  }
+
+  .sonde-kicker {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    justify-self: stretch;
+    margin: 0;
+    color: #b7b6c6;
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-align: left;
+  }
+
+  .sonde-heading h1 {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+    color: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    text-decoration: underline;
+    text-decoration-color: #ff7900;
+    text-underline-offset: 7px;
+  }
+
+  .sonde-mode-switch {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    justify-self: end;
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid #302f4b;
+    border-radius: 9px;
+    background: #080822;
+  }
+
+  .sonde-mode-switch button,
+  .sonde-slide-controls button {
+    min-height: 38px;
+    padding: 8px 13px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #d7d6e2;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .sonde-mode-switch button.is-active,
+  .sonde-slide-controls button {
+    border-color: rgba(255, 121, 0, .55);
+    background: rgba(255, 121, 0, .12);
+    color: #fff;
+  }
+
+  .sonde-mode-switch button:focus-visible,
+  .sonde-slide-controls button:focus-visible,
+  .sonde-option:focus-visible,
+  .sonde-submit:focus-visible,
+  .sonde-welcome-close:focus-visible {
+    outline: 2px solid #ff9a3d;
+    outline-offset: 3px;
+  }
+
+  .sonde-auth-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 18px;
+    padding: 12px 16px;
+    border: 1px solid #48415d;
+    border-radius: 8px;
+    background: rgba(2, 0, 29, .92);
+    color: #e8e7ef;
+  }
+
+  .sonde-auth-note[hidden],
+  .sonde-welcome-login[hidden] {
+    display: none !important;
+  }
+
+  .sonde-auth-note a,
+  .sonde-welcome-login a {
+    color: #ff9a3d;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .sonde-status {
+    min-height: 0;
+    margin: 0;
+    color: #ffc184;
+  }
+
+  .sonde-status:empty {
+    display: none;
+  }
+
+  .sonde-poll-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    transform-origin: center top;
+  }
+
+  .sonde-poll-card {
+    min-width: 0;
+    cursor: pointer;
+    padding: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 121, 0, .32);
+    border-radius: 12px;
+    background: #02001d;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, .16);
+    will-change: transform, opacity;
+  }
+
+  .sonde-view[data-mode="focus"] .sonde-poll-card {
+    cursor: default;
+  }
+
+  .sonde-poll-card:focus-visible {
+    outline: 2px solid #ff9a3d;
+    outline-offset: 3px;
+  }
+
+  .sonde-poll-card[hidden] {
+    display: none !important;
+  }
+
+  .sonde-poll-heading {
+    display: flex;
+    align-items: start;
+    gap: 16px;
+    margin: 0 0 14px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    line-height: normal;
+    text-align: left;
+  }
+
+  .sonde-poll-heading h2 {
+    margin: 0;
+    color: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 121, 0, .7);
+    text-underline-offset: 4px;
+  }
+
+  .sonde-question {
+    min-height: 3em;
+    margin: 0 0 20px;
+    color: #e8e7ef;
+    font-size: .96rem;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+
+  .sonde-poll-content {
+    display: grid;
+    grid-template-columns: minmax(190px, .82fr) minmax(0, 1.18fr);
+    align-items: stretch;
+    min-width: 0;
+    gap: 24px;
+  }
+
+  .sonde-options {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .sonde-option {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 16px;
+    border: 1px solid transparent;
+    border-radius: 24px;
+    background: #08084b;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: .86rem;
+    line-height: 1.35;
+    text-align: left;
+    transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
+  }
+
+  .sonde-option:hover {
+    transform: translateX(3px);
+    background: #111164;
+  }
+
+  .sonde-option[aria-pressed="true"]:not(.is-saved) {
+    border-color: #ff7900;
+    background: #171052;
+    box-shadow: inset 4px 0 #ff7900;
+  }
+
+  .sonde-option.is-saved {
+    border-color: #48d6a0;
+    background: #07523f;
+    box-shadow: inset 4px 0 #48d6a0;
+  }
+
+  .sonde-option.is-saved::after {
+    content: "✓";
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(72, 214, 160, .2);
+    color: #8af0c5;
+    font-weight: 800;
+  }
+
+  .sonde-response-panel {
+    display: flex;
+    min-width: 0;
+    box-sizing: border-box;
+    min-height: 0;
+    flex-direction: column;
+    padding: 16px;
+    border: 1px solid #22215a;
+    border-radius: 8px;
+    background: #050544;
+  }
+
+  .sonde-response-panel label {
+    margin-bottom: 9px;
+    color: #fff;
+    font-size: .9rem;
+    font-weight: 700;
+  }
+
+  .sonde-response-panel textarea {
+    display: block;
+    width: 100%;
+    height: 112px;
+    min-height: 112px;
+    max-height: 112px;
+    box-sizing: border-box;
+    flex: 0 0 112px;
+    resize: none;
+    padding: 11px 12px;
+    border: 1px solid #39386b;
+    border-radius: 6px;
+    background: #080822;
+    color: #fff;
+    font: inherit;
+    line-height: 1.5;
+  }
+
+  .sonde-char-count {
+    margin: 5px 0 0;
+    color: #aaa9ba;
+    font-size: .72rem;
+    text-align: right;
+  }
+
+  .sonde-response-panel textarea:focus-visible {
+    outline: 2px solid #ff9a3d;
+    outline-offset: 2px;
+  }
+
+  .sonde-private-note {
+    margin: 8px 0 2px;
+    color: #aaa9ba;
+    font-size: .74rem;
+    line-height: 1.4;
+  }
+
+  .sonde-submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .sonde-card-status {
+    margin: 0;
+    color: #ffc184;
+    font-size: .8rem;
+    line-height: 1.4;
+  }
+
+  .sonde-card-status.is-error {
+    color: #ffaaa3;
+  }
+
+  .sonde-submit {
+    min-width: 110px;
+    min-height: 44px;
+    padding: 10px 24px;
+    border: 0;
+    border-radius: 24px;
+    background: #f16508;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    transition: transform .18s ease, background-color .18s ease;
+  }
+
+  .sonde-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: #ff7900;
+  }
+
+  .sonde-submit:disabled {
+    cursor: not-allowed;
+    opacity: .48;
+  }
+
+  .sonde-slide-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin: 18px 0 0;
+  }
+
+  .sonde-slide-controls[hidden] {
+    display: none !important;
+  }
+
+  .sonde-slide-controls button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.2rem;
+  }
+
+  .sonde-slide-controls span {
+    min-width: 64px;
+    color: #c1c0cf;
+    text-align: center;
+  }
+
+  .sonde-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 28px;
+    border: 1px solid #302f4b;
+    border-radius: 10px;
+    background: #02001d;
+    color: #c1c0cf;
+    text-align: center;
+  }
+
+  .sonde-welcome[hidden] {
+    display: none !important;
+  }
+
+  .sonde-welcome {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+
+  .sonde-welcome-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 12, .48);
+  }
+
+  .sonde-welcome-card {
+    position: relative;
+    width: min(760px, 100%);
+    max-height: min(82vh, 700px);
+    overflow: auto;
+    padding: 25px 28px 20px;
+    border: 1px solid rgba(255, 121, 0, .35);
+    border-radius: 10px;
+    background: #02001d;
+    box-shadow: 0 18px 55px rgba(0, 0, 0, .35);
+    color: #eee;
+    font-size: .9rem;
+    line-height: 1.48;
+  }
+
+  .sonde-welcome-card h2 {
+    width: max-content;
+    margin: 0 auto 18px;
+    padding: 0 4px 4px;
+    border-bottom: 2px solid #ff7900;
+    color: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.45rem;
+  }
+
+  .sonde-welcome-card p {
+    margin: 0 0 13px;
+  }
+
+  .sonde-welcome-card ul {
+    margin: 0 0 14px;
+    padding-left: 20px;
+  }
+
+  .sonde-welcome-card li {
+    margin: 0 0 5px;
+  }
+
+  .sonde-welcome-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: transparent;
+    color: #ff7900;
+    cursor: pointer;
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .sonde-welcome-login {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 18px !important;
+    padding-top: 13px;
+    border-top: 1px solid #302f4b;
+  }
+
+  .sonde-view[data-mode="focus"] .sonde-poll-grid {
+    display: block;
+    max-width: 980px;
+    margin: 0 auto;
+    perspective: 900px;
+  }
+
+  .sonde-view[data-mode="grid"] .sonde-response-panel {
+    display: none;
+  }
+
+  .sonde-view[data-mode="grid"] .sonde-poll-content {
+    grid-template-columns: 1fr;
+  }
+
+  .sonde-view[data-mode="focus"] .sonde-poll-card {
+    padding: clamp(20px, 4vw, 42px);
+  }
+
+  .sonde-view[data-mode="focus"] .sonde-poll-heading h2 {
+    font-size: clamp(1.55rem, 3.8vw, 2.5rem);
+  }
+
+  .sonde-view[data-mode="focus"] .sonde-response-panel {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .sonde-view.is-zooming-in .sonde-poll-card {
+    animation: sonde-zoom-in .34s cubic-bezier(.18, .8, .25, 1) both;
+  }
+
+  .sonde-view.is-zooming-out .sonde-poll-card {
+    animation: sonde-zoom-out .3s cubic-bezier(.18, .8, .25, 1) both;
+  }
+
+  .sonde-poll-card.is-slide-out-left {
+    animation: sonde-slide-out-left .17s cubic-bezier(.5, 0, .9, .4) both !important;
+  }
+
+  .sonde-poll-card.is-slide-out-right {
+    animation: sonde-slide-out-right .17s cubic-bezier(.5, 0, .9, .4) both !important;
+  }
+
+  .sonde-poll-card.is-slide-in-left {
+    animation: sonde-slide-in-left .34s cubic-bezier(.2, 1.12, .28, 1) both !important;
+  }
+
+  .sonde-poll-card.is-slide-in-right {
+    animation: sonde-slide-in-right .34s cubic-bezier(.2, 1.12, .28, 1) both !important;
+  }
+
+  @keyframes sonde-zoom-in {
+    from { opacity: .5; transform: scale(.94); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes sonde-zoom-out {
+    from { opacity: .72; transform: scale(1.025); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes sonde-slide-out-left {
+    0% { opacity: 1; transform: translateX(0) scaleX(1); }
+    55% { opacity: .68; transform: translateX(-58%) scaleX(.86); }
+    100% { opacity: 0; transform: translateX(-112%) scaleX(1.015); }
+  }
+
+  @keyframes sonde-slide-out-right {
+    0% { opacity: 1; transform: translateX(0) scaleX(1); }
+    55% { opacity: .68; transform: translateX(58%) scaleX(.86); }
+    100% { opacity: 0; transform: translateX(112%) scaleX(1.015); }
+  }
+
+  @keyframes sonde-slide-in-left {
+    0% { opacity: 0; transform: translateX(112%) scaleX(.88); }
+    72% { opacity: 1; transform: translateX(-3%) scaleX(1.035); }
+    88% { transform: translateX(1%) scaleX(.995); }
+    100% { transform: translateX(0) scaleX(1); }
+  }
+
+  @keyframes sonde-slide-in-right {
+    0% { opacity: 0; transform: translateX(-112%) scaleX(.88); }
+    72% { opacity: 1; transform: translateX(3%) scaleX(1.035); }
+    88% { transform: translateX(-1%) scaleX(.995); }
+    100% { transform: translateX(0) scaleX(1); }
+  }
+
+  @media (max-width: 760px) {
+    .sonde-page {
+      margin-top: 18px;
+    }
+
+    .sonde-heading {
+      display: flex;
+      align-items: stretch;
+      flex-direction: column;
+      padding: 18px;
+    }
+
+    .sonde-heading h1 {
+      align-self: center;
+    }
+
+    .sonde-mode-switch {
+      width: 100%;
+    }
+
+    .sonde-mode-switch button {
+      flex: 1;
+    }
+
+    .sonde-poll-grid {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .sonde-poll-card {
+      padding: 18px;
+    }
+
+    .sonde-poll-content {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .sonde-view[data-mode="grid"] .sonde-poll-content {
+      display: block;
+    }
+
+    .sonde-view[data-mode="focus"] .sonde-response-panel {
+      min-height: 0;
+    }
+
+    .sonde-auth-note {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .sonde-welcome {
+      padding: 12px;
+    }
+
+    .sonde-welcome-card {
+      max-height: 90vh;
+      padding: 22px 18px 16px;
+      font-size: .86rem;
+    }
+
+    .sonde-submit-row {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sonde-poll-card,
+    .sonde-view.is-zooming-in .sonde-poll-card,
+    .sonde-view.is-zooming-out .sonde-poll-card {
+      animation-duration: .01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
+
+<script>
+  import { getBrowserSupabase } from '../utils/supabase-browser';
+
+  const page = document.querySelector<HTMLElement>('#sonde-view');
+  const welcome = document.querySelector<HTMLElement>('#sonde-welcome');
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('.sonde-poll-card'));
+  const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-view-mode]'));
+  const slideControls = document.querySelector<HTMLElement>('.sonde-slide-controls');
+  const slideCount = document.querySelector<HTMLElement>('[data-slide-count]');
+  const authNote = document.querySelector<HTMLElement>('[data-auth-note]');
+  const authStatus = document.querySelector<HTMLElement>('#sonde-auth-status');
+  const welcomeLogin = document.querySelector<HTMLElement>('[data-welcome-login]');
+  const welcomeKeyPrefix = 'sonar-sonde-welcome-v1:';
+  let activeIndex = 0;
+  let currentSession: Awaited<ReturnType<ReturnType<typeof getBrowserSupabase>['auth']['getSession']>>['data']['session'] = null;
+  let authSubscription: { unsubscribe: () => void } | null = null;
+  let slideLock = false;
+
+  function currentLanguage() {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
+  }
+
+  function textForLanguage(fr: string, en: string) {
+    return currentLanguage() === 'EN' ? en : fr;
+  }
+
+  function setCardStatus(card: HTMLElement, message: string, isError = false) {
+    const status = card.querySelector<HTMLElement>('[data-card-status]');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('is-error', isError);
+  }
+
+  function updateSavedOption(card: HTMLElement, optionId: string | null) {
+    card.dataset.savedOption = optionId || '';
+    card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
+      button.classList.toggle('is-saved', Boolean(optionId && button.dataset.optionId === optionId));
+    });
+  }
+
+  function updateCharacterCount(card: HTMLElement) {
+    const textarea = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
+    const count = card.querySelector<HTMLElement>('[data-char-count]');
+    if (textarea && count) count.textContent = `${textarea.value.length} / 200`;
+  }
+
+  function updateSubmitButtons(isAuthenticated: boolean) {
+    cards.forEach((card) => {
+      const button = card.querySelector<HTMLButtonElement>('[data-submit-poll]');
+      if (button) button.disabled = !isAuthenticated;
+      card.dataset.authState = isAuthenticated ? 'user' : 'guest';
+    });
+  }
+
+  function welcomeKey(userId: string | null) {
+    return welcomeKeyPrefix + (userId || 'guest');
+  }
+
+  function clearWelcomeKeys() {
+    const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+      .filter((key): key is string => Boolean(key && key.startsWith(welcomeKeyPrefix)));
+    keys.forEach((key) => localStorage.removeItem(key));
+  }
+
+  function showWelcome(userId: string | null) {
+    if (!welcome) return;
+    const dismissed = localStorage.getItem(welcomeKey(userId)) === '1';
+    welcome.hidden = dismissed;
+    if (!dismissed) welcome.querySelector<HTMLButtonElement>('.sonde-welcome-close')?.focus();
+  }
+
+  function updateAuth(session: typeof currentSession) {
+    currentSession = session;
+    const isAuthenticated = Boolean(session?.access_token && session.user);
+    const userId = session?.user?.id || null;
+    if (page) page.dataset.authState = isAuthenticated ? 'user' : 'guest';
+    updateSubmitButtons(isAuthenticated);
+    if (authNote) authNote.hidden = isAuthenticated;
+    if (welcomeLogin) welcomeLogin.hidden = isAuthenticated;
+    showWelcome(userId);
+    if (isAuthenticated) {
+      if (authStatus) authStatus.textContent = '';
+      void loadSavedResponses(session.access_token);
+    } else if (cards.length) {
+      if (authStatus) {
+        authStatus.textContent = textForLanguage(
+          'Connecte-toi pour enregistrer tes réponses.',
+          'Sign in to submit your answers.',
+        );
+      }
+    }
+  }
+
+  async function loadSavedResponses(token: string) {
+    await Promise.all(cards.map(async (card) => {
+      const slug = card.dataset.pollSlug || '';
+      try {
+        const response = await fetch('/api/sondages/vote?poll=' + encodeURIComponent(slug), {
+          headers: { Authorization: 'Bearer ' + token },
+          cache: 'no-store',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || textForLanguage('Impossible de charger ta réponse.', 'Could not load your response.'));
+        const saved = data.response;
+        if (!saved) return;
+        card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
+          const selected = button.dataset.optionId === saved.option_id;
+          button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+        updateSavedOption(card, saved.option_id);
+        const explanation = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
+        if (explanation) {
+          explanation.value = (saved.explanation || '').slice(0, 200);
+          updateCharacterCount(card);
+        }
+        setCardStatus(card, textForLanguage('Ta réponse actuelle est chargée.', 'Your current response is loaded.'));
+      } catch (error) {
+        setCardStatus(
+          card,
+          error instanceof Error ? error.message : textForLanguage('Impossible de charger ta réponse.', 'Could not load your response.'),
+          true,
+        );
+      }
+    }));
+  }
+
+  function updateSlideCount() {
+    if (!slideCount || !cards.length) return;
+    slideCount.textContent = (activeIndex + 1) + ' / ' + cards.length;
+  }
+
+  function setMode(mode: 'grid' | 'focus', animate = true) {
+    if (!page) return;
+    page.dataset.mode = mode;
+    cards.forEach((card, index) => {
+      card.hidden = mode === 'focus' && index !== activeIndex;
+      card.classList.remove('is-slide-in-left', 'is-slide-in-right', 'is-slide-out-left', 'is-slide-out-right');
+    });
+    modeButtons.forEach((button) => {
+      const active = button.dataset.viewMode === mode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (slideControls) slideControls.hidden = mode !== 'focus' || cards.length < 2;
+    updateSlideCount();
+    if (animate) {
+      page.classList.remove('is-zooming-in', 'is-zooming-out');
+      page.classList.add(mode === 'focus' ? 'is-zooming-in' : 'is-zooming-out');
+      globalThis.setTimeout(() => page.classList.remove('is-zooming-in', 'is-zooming-out'), 360);
+    }
+  }
+
+  function moveSlide(direction: -1 | 1) {
+    if (slideLock || cards.length < 2) return;
+    const outgoing = cards[activeIndex];
+    const nextIndex = (activeIndex + direction + cards.length) % cards.length;
+    const incoming = cards[nextIndex];
+    slideLock = true;
+    outgoing.classList.add(direction > 0 ? 'is-slide-out-left' : 'is-slide-out-right');
+    globalThis.setTimeout(() => {
+      outgoing.hidden = true;
+      outgoing.classList.remove('is-slide-out-left', 'is-slide-out-right');
+      activeIndex = nextIndex;
+      incoming.hidden = false;
+      incoming.classList.add(direction > 0 ? 'is-slide-in-left' : 'is-slide-in-right');
+      updateSlideCount();
+    }, 150);
+    globalThis.setTimeout(() => {
+      incoming.classList.remove('is-slide-in-left', 'is-slide-in-right');
+      slideLock = false;
+    }, 500);
+  }
+
+  function setPlaceholderLanguage() {
+    document.querySelectorAll<HTMLTextAreaElement>('[data-placeholder-fr][data-placeholder-en]').forEach((textarea) => {
+      textarea.placeholder = currentLanguage() === 'EN'
+        ? textarea.dataset.placeholderEn || ''
+        : textarea.dataset.placeholderFr || '';
+    });
+    document.querySelectorAll<HTMLElement>('[data-aria-label-fr][data-aria-label-en]').forEach((element) => {
+      element.setAttribute(
+        'aria-label',
+        currentLanguage() === 'EN'
+          ? element.dataset.ariaLabelEn || ''
+          : element.dataset.ariaLabelFr || '',
+      );
+    });
+  }
+
+  function installInteractions() {
+    modeButtons.forEach((button) => {
+      button.addEventListener('click', () => setMode(button.dataset.viewMode === 'focus' ? 'focus' : 'grid'));
+    });
+
+    cards.forEach((card, index) => {
+      card.addEventListener('click', (event) => {
+        if (page?.dataset.mode !== 'grid') return;
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button, textarea, input, a, select')) return;
+        activeIndex = index;
+        setMode('focus');
+      });
+
+      card.addEventListener('keydown', (event) => {
+        if (page?.dataset.mode !== 'grid' || (event.key !== 'Enter' && event.key !== ' ')) return;
+        if (event.target !== card) return;
+        event.preventDefault();
+        activeIndex = index;
+        setMode('focus');
+      });
+
+      card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((option) => {
+            option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
+          });
+          setCardStatus(card, '');
+          if (page?.dataset.mode === 'grid') {
+            activeIndex = index;
+            setMode('focus');
+            button.focus();
+          }
+        });
+      });
+
+      card.querySelector<HTMLTextAreaElement>('[data-explanation]')?.addEventListener('input', () => {
+        updateCharacterCount(card);
+      });
+
+      card.querySelector<HTMLButtonElement>('[data-submit-poll]')?.addEventListener('click', async () => {
+        const selected = card.querySelector<HTMLButtonElement>('[data-option-id][aria-pressed="true"]');
+        if (!selected) {
+          setCardStatus(card, textForLanguage('Choisis une réponse avant de continuer.', 'Choose an answer before continuing.'), true);
+          return;
+        }
+        if (!currentSession?.access_token) {
+          setCardStatus(card, textForLanguage('Connecte-toi pour répondre à ce sondage.', 'Sign in to answer this poll.'), true);
+          return;
+        }
+
+        const submit = card.querySelector<HTMLButtonElement>('[data-submit-poll]');
+        const explanation = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
+        if (!submit) return;
+        submit.disabled = true;
+        setCardStatus(card, textForLanguage('Envoi de ta réponse…', 'Submitting your response…'));
+        try {
+          const response = await fetch('/api/sondages/vote', {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer ' + currentSession.access_token,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              poll_slug: card.dataset.pollSlug,
+              option_id: selected.dataset.optionId,
+              explanation: explanation?.value || '',
+            }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.message || textForLanguage('Impossible d’enregistrer ta réponse.', 'Could not save your response.'));
+          updateSavedOption(card, selected.dataset.optionId || null);
+          setCardStatus(card, textForLanguage(
+            'Réponse enregistrée. Tu peux la modifier tant que le sondage reste visible.',
+            'Response saved. You can update it while the poll remains available.',
+          ));
+        } catch (error) {
+          setCardStatus(
+            card,
+            error instanceof Error ? error.message : textForLanguage('Impossible d’enregistrer ta réponse.', 'Could not save your response.'),
+            true,
+          );
+        } finally {
+          submit.disabled = !currentSession?.access_token;
+        }
+      });
+    });
+
+    cards.forEach(updateCharacterCount);
+
+    document.querySelectorAll<HTMLButtonElement>('[data-slide]').forEach((button) => {
+      button.addEventListener('click', () => moveSlide(button.dataset.slide === 'previous' ? -1 : 1));
+    });
+
+    document.querySelectorAll<HTMLElement>('[data-welcome-close]').forEach((element) => {
+      element.addEventListener('click', () => {
+        const userId = currentSession?.user?.id || null;
+        localStorage.setItem(welcomeKey(userId), '1');
+        if (welcome) welcome.hidden = true;
+      });
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && welcome && !welcome.hidden) {
+        localStorage.setItem(welcomeKey(currentSession?.user?.id || null), '1');
+        welcome.hidden = true;
+      }
+      if (!page || page.dataset.mode !== 'focus' || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName)) return;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        moveSlide(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        moveSlide(1);
+      }
+    });
+
+    window.addEventListener('languageChanged', setPlaceholderLanguage);
+    setPlaceholderLanguage();
+  }
+
+  async function initializeAuth() {
+    try {
+      const supabase = getBrowserSupabase();
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      updateAuth(data.session);
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') clearWelcomeKeys();
+        updateAuth(session);
+      });
+      authSubscription = authListener.subscription;
+    } catch (error) {
+      updateAuth(null);
+      if (authStatus) {
+        authStatus.textContent = error instanceof Error
+          ? error.message
+          : textForLanguage('La connexion est momentanément indisponible.', 'Sign-in is temporarily unavailable.');
+      }
+    }
+  }
+
+  installInteractions();
+  setMode('grid', false);
+  void initializeAuth();
+  window.addEventListener('pagehide', () => authSubscription?.unsubscribe(), { once: true });
+</script>
