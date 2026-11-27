@@ -36,6 +36,7 @@ revue_rows:
       type: intertitre
       text: Presentation of the band and album overview
       text_en: Presentation of the band and album overview
+      intertitre_size: large
     right:
       type: texte
       text: ""
@@ -309,7 +310,8 @@ revue_rows:
     left:
       type: intertitre
       text: Song by song breakdown
-      text_en: ""
+      text_en: Song by song breakdown
+      intertitre_size: large
     right:
       type: texte
       text: ""
