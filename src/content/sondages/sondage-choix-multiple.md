@@ -2,7 +2,7 @@
 layout: multiple_choice
 title: Sondage échelle
 question: Répond juste
-duration_hours: 1
+duration_hours: 2
 show_live_results: false
 options:
   - id: option-1

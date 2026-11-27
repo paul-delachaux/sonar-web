@@ -190,7 +190,7 @@ export const prerender = false;
     inset: 0 auto 0 0;
     width: 0;
     border-radius: inherit;
-    background: linear-gradient(90deg, rgba(255, 121, 0, .4), rgba(255, 121, 0, .18));
+    background: linear-gradient(90deg, rgba(255, 121, 0, .18), rgba(255, 121, 0, .4));
     pointer-events: none;
     transition: width 900ms cubic-bezier(.2, .8, .2, 1);
   }
@@ -215,12 +215,16 @@ export const prerender = false;
 
   .sonde-result-option.is-saved {
     border-color: #48d6a0;
-    background: #07523f;
+    background: #08084b;
     box-shadow: inset 4px 0 #48d6a0;
   }
 
-  .sonde-result-option.is-saved .sonde-result-fill {
-    background: linear-gradient(90deg, rgba(72, 214, 160, .42), rgba(72, 214, 160, .18));
+  .sonde-result-card.is-live-results .sonde-result-option.is-saved .sonde-result-fill {
+    background: linear-gradient(90deg, #08704d, #087a52);
+  }
+
+  .sonde-result-option.is-saved .sonde-result-label {
+    font-weight: 800;
   }
 
   .sonde-result-option.is-saved::after {
@@ -286,6 +290,7 @@ export const prerender = false;
     titleEn: string;
     question: string;
     questionEn: string;
+    showLiveResults: boolean;
     total: number;
     isClosed: boolean;
     endsAt: string | null;
@@ -335,6 +340,7 @@ export const prerender = false;
     polls.forEach((poll) => {
       const card = document.createElement('article');
       card.className = 'sonde-result-card';
+      if (poll.showLiveResults) card.classList.add('is-live-results');
 
       const heading = document.createElement('header');
       heading.className = 'sonde-result-heading';

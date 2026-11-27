@@ -125,6 +125,7 @@ export const GET: APIRoute = async ({ request, url }) => {
           titleEn: poll.data.title_en || poll.data.title,
           question: poll.data.question,
           questionEn: poll.data.question_en || poll.data.question,
+          showLiveResults: Boolean(poll.data.show_live_results),
           total,
           isClosed: status.isClosed,
           endsAt: status.endsAt,
