@@ -37,30 +37,31 @@ revue_rows:
       image_caption_en: Porcupine Tree in 1995
     right:
       type: texte
-      text: "Porcupine Tree merely started off as a joke, it was an imaginary band
-        created by Steven Wilson behind which he could release his own music.
-        After meeting some initial success, he recruited other musicians to form
-        a proper band. Porcupine Tree's musical journey could be broken down
-        into three eras : starting off with the psychedelic era, evolving into
-        more pop-rock oriented songwriting, and finally embracing a heavier
-        metal sound. In Absentia is often considered a turning point in the
-        band’s career. During that time, Steven Wilson was getting more into
-        heavy music and started producing for the metal band Opeth. This
+      text: "Porcupine Tree merely started off as a joke, as an imaginary band created
+        by Steven Wilson behind which he could release his own music. After
+        meeting some initial success, he recruited other musicians to form a
+        proper band. From then on, Porcupine Tree's musical journey could be
+        broken down into three eras : starting off with the psychedelic era,
+        evolving into more pop-rock oriented songwriting, and finally embracing
+        a heavier metal sound. In Absentia is often considered a turning point
+        in the band’s career. During that time, Steven Wilson was getting more
+        into heavy music and started producing for the metal band Opeth. This
         motivated him to incorporate more of these elements into his sound. In
         Absentia marks as well, and above all, the arrival of Gavin Harrison who
         is replacing the band's former drummer Chris Maitland."
-      text_en: "Porcupine Tree merely started off as a joke, it was an imaginary band
+      text_en: >
+        Porcupine Tree merely started off as a joke, as an imaginary band
         created by Steven Wilson behind which he could release his own music.
         After meeting some initial success, he recruited other musicians to form
-        a proper band. Porcupine Tree's musical journey could be broken down
-        into three eras : starting off with the psychedelic era, evolving into
-        more pop-rock oriented songwriting, and finally embracing a heavier
-        metal sound. In Absentia is often considered a turning point in the
-        band’s career. During that time, Steven Wilson was getting more into
-        heavy music and started producing for the metal band Opeth. This
+        a proper band. From then on, Porcupine Tree's musical journey could be
+        broken down into three eras : starting off with the psychedelic era,
+        evolving into more pop-rock oriented songwriting, and finally embracing
+        a heavier metal sound. In Absentia is often considered a turning point
+        in the band’s career. During that time, Steven Wilson was getting more
+        into heavy music and started producing for the metal band Opeth. This
         motivated him to incorporate more of these elements into his sound. In
         Absentia marks as well, and above all, the arrival of Gavin Harrison who
-        is replacing the band's former drummer Chris Maitland."
+        is replacing the band's former drummer Chris Maitland.
   - left:
       type: texte
       text: "What really sets this record apart is the combination of the metal
