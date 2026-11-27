@@ -889,7 +889,7 @@
   <script src="/admin/article-search.js?v=20260825r"></script>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-  <script src="/admin/revue-rows-editor.js?v=20261126i"></script>
+  <script src="/admin/revue-rows-editor.js?v=20261127a"></script>
   <script src="/admin/domain-featured-editor.js?v=20261125a"></script>
   <script src="/admin/homepage-featured-editor.js?v=20261125a"></script>
   <script src="/admin/sondage-admin.js?v=20261127i"></script>
@@ -906,7 +906,7 @@
   <script src="/admin/cms-media.js?v=20261124e"></script>
   <script src="/admin/cms-deploy.js?v=20261014f"></script>
   <script src="/admin/body-composer.js?v=20261124g"></script>
-  <script src="/admin/article-body-composer.js?v=20261125k"></script>
+  <script src="/admin/article-body-composer.js?v=20261127a"></script>
 
   <script type="text/javascript">
     (function installCmsBrand() {
@@ -2580,7 +2580,7 @@
     // Textes et listes restent groupés pour que les médias suivent l'unité éditoriale.
     function getContentParagraphs(container) {
       if (!container) return [];
-      return Array.from(container.querySelectorAll('.article-body-text-block, p, h2, h3')).filter(function(block) {
+      return Array.from(container.querySelectorAll('.article-body-text-block, p, h2, h3, h4')).filter(function(block) {
         if (!block.textContent || block.textContent.trim().length === 0) return false;
         if (block.matches('p') && block.closest('.article-body-text-block')) return false;
         if (block.closest('figure, figcaption, blockquote, li')) return false;
@@ -2999,6 +2999,7 @@
       .image-caption { padding: 8px 12px; font-size: 0.85rem; color: #9ca3af; font-style: italic; background-color: #0b092b; border-bottom: 2px solid #1f2937; margin: 0; box-sizing: border-box; width: 100%; }
       .prose-content { color: #ffffff; font-size: 1.3rem; line-height: 1.8; }
       .prose-content p { margin-bottom: 24px; }
+      .prose-content h4 { margin: 28px 0 14px; color: #fff; font-size: 1.1rem; line-height: 1.35; }
       .prose-content ul { margin: .9em 0; padding-inline-start: 1.6em; list-style: disc; }
       .prose-content li { margin-bottom: .35em; padding-inline-start: .2em; }
       .article-sidebar { height: 100%; }
@@ -3435,6 +3436,8 @@
       .revue-text ul { margin: .8em 0; padding-inline-start: 1.6em; list-style: disc; }
       .revue-text li { margin-bottom: .35em; padding-inline-start: .2em; }
       .revue-intertitre { margin: 0; font-size: 1.35rem; font-weight: 800; line-height: 1.3; }
+      .revue-intertitre.is-small { font-size: 1.05rem; }
+      .revue-intertitre.is-large { font-size: 1.75rem; }
       .revue-intertitre[hidden] { display: none !important; }
       .revue-audio { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #ff7900; color: #fff; margin: 0 0 8px; height: 56px; max-height: 56px; box-sizing: border-box; }
       .revue-audio-play { width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 12px; border-color: transparent transparent transparent #fff; flex-shrink: 0; }
@@ -3507,9 +3510,12 @@
             );
           }
           if (type === 'intertitre') {
+            var size = ['small', 'medium', 'large'].indexOf(item.intertitre_size) === -1
+              ? 'medium'
+              : item.intertitre_size;
             return h('div', Object.assign({ className: 'revue-cell revue-cell-intertitre' }, targetAttrs),
-              h('h2', { className: 'revue-intertitre', 'data-lang-content': 'FR' }, item.text || ''),
-              h('h2', { className: 'revue-intertitre', 'data-lang-content': 'EN', hidden: true }, item.text_en || item.text || '')
+              h('h2', { className: 'revue-intertitre is-' + size, 'data-lang-content': 'FR' }, item.text || ''),
+              h('h2', { className: 'revue-intertitre is-' + size, 'data-lang-content': 'EN', hidden: true }, item.text_en || item.text || '')
             );
           }
           const markdown = window.SonarArticleBody && window.SonarArticleBody.markdownToPreviewHtml;

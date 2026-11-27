@@ -102,7 +102,7 @@ const markdownToHtml = (md: string) => {
       if (editorTitleMarker) trimmed = trimmed.slice(editorTitleMarker[0].length).trim();
       if (!trimmed) return '';
 
-      const heading = trimmed.match(/^(#{2,3})\s+([\s\S]*)$/);
+      const heading = trimmed.match(/^(#{2,4})\s+([\s\S]*)$/);
       if (heading) {
         const level = heading[1].length;
         return `<h${level}>${inline(heading[2])}</h${level}>`;
@@ -1196,6 +1196,7 @@ const introCaptionEN = introEN.caption;
   .prose-content li { margin-bottom: .35em; padding-inline-start: .2em; }
   .prose-content h2 { font-size: 1.7rem; color: #ffffff; margin-top: 40px; margin-bottom: 20px; font-weight: 700; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   .prose-content h3 { margin: 32px 0 16px; color: #fff; font-size: 1.35rem; line-height: 1.35; }
+  .prose-content h4 { margin: 28px 0 14px; color: #fff; font-size: 1.1rem; line-height: 1.35; }
   .article-body-image { margin: 28px 0; }
   .article-body-image img { display: block; max-width: 100%; max-height: 550px; border-radius: 5px; object-fit: contain; }
   .article-body-image figcaption { margin-top: 7px; color: #a9a9b5; font-size: .82rem; font-style: italic; line-height: 1.45; }
@@ -1225,6 +1226,7 @@ const introCaptionEN = introEN.caption;
   @media (max-width: 968px) {
     .prose-content { font-size: 1.1rem; line-height: 1.6; }
     .prose-content h2 { font-size: 1.4rem; }
+    .prose-content h4 { font-size: 1rem; }
     .breve-header-main { flex-direction: column; gap: 15px; }
     .breve-description { width: 100%; }
     .brief-intro-image { width: 100%; flex-basis: auto; }

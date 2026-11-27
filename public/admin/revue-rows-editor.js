@@ -13,6 +13,12 @@
     return cell && typeof cell === 'object' ? cell : {};
   }
 
+  function intertitleSize(cell) {
+    return ['small', 'medium', 'large'].indexOf(cell && cell.intertitre_size) === -1
+      ? 'medium'
+      : cell.intertitre_size;
+  }
+
   function mediaPathToken(value) {
     var plain = toPlain(value);
     try { return JSON.stringify(plain); } catch (e) { return String(plain); }
@@ -255,7 +261,7 @@
       '.sonar-revue-cell-type select{min-width:130px;padding:7px;border:1px solid #cbd2dc;border-radius:5px;background:#fff;color:#182230;font-size:13px;}',
       '.sonar-revue-cell-fields{display:flex;flex-direction:column;gap:10px;}',
       '.sonar-revue-cell-fields label{display:flex;flex-direction:column;gap:5px;color:#38445a;font-size:12px;font-weight:700;}',
-      '.sonar-revue-cell-fields input,.sonar-revue-cell-fields textarea{box-sizing:border-box;width:100%;padding:9px;border:1px solid #cbd2dc;border-radius:5px;background:#fff;color:#182230;font-size:14px;font-weight:400;line-height:1.5;}',
+      '.sonar-revue-cell-fields input,.sonar-revue-cell-fields select,.sonar-revue-cell-fields textarea{box-sizing:border-box;width:100%;padding:9px;border:1px solid #cbd2dc;border-radius:5px;background:#fff;color:#182230;font-size:14px;font-weight:400;line-height:1.5;}',
       '.sonar-revue-cell-fields textarea{min-height:110px;resize:vertical;}',
       '.sonar-revue-rich-toolbar{display:flex;gap:5px;padding:0 0 6px;}',
       '.sonar-revue-rich-toolbar button{min-width:32px;padding:5px 8px;font-size:13px;}',
@@ -893,6 +899,16 @@
           );
         } else if (type === 'intertitre') {
           content = h('div', { className: 'sonar-revue-cell-fields' },
+            h('label', {}, 'Taille de l’intertitre',
+              h('select', {
+                value: intertitleSize(cell),
+                onChange: function (event) { self.updateCell(rowIndex, side, { intertitre_size: event.target.value }); }
+              },
+                h('option', { value: 'small' }, 'Petite'),
+                h('option', { value: 'medium' }, 'Moyenne'),
+                h('option', { value: 'large' }, 'Grande')
+              )
+            ),
             h('label', {}, 'Intertitre (FR)',
               h('input', { type: 'text', value: cell.text || '', onChange: function (event) { self.updateCell(rowIndex, side, { text: event.target.value }); } })
             ),

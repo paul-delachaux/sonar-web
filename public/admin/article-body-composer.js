@@ -7,6 +7,11 @@
     return value == null ? '' : String(value);
   }
 
+  function headingLevel(value) {
+    var level = Number(value);
+    return level === 3 || level === 4 ? level : 2;
+  }
+
   function htmlEscape(value) {
     return String(value || '')
       .replace(/&/g, '&amp;')
@@ -313,7 +318,7 @@
         }
 
         var block;
-        var heading = raw.match(/^(#{2,3})\s+([\s\S]*)$/);
+        var heading = raw.match(/^(#{2,4})\s+([\s\S]*)$/);
         if (heading) block = { id: uid(), type: 'heading', level: heading[1].length, text: heading[2] };
         else {
           var figure = raw.match(/^<figure class="article-body-image">\s*<img src="([^"]*)" alt="([^"]*)"\s*\/?>(?:\s*<figcaption>([\s\S]*?)<\/figcaption>)?\s*<\/figure>$/i);
@@ -349,7 +354,7 @@
   function serializeBlocks(blocks, preserveTextBreaks) {
     return (blocks || []).map(function (block) {
       if (block.type === 'heading') {
-        var level = Number(block.level) === 3 ? 3 : 2;
+        var level = headingLevel(block.level);
         return '#'.repeat(level) + ' ' + String(block.text || '').trim();
       }
       if (block.type === 'image') {
@@ -430,7 +435,7 @@
   function markdownToPreviewHtml(markdown) {
     return parseBlocks(markdown).map(function (block) {
       if (block.type === 'heading') {
-        var level = Number(block.level) === 3 ? 3 : 2;
+        var level = headingLevel(block.level);
         return '<h' + level + '>' + renderMarkdownText(block.text) + '</h' + level + '>';
       }
       if (block.type === 'image' && block.src) {
@@ -497,6 +502,7 @@
       '.sonar-body-empty{padding:24px;text-align:center;color:#667085;font-size:13px;}',
       '.sonar-body-preview h2{margin:1.6em 0 .7em;font-size:1.5em;}',
       '.sonar-body-preview h3{margin:1.4em 0 .6em;font-size:1.2em;}',
+      '.sonar-body-preview h4{margin:1.2em 0 .5em;font-size:1em;}',
       '.sonar-body-preview ul{margin:.65em 0;padding-inline-start:1.6em;list-style-type:disc;}',
       '.sonar-body-preview li{padding-inline-start:.2em;line-height:1.6;}',
       '.sonar-body-preview figure{margin:1.5em 0;}',
@@ -679,12 +685,13 @@
         if (block.type === 'heading') {
           fields.push(h('select', {
             key: 'level',
-            value: Number(block.level) === 3 ? '3' : '2',
+            value: String(headingLevel(block.level)),
             'aria-label': 'Niveau de l’intertitre',
             onChange: function (event) { self.updateBlock(block.id, { level: Number(event.target.value) }); }
           },
             h('option', { value: '2' }, 'Intertitre principal'),
-            h('option', { value: '3' }, 'Intertitre secondaire')
+            h('option', { value: '3' }, 'Intertitre secondaire'),
+            h('option', { value: '4' }, 'Intertitre tertiaire')
           ));
           fields.push(h('textarea', {
             key: 'text',
@@ -914,8 +921,8 @@
       var nodes = [];
       blocks.forEach(function (block, index) {
         if (block.type === 'heading') {
-          var level = Number(block.level) === 3 ? 3 : 2;
-          nodes.push(h(level === 3 ? 'h3' : 'h2', {
+          var level = headingLevel(block.level);
+          nodes.push(h('h' + level, {
             key: block.id,
             'data-sonar-editor-field': fieldName,
             'data-sonar-editor-index': index
