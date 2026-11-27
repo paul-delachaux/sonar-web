@@ -64,7 +64,7 @@
     if (/\/entries\//.test(hash) || /\/new(?:\?|$)/.test(hash)) return false;
     var col = currentCollection();
     if (!col || col === 'settings' || col === 'domains') return false;
-    return col === 'articles' || col === 'breves' || col === 'revues_musicales' || col === 'contenus_visibles' || col === 'contenus_masques' || col.indexOf('articles_') === 0;
+    return col === 'articles' || col === 'breves' || col === 'revues_musicales' || col === 'sondages' || col === 'contenus_visibles' || col === 'contenus_masques' || col.indexOf('articles_') === 0;
   }
 
   function slugFromHref(href) {
@@ -629,11 +629,35 @@
     });
   }
 
+  function runBulkSondages(action, slugs) {
+    var headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
+    var token = githubToken();
+    if (token) headers.Authorization = 'Bearer ' + token;
+    return fetch('/api/admin/bulk-sondages', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ action: action, slugs: slugs })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+        return data;
+      });
+    });
+  }
+
   function runBulk(action) {
     var slugs = selectedSlugs();
     if (!slugs.length || busy) return;
+    if (global.__SONAR_CMS_ROLE !== 'superadmin') {
+      setStatus('Cette action est réservée aux superadmins.');
+      return;
+    }
     if (action === 'delete') {
-      var ok = global.confirm('Supprimer ' + slugs.length + ' contenu' + (slugs.length > 1 ? 's' : '') + ' du projet ? Cette action est irréversible.');
+      var isPollCollection = currentCollection() === 'sondages';
+      var message = isPollCollection
+        ? 'Supprimer ' + slugs.length + ' sondage' + (slugs.length > 1 ? 's' : '') + ' et toutes les réponses associées dans Supabase ? Cette action est irréversible.'
+        : 'Supprimer ' + slugs.length + ' contenu' + (slugs.length > 1 ? 's' : '') + ' du projet ? Cette action est irréversible.';
+      var ok = global.confirm(message);
       if (!ok) return;
     }
     if (!isLocalHost() && !githubToken()) {
@@ -643,7 +667,9 @@
     busy = true;
     refreshBar();
     setStatus('Enregistrement…');
-    var job = isLocalHost() ? runBulkLocal(action, slugs) : runBulkGithub(action, slugs);
+    var job = currentCollection() === 'sondages'
+      ? runBulkSondages(action, slugs)
+      : (isLocalHost() ? runBulkLocal(action, slugs) : runBulkGithub(action, slugs));
     job.then(function (data) {
       if (global.__sonarArticlesPromise) global.__sonarArticlesPromise = null;
       var extra = data && data.missing && data.missing.length
@@ -671,7 +697,7 @@
 
   function tick() {
     scheduled = false;
-    if (global.__SONAR_CMS_ROLE === 'admin') {
+    if (global.__SONAR_CMS_ROLE !== 'superadmin') {
       hideOverlay();
       var bar = document.getElementById('sonar-bulk-bar');
       if (bar) bar.remove();
@@ -715,6 +741,7 @@
     document.body.classList.remove('sonar-bulk-on');
     schedule();
   });
+  document.addEventListener('sonar-cms-role-ready', schedule);
   window.addEventListener('load', schedule);
   window.addEventListener('resize', onScroll);
   document.addEventListener('scroll', onScroll, true);

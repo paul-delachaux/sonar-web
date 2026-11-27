@@ -257,19 +257,28 @@ const articles = defineCollection({
 const sondages = defineCollection({
   loader: glob({ pattern: '**/[^_]*.md', base: './src/content/sondages' }),
   schema: z.object({
-    layout: z.enum(['single_choice']).default('single_choice'),
+    layout: z.enum(['single_choice', 'multiple_choice', 'scale', 'dichotomous']).default('single_choice'),
     title: z.string().min(1),
     title_en: z.string().nullish().optional(),
     question: z.string().min(1),
     question_en: z.string().nullish().optional(),
-    order: z.coerce.number().int().min(0).default(0),
     isVisible: z.boolean().default(false),
+    duration_hours: z.number().int().min(1).max(8760).default(168),
+    show_live_results: z.boolean().default(false),
     options: z.array(z.object({
       id: z.string().min(1).max(64),
       label: z.string().min(1),
       label_en: z.string().nullish().optional(),
-    })).min(2),
+    })).default([]),
   }).superRefine((poll, context) => {
+    if (poll.layout === 'scale' || poll.layout === 'dichotomous') return;
+    if (poll.options.length < 2) {
+      context.addIssue({
+        code: 'custom',
+        path: ['options'],
+        message: 'Un sondage à choix doit proposer au moins deux réponses.',
+      });
+    }
     const seen = new Set<string>();
     poll.options.forEach((option, index) => {
       if (seen.has(option.id)) {

@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { createServiceClient } from '../../../utils/service-client';
 import { supabase } from '../../../utils/supabase';
+import { loadPollLifecycles, pollLifecycleStatus } from '../../../utils/sondage-lifecycle';
+import { sondageOptions } from '../../../utils/sondages';
 
 export const prerender = false;
 
@@ -47,6 +49,14 @@ async function findPoll(slug: string) {
   return polls.find((poll) => poll.id === slug);
 }
 
+async function pollIsClosed(
+  poll: NonNullable<Awaited<ReturnType<typeof findPoll>>>,
+  service: NonNullable<ReturnType<typeof createServiceClient>>,
+) {
+  const records = await loadPollLifecycles(service, [poll], import.meta.env.PROD);
+  return pollLifecycleStatus(poll, records).isClosed;
+}
+
 export const GET: APIRoute = async ({ request, url }) => {
   const auth = await authenticatedAccount(request);
   if ('error' in auth) return auth.error;
@@ -56,10 +66,18 @@ export const GET: APIRoute = async ({ request, url }) => {
 
   const poll = await findPoll(slug);
   if (!poll || !poll.data.isVisible) return json({ message: 'Ce sondage n’est pas disponible.' }, 404);
+  try {
+    if (await pollIsClosed(poll, auth.service)) {
+      return json({ message: 'Ce sondage est terminé et n’accepte plus de réponses.' }, 410);
+    }
+  } catch (error) {
+    console.error('[sondages] Could not verify poll lifecycle:', error);
+    return json({ message: 'Impossible de vérifier si ce sondage est encore ouvert.' }, 503);
+  }
 
   const { data, error } = await auth.service
     .from(TABLE)
-    .select('option_id, explanation')
+    .select('option_id, option_ids, explanation')
     .eq('poll_slug', poll.id)
     .eq('account_id', auth.accountId)
     .maybeSingle();
@@ -83,7 +101,16 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const slug = typeof payload.poll_slug === 'string' ? payload.poll_slug.trim() : '';
-  const optionId = typeof payload.option_id === 'string' ? payload.option_id.trim() : '';
+  let optionIds: string[];
+  if (Array.isArray(payload.option_ids)) {
+    if (!payload.option_ids.every((optionId) => typeof optionId === 'string')) {
+      return json({ message: 'La sélection envoyée est invalide.' }, 400);
+    }
+    optionIds = payload.option_ids.map((optionId) => (optionId as string).trim());
+  } else {
+    const optionId = typeof payload.option_id === 'string' ? payload.option_id.trim() : '';
+    optionIds = optionId ? [optionId] : [];
+  }
   const rawExplanation = typeof payload.explanation === 'string' ? payload.explanation : '';
   if (rawExplanation.length > MAX_EXPLANATION_LENGTH) {
     return json({ message: `Votre complément ne peut pas dépasser ${MAX_EXPLANATION_LENGTH} caractères.` }, 400);
@@ -93,20 +120,36 @@ export const POST: APIRoute = async ({ request }) => {
 
   const poll = await findPoll(slug);
   if (!poll || !poll.data.isVisible) return json({ message: 'Ce sondage n’est pas disponible.' }, 404);
-  if (!poll.data.options.some((option) => option.id === optionId)) {
+  try {
+    if (await pollIsClosed(poll, auth.service)) {
+      return json({ message: 'Ce sondage est terminé et n’accepte plus de réponses.' }, 410);
+    }
+  } catch (error) {
+    console.error('[sondages] Could not verify poll lifecycle:', error);
+    return json({ message: 'Impossible de vérifier si ce sondage est encore ouvert.' }, 503);
+  }
+  const validOptions = sondageOptions(poll);
+  const multipleChoice = poll.data.layout === 'multiple_choice';
+  if (!optionIds.length
+    || (!multipleChoice && optionIds.length !== 1)
+    || new Set(optionIds).size !== optionIds.length
+    || optionIds.some((optionId) => !validOptions.some((option) => option.id === optionId))) {
     return json({ message: 'Choisissez une réponse proposée.' }, 400);
   }
 
   const { error } = await auth.service
     .from(TABLE)
-    .upsert({
+    .insert({
       poll_slug: poll.id,
       account_id: auth.accountId,
-      option_id: optionId,
+      option_id: optionIds[0],
+      option_ids: optionIds,
       explanation,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'poll_slug,account_id' });
+    });
   if (error) {
+    if (error.code === '23505') {
+      return json({ message: 'Vous avez déjà répondu à ce sondage.' }, 409);
+    }
     console.error('[sondages] Could not save the response:', error);
     return json({ message: 'Impossible d’enregistrer votre réponse pour le moment.' }, 503);
   }

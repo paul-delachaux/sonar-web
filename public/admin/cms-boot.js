@@ -412,6 +412,7 @@
     if (global.SonarAuthorProfiles && global.SonarAuthorProfiles.updateIdentity) {
       global.SonarAuthorProfiles.updateIdentity();
     }
+    document.dispatchEvent(new CustomEvent('sonar-cms-role-ready', { detail: { role: me.role || '' } }));
   }
 
   function loadMe() {

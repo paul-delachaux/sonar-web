@@ -45,6 +45,22 @@
     });
   }
 
+  function post(url, payload) {
+    var headers = authHeaders();
+    headers['Content-Type'] = 'application/json';
+    return fetch(url, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: headers,
+      body: JSON.stringify(payload)
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (data) {
+        if (!response.ok) throw new Error(data.message || 'La requête a échoué (' + response.status + ').');
+        return data;
+      });
+    });
+  }
+
   function setStatus(message, isError) {
     var status = root && root.querySelector('#sonde-admin-status');
     if (!status) return;
@@ -65,6 +81,15 @@
       ' réponse' + (total === 1 ? '' : 's') + '</p>';
   }
 
+  function layoutLabel(layout) {
+    return {
+      single_choice: 'Choix unique',
+      multiple_choice: 'Choix multiples',
+      scale: 'Échelle 1–10',
+      dichotomous: 'Oui / Non'
+    }[layout] || 'Choix unique';
+  }
+
   function renderPollList() {
     var list = root && root.querySelector('#sonde-admin-poll-list');
     var search = root && root.querySelector('#sonde-admin-search');
@@ -83,12 +108,27 @@
       return expression.test(poll.title + '\n' + poll.question);
     });
     list.innerHTML = matchingPolls.map(function (poll) {
+      var average = poll.layout === 'scale' && typeof poll.average === 'number'
+        ? '<span class="sonde-admin-poll-average">Moyenne : ' +
+          escapeHtml(poll.average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })) + ' / 10</span>'
+        : '';
+      var state = poll.isClosed
+        ? (poll.isStopped ? 'Arrêté manuellement' : 'Terminé')
+        : poll.isActive
+          ? (poll.startedAt ? 'En cours · fin ' + formatDate(poll.endsAt) : 'En attente de mise en ligne')
+          : 'Masqué';
       return '<article class="sonde-admin-poll-card"><button type="button" class="sonde-admin-poll-open" data-poll-slug="' +
         escapeHtml(poll.slug) + '"><span class="sonde-admin-poll-heading"><strong>' +
         escapeHtml(poll.title) + '</strong><span aria-hidden="true">→</span></span><span class="sonde-admin-poll-question">' +
-        escapeHtml(poll.question) + '</span><span class="sonde-admin-poll-results">' +
+        escapeHtml(poll.question) + '</span><span class="sonde-admin-poll-type">' + escapeHtml(layoutLabel(poll.layout)) +
+        '</span><span class="sonde-admin-poll-state">' + escapeHtml(state) + average +
+        '</span><span class="sonde-admin-poll-results">' +
         renderOptionResults(Array.isArray(poll.options) ? poll.options : [], Number(poll.total) || 0) +
-        '</span></button></article>';
+        '</span></button>' +
+        (poll.isActive
+          ? '<button type="button" class="sonde-admin-stop-poll" data-stop-poll="' + escapeHtml(poll.slug) + '">Arrêter le sondage</button>'
+          : '') +
+        '</article>';
     }).join('');
 
     if (!matchingPolls.length) {
@@ -105,15 +145,25 @@
     var responses = Array.isArray(poll.responses) ? poll.responses : [];
     var optionLabels = {};
     options.forEach(function (option) { optionLabels[option.id] = option.label; });
+    var average = poll.layout === 'scale' && typeof poll.average === 'number'
+      ? '<p class="sonde-admin-total">Moyenne : ' + escapeHtml(poll.average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })) + ' / 10</p>'
+      : '';
 
     detail.innerHTML =
       '<section class="sonde-admin-summary"><h3>' + escapeHtml(poll.title) + '</h3>' +
       '<p class="sonde-admin-detail-question">' + escapeHtml(poll.question) + '</p>' +
+      average +
       renderOptionResults(options, Number(poll.total) || 0) + '</section>' +
       (responses.length
         ? '<div class="sonde-admin-response-list">' + responses.map(function (response) {
+            var selectedIds = Array.isArray(response.option_ids) && response.option_ids.length
+              ? response.option_ids
+              : [response.option_id];
+            var answer = selectedIds.map(function (optionId) {
+              return optionLabels[optionId] || 'Réponse retirée';
+            }).join(' · ');
             return '<article><header><strong>' +
-              escapeHtml(optionLabels[response.option_id] || 'Réponse retirée') +
+              escapeHtml(answer) +
               '</strong><time datetime="' + escapeHtml(response.created_at) + '">' +
               escapeHtml(formatDate(response.created_at)) + '</time></header><p>' +
               (response.explanation
@@ -173,6 +223,24 @@
       });
   }
 
+  function stopPoll(slug, button) {
+    if (!global.confirm('Arrêter ce sondage maintenant ? Il sera masqué du site et ses résultats seront disponibles.')) return;
+    button.disabled = true;
+    button.textContent = 'Arrêt en cours…';
+    post('/api/admin/sondage-responses', { action: 'stop', slug: slug })
+      .then(function (status) {
+        var poll = polls.find(function (item) { return item.slug === slug; });
+        if (poll) Object.assign(poll, status);
+        renderPollList();
+        setStatus('Sondage arrêté. Ses résultats sont disponibles.', false);
+      })
+      .catch(function (error) {
+        button.disabled = false;
+        button.textContent = 'Arrêter le sondage';
+        setStatus(error.message || 'Impossible d’arrêter le sondage.', true);
+      });
+  }
+
   function ensurePanel() {
     if (root) return root;
     root = document.createElement('div');
@@ -218,6 +286,12 @@
       '#sonde-admin-responses .sonde-admin-poll-card{min-width:0;border:1px solid #33314f;border-radius:9px;background:#080822;overflow:hidden}' +
       '#sonde-admin-responses .sonde-admin-poll-open{display:block;width:100%;padding:16px;border:0;background:transparent;text-align:left;cursor:pointer}' +
       '#sonde-admin-responses .sonde-admin-poll-open:hover{background:#10102f}' +
+      '#sonde-admin-responses .sonde-admin-poll-state{display:block;margin:0 0 10px;color:#c5c6d6!important;font-size:12px}' +
+      '#sonde-admin-responses .sonde-admin-poll-type{display:inline-block;margin:0 0 8px;padding:3px 7px;border-radius:999px;background:#1a1a3b;color:#d4d4e5!important;font-size:11px;font-weight:700}' +
+      '#sonde-admin-responses .sonde-admin-poll-average{display:inline-block;margin-left:8px;color:#ffc184!important;font-weight:700}' +
+      '#sonde-admin-responses .sonde-admin-stop-poll{margin:0 16px 16px;padding:7px 10px;border:1px solid #8e3c36;border-radius:6px;background:#401d27;color:#ffd2cd;cursor:pointer;font:inherit;font-size:12px;font-weight:700}' +
+      '#sonde-admin-responses .sonde-admin-stop-poll:hover:not(:disabled){background:#60252d}' +
+      '#sonde-admin-responses .sonde-admin-stop-poll:disabled{opacity:.6;cursor:wait}' +
       '#sonde-admin-responses .sonde-admin-poll-heading{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:16px}' +
       '#sonde-admin-responses .sonde-admin-poll-heading>span{color:#ff9a3d!important}' +
       '#sonde-admin-responses .sonde-admin-poll-question{display:block;margin-bottom:13px;color:#c5c6d6!important;font-size:13px;line-height:1.45}' +
@@ -246,6 +320,13 @@
       var target = event.target;
       if (!target || !target.closest) return;
       if (target.closest('[data-sonde-close]')) close();
+      var stopButton = target.closest('[data-stop-poll]');
+      if (stopButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        stopPoll(stopButton.getAttribute('data-stop-poll'), stopButton);
+        return;
+      }
       var pollButton = target.closest('[data-poll-slug]');
       if (pollButton) loadPollResponses(pollButton.getAttribute('data-poll-slug'));
       if (target.closest('#sonde-admin-back')) showList();

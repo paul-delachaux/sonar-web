@@ -1,8 +1,12 @@
 ---
 layout: single_choice
 title: Sondage de Test
+title_en: Survey test
 question: 'Question plus ou moins longue : Une question qui soulève un enjeu
   sociétal majeur de genre "vous informez vous via les influenceurs ?"'
+question_en: Question
+duration_hours: 1
+show_live_results: true
 options:
   - id: oui
     label: Oui
@@ -13,8 +17,5 @@ options:
   - id: sometimes
     label: De temps en temps
     label_en: Sometimes
-title_en: Survey test
-question_en: Question
-order: 0
 isVisible: true
 ---

@@ -2,11 +2,20 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 export type BulkAction = 'show' | 'hide' | 'delete';
+export type BulkCollection = 'articles' | 'sondages';
 
-const ARTICLES_DIR = path.join(process.cwd(), 'src/content/articles');
 const REPO = 'paul-delachaux/sonar-web';
 const BRANCH = 'main';
-const REMOTE_DIR = 'src/content/articles';
+const CONTENT_DIRS: Record<BulkCollection, { local: string; remote: string }> = {
+  articles: {
+    local: path.join(process.cwd(), 'src/content/articles'),
+    remote: 'src/content/articles',
+  },
+  sondages: {
+    local: path.join(process.cwd(), 'src/content/sondages'),
+    remote: 'src/content/sondages',
+  },
+};
 
 function setVisible(raw: string, visible: boolean): string {
   const line = `isVisible: ${visible ? 'true' : 'false'}`;
@@ -15,8 +24,8 @@ function setVisible(raw: string, visible: boolean): string {
   return `${line}\n${raw}`;
 }
 
-async function resolveLocalFile(slug: string): Promise<string | null> {
-  const names = await fs.readdir(ARTICLES_DIR);
+async function resolveLocalFile(directory: string, slug: string): Promise<string | null> {
+  const names = await fs.readdir(directory);
   let decoded = slug;
   try {
     decoded = decodeURIComponent(slug);
@@ -26,7 +35,7 @@ async function resolveLocalFile(slug: string): Promise<string | null> {
   for (const name of names) {
     if (!/\.mdx?$/.test(name)) continue;
     const stem = name.replace(/\.mdx?$/, '');
-    if (stem === slug || stem === decoded) return path.join(ARTICLES_DIR, name);
+    if (stem === slug || stem === decoded) return path.join(directory, name);
   }
   return null;
 }
@@ -34,11 +43,13 @@ async function resolveLocalFile(slug: string): Promise<string | null> {
 export async function applyBulkLocal(
   action: BulkAction,
   slugs: string[],
+  collection: BulkCollection = 'articles',
 ): Promise<{ done: string[]; missing: string[] }> {
   const done: string[] = [];
   const missing: string[] = [];
+  const directory = CONTENT_DIRS[collection].local;
   for (const slug of slugs) {
-    const file = await resolveLocalFile(slug);
+    const file = await resolveLocalFile(directory, slug);
     if (!file) {
       missing.push(slug);
       continue;
@@ -75,10 +86,12 @@ export async function applyBulkGithub(
   token: string,
   action: BulkAction,
   slugs: string[],
+  collection: BulkCollection = 'articles',
 ): Promise<{ done: string[]; missing: string[] }> {
+  const remoteDir = CONTENT_DIRS[collection].remote;
   const files = await gh<Array<{ name: string; url: string; type: string }>>(
     token,
-    `/repos/${REPO}/contents/${REMOTE_DIR}?ref=${BRANCH}`,
+    `/repos/${REPO}/contents/${remoteDir}?ref=${BRANCH}`,
   );
   const md = (Array.isArray(files) ? files : []).filter(
     (file) => file && file.type === 'file' && /\.mdx?$/.test(file.name || ''),
@@ -109,7 +122,7 @@ export async function applyBulkGithub(
   const tree: Array<{ path: string; mode: string; type: string; sha: string | null }> = [];
   if (action === 'delete') {
     for (const file of matched) {
-      tree.push({ path: `${REMOTE_DIR}/${file.name}`, mode: '100644', type: 'blob', sha: null });
+      tree.push({ path: `${remoteDir}/${file.name}`, mode: '100644', type: 'blob', sha: null });
     }
   } else {
     const visible = action === 'show';
@@ -127,7 +140,7 @@ export async function applyBulkGithub(
         method: 'POST',
         body: JSON.stringify({ content: setVisible(raw, visible), encoding: 'utf-8' }),
       });
-      tree.push({ path: `${REMOTE_DIR}/${file.name}`, mode: '100644', type: 'blob', sha: blob.sha });
+      tree.push({ path: `${remoteDir}/${file.name}`, mode: '100644', type: 'blob', sha: blob.sha });
     }
   }
 

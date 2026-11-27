@@ -1,0 +1,454 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Résultats de La Sonde">
+  <main class="sonde-results-page">
+    <section class="sonde-results-heading" aria-labelledby="sonde-results-title">
+      <a href="/sondages" class="sonde-back-link">
+        <span data-lang-content="FR">← Retour à La Sonde</span>
+        <span data-lang-content="EN" hidden>← Back to La Sonde</span>
+      </a>
+      <h1 id="sonde-results-title">
+        <span data-lang-content="FR">Résultats de La Sonde</span>
+        <span data-lang-content="EN" hidden>La Sonde results</span>
+      </h1>
+      <p>
+        <span data-lang-content="FR">Les réponses sont présentées sous forme agrégée. Les commentaires individuels restent privés.</span>
+        <span data-lang-content="EN" hidden>Responses are shown in aggregate. Individual comments remain private.</span>
+      </p>
+    </section>
+
+    <p class="sonde-results-status" id="sonde-results-status" role="status" aria-live="polite">
+      <span data-lang-content="FR">Chargement des résultats…</span>
+      <span data-lang-content="EN" hidden>Loading results…</span>
+    </p>
+    <section class="sonde-results-list" id="sonde-results-list" aria-live="polite"></section>
+  </main>
+</Layout>
+
+<style is:global>
+  .sonde-results-page {
+    width: min(980px, 100%);
+    margin: 30px auto 70px;
+    color: #f4f4f7;
+  }
+
+  .sonde-results-heading {
+    margin-bottom: 22px;
+    padding: 24px clamp(18px, 4vw, 32px);
+    border: 1px solid rgba(255, 121, 0, .38);
+    border-radius: 12px;
+    background: #02001d;
+    text-align: center;
+  }
+
+  .sonde-back-link {
+    display: block;
+    margin-bottom: 14px;
+    color: #ffb84d;
+    font-weight: 700;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .sonde-results-heading h1 {
+    margin: 0 0 10px;
+    color: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.8rem, 5vw, 2.7rem);
+    text-decoration: underline;
+    text-decoration-color: #ff7900;
+    text-underline-offset: 7px;
+  }
+
+  .sonde-results-heading p {
+    margin: 18px 0 0;
+    color: #c1c0cf;
+    line-height: 1.5;
+  }
+
+  .sonde-results-status {
+    margin: 0 0 16px;
+    color: #ffc184;
+  }
+
+  .sonde-results-status:empty {
+    display: none;
+  }
+
+  .sonde-results-status.is-error {
+    color: #ffaaa3;
+  }
+
+  .sonde-results-list {
+    display: grid;
+    gap: 18px;
+  }
+
+  .sonde-result-card,
+  .sonde-results-empty {
+    padding: 24px;
+    border: 1px solid rgba(255, 121, 0, .32);
+    border-radius: 12px;
+    background: #02001d;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, .16);
+  }
+
+  .sonde-result-card h2 {
+    margin: 0;
+    color: #fff;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 121, 0, .7);
+    text-underline-offset: 4px;
+  }
+
+  .sonde-result-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 14px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    line-height: normal;
+    text-align: left;
+  }
+
+  .sonde-result-status {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border: 1px solid #49445c;
+    border-radius: 999px;
+    background: #10102f;
+    color: #d7d6e2;
+    font-size: .74rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .sonde-result-question {
+    min-height: 3em;
+    margin: 0 0 20px;
+    color: #e8e7ef;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+
+  .sonde-result-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px 14px;
+    margin: -8px 0 16px;
+    color: #aaa9ba;
+    font-size: .82rem;
+  }
+
+  .sonde-result-options {
+    display: flex;
+    width: min(100%, 560px);
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .sonde-result-option {
+    position: relative;
+    display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    overflow: hidden;
+    padding: 11px 16px;
+    border: 1px solid transparent;
+    border-radius: 24px;
+    background: #08084b;
+    color: #fff;
+    cursor: default;
+    font-size: .86rem;
+    line-height: 1.35;
+  }
+
+  .sonde-result-fill {
+    position: absolute;
+    z-index: 0;
+    inset: 0 auto 0 0;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(255, 121, 0, .4), rgba(255, 121, 0, .18));
+    pointer-events: none;
+    transition: width 900ms cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .sonde-result-label,
+  .sonde-result-percentage {
+    position: relative;
+    z-index: 1;
+  }
+
+  .sonde-result-percentage {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: #fff1d2;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
+  .sonde-result-label {
+    font-weight: 700;
+  }
+
+  .sonde-result-option.is-saved {
+    border-color: #48d6a0;
+    background: #07523f;
+    box-shadow: inset 4px 0 #48d6a0;
+  }
+
+  .sonde-result-option.is-saved .sonde-result-fill {
+    background: linear-gradient(90deg, rgba(72, 214, 160, .42), rgba(72, 214, 160, .18));
+  }
+
+  .sonde-result-option.is-saved::after {
+    content: "✓";
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(72, 214, 160, .2);
+    color: #8af0c5;
+    font-weight: 800;
+  }
+
+  .sonde-results-empty {
+    margin: 0;
+    color: #c1c0cf;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .sonde-results-page {
+      margin-top: 18px;
+    }
+
+    .sonde-result-card {
+      padding: 18px;
+    }
+
+    .sonde-result-meta {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .sonde-result-heading {
+      align-items: flex-start;
+    }
+
+    .sonde-result-status {
+      max-width: 46%;
+      white-space: normal;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sonde-result-fill {
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+
+<script>
+  import { getBrowserSupabase } from '../../utils/supabase-browser';
+
+  type PublicPollResult = {
+    slug: string;
+    layout: string;
+    title: string;
+    titleEn: string;
+    question: string;
+    questionEn: string;
+    total: number;
+    isClosed: boolean;
+    endsAt: string | null;
+    closedAt: string | null;
+    average?: number | null;
+    myOptionIds?: string[];
+    myOptionId?: string;
+    options: Array<{
+      id: string;
+      label: string;
+      labelEn: string;
+      count: number;
+      percentage: number;
+    }>;
+  };
+
+  const status = document.querySelector<HTMLElement>('#sonde-results-status');
+  const list = document.querySelector<HTMLElement>('#sonde-results-list');
+  let authSubscription: { unsubscribe: () => void } | null = null;
+
+  function isEnglish() {
+    return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN';
+  }
+
+  function displayDate(value: string | null) {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleString(isEnglish() ? 'en-GB' : 'fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  function renderResults(polls: PublicPollResult[]) {
+    if (!list || !status) return;
+    list.replaceChildren();
+    status.textContent = '';
+    if (!polls.length) {
+      const empty = document.createElement('p');
+      empty.className = 'sonde-results-empty';
+      empty.textContent = isEnglish()
+        ? 'No results are available yet.'
+        : 'Aucun résultat n’est disponible pour le moment.';
+      list.append(empty);
+      return;
+    }
+
+    polls.forEach((poll) => {
+      const card = document.createElement('article');
+      card.className = 'sonde-result-card';
+
+      const heading = document.createElement('header');
+      heading.className = 'sonde-result-heading';
+      const title = document.createElement('h2');
+      title.textContent = isEnglish() ? poll.titleEn : poll.title;
+      const pollStatus = document.createElement('span');
+      pollStatus.className = 'sonde-result-status';
+      pollStatus.textContent = isEnglish() ? 'Closed' : 'Terminé';
+      heading.append(title, pollStatus);
+      card.append(heading);
+
+      const question = document.createElement('p');
+      question.className = 'sonde-result-question';
+      question.textContent = isEnglish() ? poll.questionEn : poll.question;
+      card.append(question);
+
+      const meta = document.createElement('div');
+      meta.className = 'sonde-result-meta';
+      const total = document.createElement('span');
+      total.textContent = isEnglish()
+        ? `${poll.total} ${poll.total === 1 ? 'response' : 'responses'}`
+        : `${poll.total} ${poll.total > 1 ? 'réponses' : 'réponse'}`;
+      meta.append(total);
+      if (poll.isClosed && poll.closedAt) {
+        const endedAt = document.createElement('span');
+        endedAt.textContent = isEnglish()
+          ? `Closed on ${displayDate(poll.closedAt)}`
+          : `Clôturé le ${displayDate(poll.closedAt)}`;
+        meta.append(endedAt);
+      }
+      if (poll.layout === 'scale' && typeof poll.average === 'number') {
+        const average = document.createElement('span');
+        average.textContent = isEnglish()
+          ? `Average: ${poll.average.toLocaleString('en-US', { maximumFractionDigits: 1 })} / 10`
+          : `Moyenne : ${poll.average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} / 10`;
+        meta.append(average);
+      }
+      if (poll.layout === 'multiple_choice') {
+        const note = document.createElement('span');
+        note.textContent = isEnglish()
+          ? 'Percentages are based on respondents; totals may exceed 100%.'
+          : 'Pourcentages des répondants ; le total peut dépasser 100 %.';
+        meta.append(note);
+      }
+      card.append(meta);
+
+      const options = document.createElement('ul');
+      options.className = 'sonde-result-options';
+      const myOptionIds = poll.myOptionIds || (poll.myOptionId ? [poll.myOptionId] : []);
+      poll.options.forEach((option) => {
+        const item = document.createElement('li');
+        item.className = 'sonde-result-option' + (myOptionIds.includes(option.id) ? ' is-saved' : '');
+        const label = document.createElement('span');
+        label.className = 'sonde-result-label';
+        label.textContent = isEnglish() ? option.labelEn : option.label;
+        const percentage = document.createElement('span');
+        percentage.className = 'sonde-result-percentage';
+        percentage.textContent = `${option.percentage.toLocaleString(isEnglish() ? 'en-US' : 'fr-FR', {
+          maximumFractionDigits: 1,
+        })}%`;
+        const fill = document.createElement('span');
+        fill.className = 'sonde-result-fill';
+        fill.setAttribute('aria-hidden', 'true');
+        item.append(fill, label, percentage);
+        options.append(item);
+        requestAnimationFrame(() => {
+          fill.style.width = `${Math.max(0, Math.min(100, option.percentage))}%`;
+        });
+      });
+      card.append(options);
+      list.append(card);
+    });
+  }
+
+  async function loadResults() {
+    if (!status || !list) return;
+    try {
+      const headers: Record<string, string> = {};
+      try {
+        const supabase = getBrowserSupabase();
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (data.session?.access_token) {
+          headers.Authorization = 'Bearer ' + data.session.access_token;
+        }
+      } catch (error) {
+        console.error('[sondages/results-page] Could not read the current session:', error);
+      }
+      const response = await fetch('/api/sondages/results', { headers, cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || (isEnglish()
+        ? 'Could not load poll results.'
+        : 'Impossible de charger les résultats.'));
+      renderResults(data.polls || []);
+    } catch (error) {
+      status.classList.add('is-error');
+      status.textContent = error instanceof Error
+        ? error.message
+        : (isEnglish() ? 'Could not load poll results.' : 'Impossible de charger les résultats.');
+    }
+  }
+
+  window.addEventListener('languageChanged', () => {
+    void loadResults();
+  });
+  try {
+    const supabase = getBrowserSupabase();
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      void loadResults();
+    });
+    authSubscription = data.subscription;
+  } catch (error) {
+    console.error('[sondages/results-page] Could not subscribe to auth changes:', error);
+  }
+  window.addEventListener('pagehide', () => authSubscription?.unsubscribe(), { once: true });
+  void loadResults();
+</script>

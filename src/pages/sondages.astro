@@ -1,10 +1,37 @@
 ---
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
+import { createServiceClient } from '../utils/service-client';
+import { loadPollLifecycles, pollLifecycleStatus } from '../utils/sondage-lifecycle';
+import { orderSondages } from '../utils/sondages-order';
+import { sondageOptions } from '../utils/sondages';
 
-const polls = (await getCollection('sondages'))
-  .filter((poll) => poll.data.isVisible)
-  .sort((a, b) => a.data.order - b.data.order || a.id.localeCompare(b.id));
+export const prerender = false;
+
+const polls = orderSondages(await getCollection('sondages'), true);
+const service = createServiceClient();
+let lifecycleRecords = new Map<string, { poll_slug: string; started_at: string; stopped_at: string | null }>();
+let lifecycleUnavailable = false;
+if (service) {
+  try {
+    lifecycleRecords = await loadPollLifecycles(service, polls, true);
+  } catch (error) {
+    console.error('[sondages] Could not initialize poll lifecycles:', error);
+    lifecycleUnavailable = true;
+  }
+} else if (polls.some((poll) => poll.data.duration_hours > 0)) {
+  lifecycleUnavailable = true;
+}
+if (polls.some((poll) => poll.data.isVisible && poll.data.duration_hours > 0 && !lifecycleRecords.has(poll.id))) {
+  lifecycleUnavailable = true;
+}
+
+const activePolls = polls.map((poll) => ({
+  poll,
+  status: pollLifecycleStatus(poll, lifecycleRecords),
+})).filter(({ poll, status }) => (
+  !status.isClosed && (poll.data.duration_hours <= 0 || Boolean(status.startedAt))
+));
 ---
 
 <Layout title="La Sonde">
@@ -29,22 +56,38 @@ const polls = (await getCollection('sondages'))
       </div>
     </header>
 
+    <nav class="sonde-results-nav" aria-label="Résultats de La Sonde">
+      <a href="/sondages/resultats">
+        <span data-lang-content="FR">Voir les résultats</span>
+        <span data-lang-content="EN" hidden>View results</span>
+      </a>
+    </nav>
+
     <div class="sonde-auth-note" data-auth-note hidden>
       <span data-lang-content="FR">Connecte-toi pour enregistrer tes réponses.</span>
       <span data-lang-content="EN" hidden>Sign in to submit your answers.</span>
       <a href="/connexion?redirect=%2Fsondages" data-lang-content="FR">Connexion</a>
       <a href="/connexion?redirect=%2Fsondages" data-lang-content="EN" hidden>Sign in</a>
     </div>
+    {lifecycleUnavailable && (
+      <p class="sonde-lifecycle-warning" role="status">
+        Les sondages à durée limitée sont temporairement indisponibles.
+      </p>
+    )}
+    <p class="sonde-status is-error" id="sonde-state-status" role="status" aria-live="polite"></p>
     <p class="sonde-status" id="sonde-auth-status" role="status" aria-live="polite"></p>
 
     <div class="sonde-view" id="sonde-view" data-mode="grid" data-auth-state="loading">
       <div class="sonde-poll-grid" id="sonde-poll-grid">
-        {polls.length ? polls.map((poll, index) => (
+        {activePolls.length ? activePolls.map(({ poll, status }, index) => (
           <article
             class="sonde-poll-card"
             data-poll-slug={poll.id}
+            data-layout={poll.data.layout}
             data-poll-index={index}
             data-auth-state="loading"
+            data-ends-at={status.endsAt || ''}
+            data-show-live-results={poll.data.show_live_results ? 'true' : 'false'}
             tabindex="0"
             aria-label={`Ouvrir le sondage : ${poll.data.title}`}
           >
@@ -53,6 +96,7 @@ const polls = (await getCollection('sondages'))
                 <h2 data-lang-content="FR">{poll.data.title}</h2>
                 <h2 data-lang-content="EN" hidden>{poll.data.title_en || poll.data.title}</h2>
               </div>
+              <span class="sonde-countdown" data-countdown aria-label="Temps restant"></span>
             </header>
 
             <p class="sonde-question" data-lang-content="FR">{poll.data.question}</p>
@@ -60,21 +104,23 @@ const polls = (await getCollection('sondages'))
 
             <div class="sonde-poll-content">
               <div
-                class="sonde-options"
+                class:list={['sonde-options', `is-${poll.data.layout}`]}
                 role="group"
-                aria-label="Choix de réponse"
-                data-aria-label-fr="Choix de réponse"
-                data-aria-label-en="Answer choices"
+                aria-label={poll.data.layout === 'scale' ? 'Échelle de 1 à 10' : poll.data.layout === 'multiple_choice' ? 'Choix multiples' : 'Choix de réponse'}
+                data-aria-label-fr={poll.data.layout === 'scale' ? 'Échelle de 1 à 10' : poll.data.layout === 'multiple_choice' ? 'Choix multiples' : 'Choix de réponse'}
+                data-aria-label-en={poll.data.layout === 'scale' ? 'Scale from 1 to 10' : poll.data.layout === 'multiple_choice' ? 'Multiple choices' : 'Answer choices'}
               >
-                {poll.data.options.map((option) => (
+                {sondageOptions(poll).map((option) => (
                   <button
                     type="button"
                     class="sonde-option"
                     data-option-id={option.id}
                     aria-pressed="false"
                   >
-                    <span data-lang-content="FR">{option.label}</span>
-                    <span data-lang-content="EN" hidden>{option.label_en || option.label}</span>
+                    <span class="sonde-option-result-fill" data-result-fill aria-hidden="true"></span>
+                    <span class="sonde-option-label" data-lang-content="FR">{option.label}</span>
+                    <span class="sonde-option-label" data-lang-content="EN" hidden>{option.label_en || option.label}</span>
+                    <span class="sonde-option-percentage" data-option-percentage hidden>0%</span>
                   </button>
                 ))}
               </div>
@@ -109,15 +155,17 @@ const polls = (await getCollection('sondages'))
                     data-aria-label-fr="Envoyer ma réponse"
                     data-aria-label-en="Submit my response"
                   >
-                    <span data-lang-content="FR">Oui</span>
-                    <span data-lang-content="EN" hidden>Submit</span>
+                    <span data-lang-content="FR" data-submit-label-fr>Envoyer</span>
+                    <span data-lang-content="EN" data-submit-label-en hidden>Submit</span>
                   </button>
                 </div>
               </div>
             </div>
           </article>
         )) : (
-          <p class="sonde-empty" data-lang-content="FR">Les prochains sondages arriveront bientôt.</p>
+          <p class="sonde-empty" data-lang-content="FR">
+            {lifecycleUnavailable ? 'Les sondages sont temporairement indisponibles.' : 'Les prochains sondages arriveront bientôt.'}
+          </p>
         )}
       </div>
 
@@ -282,6 +330,24 @@ const polls = (await getCollection('sondages'))
     color: #e8e7ef;
   }
 
+  .sonde-results-nav {
+    display: flex;
+    justify-content: flex-end;
+    margin: -8px 0 16px;
+  }
+
+  .sonde-results-nav a {
+    color: #ffb84d;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .sonde-lifecycle-warning {
+    margin: 0 0 12px;
+    color: #ffaaa3;
+  }
+
   .sonde-auth-note[hidden],
   .sonde-welcome-login[hidden] {
     display: none !important;
@@ -299,6 +365,10 @@ const polls = (await getCollection('sondages'))
     min-height: 0;
     margin: 0;
     color: #ffc184;
+  }
+
+  .sonde-status.is-error {
+    color: #ffaaa3;
   }
 
   .sonde-status:empty {
@@ -339,7 +409,8 @@ const polls = (await getCollection('sondages'))
 
   .sonde-poll-heading {
     display: flex;
-    align-items: start;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 16px;
     margin: 0 0 14px;
     padding: 0;
@@ -347,6 +418,25 @@ const polls = (await getCollection('sondages'))
     background: transparent;
     line-height: normal;
     text-align: left;
+  }
+
+  .sonde-countdown {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border: 1px solid #49445c;
+    border-radius: 999px;
+    background: #10102f;
+    color: #d7d6e2;
+    font-size: .74rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .sonde-countdown.is-warning {
+    border-color: rgba(255, 213, 74, .65);
+    background: rgba(255, 213, 74, .12);
+    color: #ffdc61;
   }
 
   .sonde-poll-heading h2 {
@@ -383,6 +473,57 @@ const polls = (await getCollection('sondages'))
     gap: 10px;
   }
 
+  .sonde-options.is-scale {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    align-self: start;
+    align-content: start;
+    align-items: start;
+    gap: 6px;
+  }
+
+  .sonde-options.is-scale .sonde-option {
+    min-width: 0;
+    min-height: 0;
+    aspect-ratio: 1;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    text-align: center;
+  }
+
+  .sonde-options.is-scale .sonde-option[aria-pressed="true"]:not(.is-saved) {
+    box-shadow: 0 0 0 2px #ff7900;
+  }
+
+  .sonde-options.is-scale .sonde-option.is-saved {
+    border-color: #48d6a0;
+    background: #07523f;
+    box-shadow: none;
+  }
+
+  .sonde-options.is-scale .sonde-option.is-saved::after {
+    display: none;
+  }
+
+  .sonde-options.is-multiple_choice .sonde-option {
+    border-radius: 14px;
+  }
+
+  .sonde-options.is-multiple_choice .sonde-option[aria-pressed="true"]:not(.is-saved)::after {
+    content: "✓";
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    background: rgba(255, 121, 0, .2);
+    color: #ffb84d;
+    font-weight: 800;
+  }
+
   .sonde-option {
     position: relative;
     display: flex;
@@ -404,9 +545,47 @@ const polls = (await getCollection('sondages'))
     transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
   }
 
+  .sonde-option-result-fill {
+    position: absolute;
+    z-index: 0;
+    inset: 0 auto 0 0;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(255, 121, 0, .4), rgba(255, 121, 0, .18));
+    pointer-events: none;
+    transition: width 900ms cubic-bezier(.2,.8,.2,1);
+  }
+
+  .sonde-option-label,
+  .sonde-option-percentage {
+    position: relative;
+    z-index: 1;
+  }
+
+  .sonde-option-percentage {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: #fff1d2;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
   .sonde-option:hover {
     transform: translateX(3px);
     background: #111164;
+  }
+
+  .sonde-option:disabled {
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .sonde-option:disabled:not(.is-saved) {
+    opacity: .48;
+  }
+
+  .sonde-option:disabled.is-saved {
+    opacity: .9;
   }
 
   .sonde-option[aria-pressed="true"]:not(.is-saved) {
@@ -659,6 +838,14 @@ const polls = (await getCollection('sondages'))
     perspective: 900px;
   }
 
+  .sonde-view[data-mode="focus"][data-active-layout="scale"] .sonde-poll-grid {
+    max-width: 1120px;
+  }
+
+  .sonde-view[data-mode="focus"][data-active-layout="scale"] .sonde-poll-content {
+    grid-template-columns: minmax(360px, .9fr) minmax(0, 1.1fr);
+  }
+
   .sonde-view[data-mode="grid"] .sonde-response-panel {
     display: none;
   }
@@ -760,6 +947,19 @@ const polls = (await getCollection('sondages'))
       width: 100%;
     }
 
+    .sonde-results-nav {
+      margin-top: -6px;
+    }
+
+    .sonde-poll-heading {
+      align-items: flex-start;
+    }
+
+    .sonde-countdown {
+      max-width: 46%;
+      white-space: normal;
+    }
+
     .sonde-mode-switch button {
       flex: 1;
     }
@@ -778,12 +978,20 @@ const polls = (await getCollection('sondages'))
       gap: 14px;
     }
 
+    .sonde-options.is-scale {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
     .sonde-view[data-mode="grid"] .sonde-poll-content {
       display: block;
     }
 
     .sonde-view[data-mode="focus"] .sonde-response-panel {
       min-height: 0;
+    }
+
+    .sonde-view[data-mode="focus"][data-active-layout="scale"] .sonde-poll-content {
+      grid-template-columns: 1fr;
     }
 
     .sonde-auth-note {
@@ -814,6 +1022,10 @@ const polls = (await getCollection('sondages'))
       animation-duration: .01ms !important;
       scroll-behavior: auto !important;
     }
+
+    .sonde-option-result-fill {
+      transition-duration: .01ms !important;
+    }
   }
 </style>
 
@@ -822,18 +1034,196 @@ const polls = (await getCollection('sondages'))
 
   const page = document.querySelector<HTMLElement>('#sonde-view');
   const welcome = document.querySelector<HTMLElement>('#sonde-welcome');
-  const cards = Array.from(document.querySelectorAll<HTMLElement>('.sonde-poll-card'));
+  let cards = Array.from(document.querySelectorAll<HTMLElement>('.sonde-poll-card'));
+  const pollGrid = document.querySelector<HTMLElement>('#sonde-poll-grid');
   const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-view-mode]'));
   const slideControls = document.querySelector<HTMLElement>('.sonde-slide-controls');
   const slideCount = document.querySelector<HTMLElement>('[data-slide-count]');
   const authNote = document.querySelector<HTMLElement>('[data-auth-note]');
   const authStatus = document.querySelector<HTMLElement>('#sonde-auth-status');
+  const pollStateStatus = document.querySelector<HTMLElement>('#sonde-state-status');
   const welcomeLogin = document.querySelector<HTMLElement>('[data-welcome-login]');
   const welcomeKeyPrefix = 'sonar-sonde-welcome-v1:';
   let activeIndex = 0;
   let currentSession: Awaited<ReturnType<ReturnType<typeof getBrowserSupabase>['auth']['getSession']>>['data']['session'] = null;
   let authSubscription: { unsubscribe: () => void } | null = null;
   let slideLock = false;
+  let countdownInterval: number | undefined;
+  let stateInterval: number | undefined;
+
+  function closeEndedCard(card: HTMLElement) {
+    const index = cards.indexOf(card);
+    if (index < 0) return;
+    const wasActive = index === activeIndex;
+    card.remove();
+    cards = cards.filter((candidate) => candidate !== card);
+    if (!cards.length) {
+      activeIndex = 0;
+      showNoPollsMessage();
+      if (slideControls) slideControls.hidden = true;
+      setMode('grid', false);
+      return;
+    }
+    if (wasActive) activeIndex = Math.min(index, cards.length - 1);
+    else if (index < activeIndex) activeIndex -= 1;
+    setMode(page?.dataset.mode === 'focus' ? 'focus' : 'grid', false);
+  }
+
+  function showNoPollsMessage() {
+    if (!pollGrid) return;
+    const message = document.createElement('p');
+    message.className = 'sonde-empty';
+    message.textContent = textForLanguage(
+      'Les prochains sondages arriveront bientôt.',
+      'New polls will be available soon.',
+    );
+    pollGrid.replaceChildren(message);
+  }
+
+  function formatCountdown(remainingMs: number) {
+    const totalMinutes = Math.max(1, Math.ceil(remainingMs / 60_000));
+    if (currentLanguage() === 'EN') {
+      if (totalMinutes === 60) return '1 hour left';
+      if (totalMinutes < 60) return `${totalMinutes} min left`;
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        const remainingHours = hours % 24;
+        return `${days}d ${remainingHours}h left`;
+      }
+      return `${hours}h ${minutes}m left`;
+    }
+    if (totalMinutes === 60) return '1 heure restante';
+    if (totalMinutes < 60) return `${totalMinutes} min restantes`;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      return `${days} j ${remainingHours} h restantes`;
+    }
+    return `${hours} h ${minutes} min restantes`;
+  }
+
+  function updateCountdowns() {
+    const now = Date.now();
+    cards.slice().forEach((card) => {
+      const countdown = card.querySelector<HTMLElement>('[data-countdown]');
+      const endsAt = Date.parse(card.dataset.endsAt || '');
+      if (!countdown || !Number.isFinite(endsAt)) return;
+      countdown.setAttribute('aria-label', textForLanguage('Temps restant', 'Time remaining'));
+      const remaining = endsAt - now;
+      if (remaining <= 0) {
+        closeEndedCard(card);
+        return;
+      }
+      countdown.textContent = formatCountdown(remaining);
+      countdown.classList.toggle('is-warning', remaining <= 60 * 60 * 1000);
+    });
+  }
+
+  async function synchronizePollStates() {
+    try {
+      const response = await fetch('/api/sondages/state', { cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || textForLanguage(
+        'Impossible de vérifier l’état des sondages.',
+        'Could not check poll status.',
+      ));
+      const statuses = new Map<string, { isVisible: boolean; isClosed: boolean; endsAt: string | null }>(
+        (data.polls || []).map((poll: { slug: string; isVisible: boolean; isClosed: boolean; endsAt: string | null }) => [
+          poll.slug,
+          poll,
+        ]),
+      );
+      cards.slice().forEach((card) => {
+        const status = statuses.get(card.dataset.pollSlug || '');
+        if (!status || !status.isVisible || status.isClosed) {
+          closeEndedCard(card);
+          return;
+        }
+        if (status.endsAt) card.dataset.endsAt = status.endsAt;
+      });
+      if (pollStateStatus) pollStateStatus.textContent = '';
+      updateCountdowns();
+    } catch (error) {
+      console.error('[sondages] Could not synchronize poll status:', error);
+      if (pollStateStatus) {
+        pollStateStatus.textContent = textForLanguage(
+          'L’état des sondages n’a pas pu être actualisé.',
+          'Poll status could not be refreshed.',
+        );
+      }
+    }
+  }
+
+  function applyLiveResults(card: HTMLElement, poll: {
+    options: Array<{ id: string; percentage: number }>;
+  }) {
+    poll.options.forEach((result) => {
+      const button = Array.from(card.querySelectorAll<HTMLButtonElement>('[data-option-id]'))
+        .find((candidate) => candidate.dataset.optionId === result.id);
+      const fill = button?.querySelector<HTMLElement>('[data-result-fill]');
+      const percentage = button?.querySelector<HTMLElement>('[data-option-percentage]');
+      if (!button || !fill || !percentage) return;
+      const value = Math.max(0, Math.min(100, result.percentage));
+      const needsAnimation = percentage.hidden;
+      button.classList.add('has-results');
+      percentage.textContent = `${value.toLocaleString(currentLanguage() === 'EN' ? 'en-US' : 'fr-FR', {
+        maximumFractionDigits: 1,
+      })}%`;
+      percentage.hidden = false;
+      if (needsAnimation) {
+        fill.style.width = '0%';
+        requestAnimationFrame(() => {
+          fill.style.width = `${value}%`;
+        });
+      } else {
+        fill.style.width = `${value}%`;
+      }
+    });
+  }
+
+  function hideLiveResults(card: HTMLElement) {
+    card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
+      button.classList.remove('has-results');
+      const fill = button.querySelector<HTMLElement>('[data-result-fill]');
+      const percentage = button.querySelector<HTMLElement>('[data-option-percentage]');
+      if (fill) fill.style.width = '0%';
+      if (percentage) percentage.hidden = true;
+    });
+  }
+
+  async function refreshLiveResults() {
+    const eligibleCards = cards.filter((card) => (
+      card.dataset.showLiveResults === 'true'
+      && Boolean(card.dataset.savedOption)
+    ));
+    if (!currentSession?.access_token || !eligibleCards.length) return;
+    try {
+      const response = await fetch('/api/sondages/results?scope=live', {
+        headers: { Authorization: 'Bearer ' + currentSession.access_token },
+        cache: 'no-store',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Could not load poll results.');
+      const results = new Map<string, { options: Array<{ id: string; percentage: number }> }>(
+        (data.polls || []).map((poll: { slug: string; options: Array<{ id: string; percentage: number }> }) => [
+          poll.slug,
+          poll,
+        ]),
+      );
+      eligibleCards.forEach((card) => {
+        const result = results.get(card.dataset.pollSlug || '');
+        if (result) applyLiveResults(card, result);
+        else hideLiveResults(card);
+      });
+    } catch (error) {
+      eligibleCards.forEach(hideLiveResults);
+      console.error('[sondages] Could not refresh live poll results:', error);
+    }
+  }
 
   function currentLanguage() {
     return (localStorage.getItem('site_lang') || 'FR').toUpperCase() === 'EN' ? 'EN' : 'FR';
@@ -850,11 +1240,33 @@ const polls = (await getCollection('sondages'))
     status.classList.toggle('is-error', isError);
   }
 
-  function updateSavedOption(card: HTMLElement, optionId: string | null) {
-    card.dataset.savedOption = optionId || '';
+  function updateSavedOption(card: HTMLElement, optionId: string | null, optionIds?: string[]) {
+    const savedIds = optionIds && optionIds.length ? optionIds : optionId ? [optionId] : [];
+    card.dataset.savedOption = savedIds[0] || '';
+    const saved = savedIds.length > 0;
     card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
-      button.classList.toggle('is-saved', Boolean(optionId && button.dataset.optionId === optionId));
+      button.classList.toggle('is-saved', savedIds.indexOf(button.dataset.optionId || '') !== -1);
+      button.disabled = saved;
     });
+    card.classList.toggle('is-answered', saved);
+    const explanation = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
+    if (explanation) explanation.disabled = saved;
+    const submit = card.querySelector<HTMLButtonElement>('[data-submit-poll]');
+    if (submit) {
+      const labels = {
+        fr: saved ? 'Réponse envoyée' : 'Envoyer ma réponse',
+        en: saved ? 'Response sent' : 'Submit my response',
+      };
+      submit.dataset.ariaLabelFr = labels.fr;
+      submit.dataset.ariaLabelEn = labels.en;
+      submit.setAttribute('aria-label', textForLanguage(labels.fr, labels.en));
+      const frenchLabel = submit.querySelector<HTMLElement>('[data-submit-label-fr]');
+      const englishLabel = submit.querySelector<HTMLElement>('[data-submit-label-en]');
+      if (frenchLabel) frenchLabel.textContent = saved ? 'Réponse envoyée' : 'Envoyer';
+      if (englishLabel) englishLabel.textContent = saved ? 'Response sent' : 'Submit';
+      submit.disabled = saved || !currentSession?.access_token;
+    }
+    if (!optionId) hideLiveResults(card);
   }
 
   function updateCharacterCount(card: HTMLElement) {
@@ -866,7 +1278,13 @@ const polls = (await getCollection('sondages'))
   function updateSubmitButtons(isAuthenticated: boolean) {
     cards.forEach((card) => {
       const button = card.querySelector<HTMLButtonElement>('[data-submit-poll]');
-      if (button) button.disabled = !isAuthenticated;
+      const hasAnswered = Boolean(card.dataset.savedOption);
+      if (button) button.disabled = !isAuthenticated || hasAnswered;
+      card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((option) => {
+        option.disabled = hasAnswered;
+      });
+      const explanation = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
+      if (explanation) explanation.disabled = hasAnswered;
       card.dataset.authState = isAuthenticated ? 'user' : 'guest';
     });
   }
@@ -889,9 +1307,23 @@ const polls = (await getCollection('sondages'))
   }
 
   function updateAuth(session: typeof currentSession) {
+    const previousUserId = currentSession?.user?.id || null;
+    const userId = session?.user?.id || null;
+    if (previousUserId !== userId) {
+      cards.forEach((card) => {
+        updateSavedOption(card, null);
+        card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
+          button.setAttribute('aria-pressed', 'false');
+        });
+        const explanation = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
+        if (explanation) {
+          explanation.value = '';
+          updateCharacterCount(card);
+        }
+      });
+    }
     currentSession = session;
     const isAuthenticated = Boolean(session?.access_token && session.user);
-    const userId = session?.user?.id || null;
     if (page) page.dataset.authState = isAuthenticated ? 'user' : 'guest';
     updateSubmitButtons(isAuthenticated);
     if (authNote) authNote.hidden = isAuthenticated;
@@ -921,18 +1353,27 @@ const polls = (await getCollection('sondages'))
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.message || textForLanguage('Impossible de charger ta réponse.', 'Could not load your response.'));
         const saved = data.response;
-        if (!saved) return;
+        if (!saved) {
+          updateSavedOption(card, null);
+          return;
+        }
+        const savedOptionIds = Array.isArray(saved.option_ids) && saved.option_ids.length
+          ? saved.option_ids
+          : [saved.option_id];
         card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
-          const selected = button.dataset.optionId === saved.option_id;
+          const selected = savedOptionIds.includes(button.dataset.optionId || '');
           button.setAttribute('aria-pressed', selected ? 'true' : 'false');
         });
-        updateSavedOption(card, saved.option_id);
+        updateSavedOption(card, savedOptionIds[0] || null, savedOptionIds);
         const explanation = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
         if (explanation) {
           explanation.value = (saved.explanation || '').slice(0, 200);
           updateCharacterCount(card);
         }
-        setCardStatus(card, textForLanguage('Ta réponse actuelle est chargée.', 'Your current response is loaded.'));
+        setCardStatus(card, textForLanguage(
+          'Ta réponse est enregistrée et définitive pour ce sondage.',
+          'Your response is saved and final for this poll.',
+        ));
       } catch (error) {
         setCardStatus(
           card,
@@ -941,6 +1382,7 @@ const polls = (await getCollection('sondages'))
         );
       }
     }));
+    void refreshLiveResults();
   }
 
   function updateSlideCount() {
@@ -950,7 +1392,13 @@ const polls = (await getCollection('sondages'))
 
   function setMode(mode: 'grid' | 'focus', animate = true) {
     if (!page) return;
+    const enteringFocus = mode === 'focus' && page.dataset.mode !== 'focus';
+    const zoomCard = enteringFocus ? cards[activeIndex] : null;
+    const startRect = zoomCard?.getBoundingClientRect();
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const useZoomAnimation = Boolean(animate && zoomCard && startRect && !reducedMotion && zoomCard.animate);
     page.dataset.mode = mode;
+    page.dataset.activeLayout = mode === 'focus' ? cards[activeIndex]?.dataset.layout || '' : '';
     cards.forEach((card, index) => {
       card.hidden = mode === 'focus' && index !== activeIndex;
       card.classList.remove('is-slide-in-left', 'is-slide-in-right', 'is-slide-out-left', 'is-slide-out-right');
@@ -964,8 +1412,43 @@ const polls = (await getCollection('sondages'))
     updateSlideCount();
     if (animate) {
       page.classList.remove('is-zooming-in', 'is-zooming-out');
-      page.classList.add(mode === 'focus' ? 'is-zooming-in' : 'is-zooming-out');
+      if (mode === 'grid') page.classList.add('is-zooming-out');
+      else if (!useZoomAnimation) page.classList.add('is-zooming-in');
       globalThis.setTimeout(() => page.classList.remove('is-zooming-in', 'is-zooming-out'), 360);
+    }
+    if (enteringFocus) {
+      requestAnimationFrame(() => {
+        const card = cards[activeIndex];
+        if (!card) return;
+        const cardRect = card.getBoundingClientRect();
+        const root = document.documentElement;
+        const previousScrollBehavior = root.style.scrollBehavior;
+        root.style.scrollBehavior = 'auto';
+        window.scrollTo({
+          top: Math.max(0, window.scrollY + cardRect.top - (window.innerHeight - cardRect.height) / 2),
+          behavior: 'auto',
+        });
+        root.style.scrollBehavior = previousScrollBehavior;
+
+        if (!useZoomAnimation || !startRect) return;
+        const targetRect = card.getBoundingClientRect();
+        if (!targetRect.width || !targetRect.height) return;
+        const animation = card.animate([
+          {
+            transformOrigin: 'top left',
+            transform: `translate(${startRect.left - targetRect.left}px, ${startRect.top - targetRect.top}px) scale(${startRect.width / targetRect.width}, ${startRect.height / targetRect.height})`,
+          },
+          {
+            transformOrigin: 'top left',
+            transform: 'translate(0, 0) scale(1, 1)',
+          },
+        ], {
+          duration: 420,
+          easing: 'cubic-bezier(.18, .8, .25, 1)',
+          fill: 'both',
+        });
+        animation.onfinish = () => animation.cancel();
+      });
     }
   }
 
@@ -980,6 +1463,7 @@ const polls = (await getCollection('sondages'))
       outgoing.hidden = true;
       outgoing.classList.remove('is-slide-out-left', 'is-slide-out-right');
       activeIndex = nextIndex;
+      if (page) page.dataset.activeLayout = incoming.dataset.layout || '';
       incoming.hidden = false;
       incoming.classList.add(direction > 0 ? 'is-slide-in-left' : 'is-slide-in-right');
       updateSlideCount();
@@ -1011,11 +1495,13 @@ const polls = (await getCollection('sondages'))
       button.addEventListener('click', () => setMode(button.dataset.viewMode === 'focus' ? 'focus' : 'grid'));
     });
 
-    cards.forEach((card, index) => {
+    cards.forEach((card) => {
       card.addEventListener('click', (event) => {
         if (page?.dataset.mode !== 'grid') return;
         const target = event.target as HTMLElement | null;
         if (target?.closest('button, textarea, input, a, select')) return;
+        const index = cards.indexOf(card);
+        if (index < 0) return;
         activeIndex = index;
         setMode('focus');
       });
@@ -1024,6 +1510,8 @@ const polls = (await getCollection('sondages'))
         if (page?.dataset.mode !== 'grid' || (event.key !== 'Enter' && event.key !== ' ')) return;
         if (event.target !== card) return;
         event.preventDefault();
+        const index = cards.indexOf(card);
+        if (index < 0) return;
         activeIndex = index;
         setMode('focus');
       });
@@ -1031,11 +1519,20 @@ const polls = (await getCollection('sondages'))
       card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((button) => {
         button.addEventListener('click', (event) => {
           event.stopPropagation();
-          card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((option) => {
-            option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
-          });
-          setCardStatus(card, '');
-          if (page?.dataset.mode === 'grid') {
+            const selectedFromGrid = page?.dataset.mode === 'grid';
+            const isMultipleChoice = card.dataset.layout === 'multiple_choice';
+            if (isMultipleChoice) {
+              button.setAttribute('aria-pressed', button.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+            } else {
+              card.querySelectorAll<HTMLButtonElement>('[data-option-id]').forEach((option) => {
+                option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
+              });
+            }
+            setCardStatus(card, '');
+            if (selectedFromGrid) {
+              card.dataset.returnToGridAfterVote = 'true';
+            const index = cards.indexOf(card);
+            if (index < 0) return;
             activeIndex = index;
             setMode('focus');
             button.focus();
@@ -1048,8 +1545,9 @@ const polls = (await getCollection('sondages'))
       });
 
       card.querySelector<HTMLButtonElement>('[data-submit-poll]')?.addEventListener('click', async () => {
-        const selected = card.querySelector<HTMLButtonElement>('[data-option-id][aria-pressed="true"]');
-        if (!selected) {
+        const selectedOptions = Array.from(card.querySelectorAll<HTMLButtonElement>('[data-option-id][aria-pressed="true"]'));
+        const selectedIds = selectedOptions.map((option) => option.dataset.optionId || '').filter(Boolean);
+        if (!selectedIds.length) {
           setCardStatus(card, textForLanguage('Choisis une réponse avant de continuer.', 'Choose an answer before continuing.'), true);
           return;
         }
@@ -1061,6 +1559,7 @@ const polls = (await getCollection('sondages'))
         const submit = card.querySelector<HTMLButtonElement>('[data-submit-poll]');
         const explanation = card.querySelector<HTMLTextAreaElement>('[data-explanation]');
         if (!submit) return;
+        const returnToGridAfterVote = card.dataset.returnToGridAfterVote === 'true';
         submit.disabled = true;
         setCardStatus(card, textForLanguage('Envoi de ta réponse…', 'Submitting your response…'));
         try {
@@ -1072,17 +1571,23 @@ const polls = (await getCollection('sondages'))
             },
             body: JSON.stringify({
               poll_slug: card.dataset.pollSlug,
-              option_id: selected.dataset.optionId,
+              option_id: selectedIds[0],
+              option_ids: selectedIds,
               explanation: explanation?.value || '',
             }),
           });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.message || textForLanguage('Impossible d’enregistrer ta réponse.', 'Could not save your response.'));
-          updateSavedOption(card, selected.dataset.optionId || null);
+          updateSavedOption(card, selectedIds[0] || null, selectedIds);
           setCardStatus(card, textForLanguage(
-            'Réponse enregistrée. Tu peux la modifier tant que le sondage reste visible.',
-            'Response saved. You can update it while the poll remains available.',
+            'Réponse enregistrée. Elle ne peut plus être modifiée.',
+            'Response saved. It can no longer be changed.',
           ));
+          void refreshLiveResults();
+          if (returnToGridAfterVote) {
+            delete card.dataset.returnToGridAfterVote;
+            setMode('grid');
+          }
         } catch (error) {
           setCardStatus(
             card,
@@ -1090,7 +1595,7 @@ const polls = (await getCollection('sondages'))
             true,
           );
         } finally {
-          submit.disabled = !currentSession?.access_token;
+          submit.disabled = !currentSession?.access_token || Boolean(card.dataset.savedOption);
         }
       });
     });
@@ -1126,7 +1631,12 @@ const polls = (await getCollection('sondages'))
       }
     });
 
-    window.addEventListener('languageChanged', setPlaceholderLanguage);
+    window.addEventListener('languageChanged', () => {
+      setPlaceholderLanguage();
+      updateCountdowns();
+      void refreshLiveResults();
+      if (!cards.length) showNoPollsMessage();
+    });
     setPlaceholderLanguage();
   }
 
@@ -1153,6 +1663,19 @@ const polls = (await getCollection('sondages'))
 
   installInteractions();
   setMode('grid', false);
+  updateCountdowns();
+  void synchronizePollStates();
+  void refreshLiveResults();
+  countdownInterval = window.setInterval(updateCountdowns, 1000);
+  stateInterval = window.setInterval(() => {
+    void synchronizePollStates();
+    void refreshLiveResults();
+  }, 30_000);
+  document.addEventListener('visibilitychange', updateCountdowns);
   void initializeAuth();
-  window.addEventListener('pagehide', () => authSubscription?.unsubscribe(), { once: true });
+  window.addEventListener('pagehide', () => {
+    authSubscription?.unsubscribe();
+    if (countdownInterval !== undefined) window.clearInterval(countdownInterval);
+    if (stateInterval !== undefined) window.clearInterval(stateInterval);
+  }, { once: true });
 </script>
