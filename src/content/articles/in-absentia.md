@@ -31,6 +31,15 @@ revue_rows:
       image: ""
     full_width: true
     editor_title: Ligne 1
+  - full_width: true
+    left:
+      type: intertitre
+      text: Presentation of the band and album overview
+      text_en: Presentation of the band and album overview
+    right:
+      type: texte
+      text: ""
+      text_en: ""
   - left:
       type: image
       image: /assets/uploads/2d5e5e08abf3a16dbfe9837538c47866.jpg
@@ -110,6 +119,15 @@ revue_rows:
         audio effects, and hypnotic, repetitive basslines. All of these
         influences are blended in the record without any friction.
     full_width: true
+  - full_width: true
+    left:
+      type: intertitre
+      text: Compositional features of the record
+      text_en: "Compositional features of the record "
+    right:
+      type: texte
+      text: ""
+      text_en: ""
   - left:
       type: image
       text: One of the record's strengths is the impeccable pacing of compositions and
@@ -133,6 +151,8 @@ revue_rows:
         the tracks to play with the listener’s expectations and resolve in a
         compelling way.
       image: /assets/uploads/live.jpg
+      image_caption: Porcupine Tree on the In Absentia tour
+      image_caption_en: Porcupine Tree on the In Absentia tour
     right:
       type: texte
       text_en: One of the record's strengths is the impeccable pacing of composition.
@@ -187,6 +207,15 @@ revue_rows:
         the tracks, ranging from quiet to nervous and creating a sense of
         journey throughout the album.
     full_width: true
+  - full_width: true
+    left:
+      type: intertitre
+      text: "Sonic analysis "
+      text_en: Sonic analysis
+    right:
+      type: texte
+      text: ""
+      text_en: ""
   - left:
       type: texte
       text: If the songwriting of this album is nothing short of incredible by itself,
@@ -276,6 +305,15 @@ revue_rows:
     right:
       type: texte
     full_width: true
+  - full_width: true
+    left:
+      type: intertitre
+      text: Song by song breakdown
+      text_en: ""
+    right:
+      type: texte
+      text: ""
+      text_en: ""
   - left:
       type: image
       image: /assets/uploads/trains.jpg
@@ -328,6 +366,15 @@ revue_rows:
     right:
       type: texte
     full_width: true
+  - full_width: true
+    left:
+      type: intertitre
+      text: Independent tracks
+      text_en: Independent tracks
+    right:
+      type: texte
+      text: ""
+      text_en: ""
   - full_width: true
     left:
       type: texte
@@ -442,6 +489,15 @@ revue_rows:
         in a state of acceptance.
     right:
       type: texte
+  - full_width: true
+    left:
+      type: intertitre
+      text: Thematic songs
+      text_en: "Thematic songs "
+    right:
+      type: texte
+      text: ""
+      text_en: ""
   - left:
       type: texte
       text: As for the other songs, they’re expanding more on insanity, worsening as
