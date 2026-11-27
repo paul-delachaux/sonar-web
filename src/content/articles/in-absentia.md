@@ -151,6 +151,8 @@ revue_rows:
         the tracks to play with the listener’s expectations and resolve in a
         compelling way.
       image: /assets/uploads/live.jpg
+      image_caption: Porcupine Tree on the In Absentia tour
+      image_caption_en: Porcupine Tree on the In Absentia tour
     right:
       type: texte
       text_en: One of the record's strengths is the impeccable pacing of composition.
